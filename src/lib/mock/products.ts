@@ -1,0 +1,203 @@
+import type { Product } from "@/types/product";
+
+import { tomatoImage } from "./tomato-images";
+
+/**
+ * Mock 상품 데이터.
+ * 실제 API 연동 시 이 파일은 삭제되고 `lib/api/products.ts` 만 실 endpoint 로 교체된다.
+ *
+ * 각 카테고리/서브카테고리에 최소 2개 이상 상품을 두어 리스트 페이지가 그리드 형태로 보이도록 한다.
+ * 이미지 URL 은 mock 전용 헬퍼 `tomatoImage` 로 생성한다 — 브랜드 컨셉(토마토)과 어울리는 임시 이미지.
+ */
+
+/** 상품 카드 썸네일 표준 크기(3:4). */
+const productImage = (index: number) =>
+  tomatoImage(index, { width: 800, height: 1000 });
+
+export const MOCK_PRODUCTS: Product[] = [
+  // ─── Phone Case · Epoxy & Glass ───────────────────────────────
+  {
+    id: "prod-001",
+    slug: "mellow-macsafe",
+    name: "핸드폰 케이스 MELLOW",
+    option: "옵션 | 맥세이프",
+    price: 23000,
+    salePrice: 19000,
+    badges: ["NEW", "BEST"],
+    category: "phone-case",
+    subcategory: "epoxy-glass",
+    salesCount: 420,
+    rating: 4.8,
+    imageUrl: productImage(0),
+    hoverImageUrl: productImage(1),
+  },
+  {
+    id: "prod-002",
+    slug: "dottie-cream-red",
+    name: "핸드폰 케이스 DOTTIE (cream / red)",
+    option: "옵션 | 맥세이프",
+    price: 23000,
+    salePrice: 19000,
+    badges: ["SALE", "BEST"],
+    category: "phone-case",
+    subcategory: "epoxy-glass",
+    salesCount: 380,
+    rating: 4.7,
+    imageUrl: productImage(2),
+    hoverImageUrl: productImage(3),
+  },
+  {
+    id: "prod-003",
+    slug: "mellow-glass-cream",
+    name: "핸드폰 케이스 MELLOW GLASS",
+    option: "옵션 | 맥세이프",
+    price: 25000,
+    salePrice: 21000,
+    badges: ["SALE"],
+    category: "phone-case",
+    subcategory: "epoxy-glass",
+    salesCount: 210,
+    rating: 4.5,
+    imageUrl: productImage(4),
+    hoverImageUrl: productImage(5),
+  },
+
+  // ─── Phone Case · Clear Jelly Hard ────────────────────────────
+  {
+    id: "prod-004",
+    slug: "clear-jelly-basic",
+    name: "핸드폰 케이스 CLEAR JELLY",
+    option: "옵션 | 맥세이프 미지원",
+    price: 18000,
+    badges: ["NEW"],
+    category: "phone-case",
+    subcategory: "clear-jelly",
+    salesCount: 560,
+    rating: 4.6,
+    imageUrl: productImage(6),
+    hoverImageUrl: productImage(7),
+  },
+  {
+    id: "prod-005",
+    slug: "clear-jelly-hard",
+    name: "핸드폰 케이스 CLEAR JELLY HARD",
+    option: "옵션 | 맥세이프",
+    price: 22000,
+    salePrice: 18000,
+    badges: ["SALE", "BEST"],
+    category: "phone-case",
+    subcategory: "clear-jelly",
+    salesCount: 640,
+    rating: 4.9,
+    imageUrl: productImage(8),
+    hoverImageUrl: productImage(9),
+  },
+  {
+    id: "prod-006",
+    slug: "jelly-airy-tint",
+    name: "핸드폰 케이스 JELLY AIRY TINT",
+    option: "옵션 | 맥세이프",
+    price: 21000,
+    salePrice: 17500,
+    badges: ["SALE"],
+    category: "phone-case",
+    subcategory: "clear-jelly",
+    salesCount: 190,
+    rating: 4.4,
+    imageUrl: productImage(10),
+    hoverImageUrl: productImage(11),
+  },
+
+  // ─── Phone ACC · Tok ─────────────────────────────────────────
+  {
+    id: "prod-007",
+    slug: "tok-cream-round",
+    name: "톡 CREAM ROUND",
+    option: "옵션 | 원형",
+    price: 12000,
+    badges: ["NEW"],
+    category: "phone-acc",
+    subcategory: "tok",
+    salesCount: 300,
+    rating: 4.7,
+    imageUrl: productImage(12),
+    hoverImageUrl: productImage(13),
+  },
+  {
+    id: "prod-008",
+    slug: "tok-red-square",
+    name: "톡 RED SQUARE",
+    option: "옵션 | 사각형",
+    price: 12000,
+    salePrice: 9900,
+    badges: ["SALE"],
+    category: "phone-acc",
+    subcategory: "tok",
+    salesCount: 250,
+    rating: 4.5,
+    imageUrl: productImage(14),
+    hoverImageUrl: productImage(0),
+  },
+
+  // ─── Phone ACC · Card Wallet ─────────────────────────────────
+  {
+    id: "prod-009",
+    slug: "card-wallet-slim",
+    name: "카드지갑 SLIM",
+    option: "옵션 | 맥세이프",
+    price: 19000,
+    badges: ["BEST"],
+    category: "phone-acc",
+    subcategory: "card-wallet",
+    salesCount: 470,
+    rating: 4.8,
+    imageUrl: productImage(1),
+    hoverImageUrl: productImage(2),
+  },
+  {
+    id: "prod-010",
+    slug: "card-wallet-classic",
+    name: "카드지갑 CLASSIC",
+    option: "옵션 | 맥세이프",
+    price: 24000,
+    salePrice: 19900,
+    badges: ["SALE", "BEST"],
+    category: "phone-acc",
+    subcategory: "card-wallet",
+    salesCount: 520,
+    rating: 4.9,
+    imageUrl: productImage(3),
+    hoverImageUrl: productImage(4),
+  },
+
+  // ─── Phone ACC · Airpods Case ────────────────────────────────
+  {
+    id: "prod-011",
+    slug: "airpods-mellow",
+    name: "에어팟 케이스 MELLOW",
+    option: "옵션 | 3세대 / Pro",
+    price: 16000,
+    badges: ["NEW"],
+    category: "phone-acc",
+    subcategory: "airpods-case",
+    salesCount: 180,
+    rating: 4.6,
+    imageUrl: productImage(5),
+    hoverImageUrl: productImage(6),
+  },
+  {
+    id: "prod-012",
+    slug: "airpods-dottie",
+    name: "에어팟 케이스 DOTTIE",
+    option: "옵션 | 3세대 / Pro",
+    price: 16000,
+    salePrice: 13500,
+    badges: ["SALE"],
+    category: "phone-acc",
+    subcategory: "airpods-case",
+    salesCount: 140,
+    rating: 4.4,
+    imageUrl: productImage(7),
+    hoverImageUrl: productImage(8),
+  },
+];

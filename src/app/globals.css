@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens
+ * publish/*.html 에서 도출한 브랜드 색상/타이포/스페이싱을 CSS 변수로 정의한다.
+ * Tailwind v4 는 @theme 블록에 정의한 토큰을 자동으로 유틸리티 클래스로 생성한다.
+ * 예: --color-brand-primary → bg-brand-primary, text-brand-primary
+ */
+@theme {
+  /* Colors — brand */
+  --color-brand-primary: #ba3e1c;
+  --color-brand-secondary: #722819;
+  --color-brand-tint: #fff5f5;
+  --color-brand-badge: #eda591;
+  --color-brand-divider: #cd7d7d;
+  --color-brand-highlight: #eededd;
+
+  /* Colors — surface */
+  --color-surface-page: #f2eeec;
+  --color-surface-primary: #fff5f5;
+  --color-surface-elevated: #ffffff;
+  --color-surface-util: #fffdf8;
+  --color-surface-hero: #e9e2db;
+  --color-surface-hero-caption: #e8dcd0;
+
+  /* Colors — text */
+  --color-ink-primary: #111111;
+  --color-ink-body: #212121;
+  --color-ink-muted: #353535;
+  --color-ink-subtle: #8a8a8a;
+  --color-ink-placeholder: #8c8c8c;
+  --color-ink-inverse: #ffffff;
+  --color-ink-icon: #1a1a1a;
+
+  /* Colors — accent */
+  --color-accent-help-bg: #c1d9b9;
+  --color-accent-help-text: #3b4a36;
+  --color-accent-sns: #a99c97;
+
+  /* Typography */
+  --font-sans:
+    "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", ui-sans-serif, system-ui, sans-serif;
+  --font-serif:
+    var(--font-hahmlet), "Nanum Myeongjo", Georgia, "Times New Roman", serif;
+
+  /* Layout */
+  --spacing-container: 1200px;
+  --spacing-canvas: 1440px;
+  --spacing-header: 110px;
+  --spacing-topbar: 55px;
+}
+
+/*
+ * Global base
+ * - body 는 페이지 배경(회색톤)을, .page 컨테이너가 브랜드 배경을 담당한다.
+ * - 링크/리스트 기본 스타일 초기화. 텍스트 색상은 각 컴포넌트가 명시적으로 지정.
+ */
+@layer base {
+  html {
+    color: var(--color-ink-body);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-surface-page);
+    font-family: var(--font-sans);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  ul,
+  ol {
+    list-style: none;
+  }
+
+  button {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+  }
+}
