@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>eatomato · 공지사항 페이지</title>
+<!--
+  eatomato 공지사항(Notice) 페이지 레이아웃 (request_layout.pdf 5p 기준)
+  - Figma 변환용: html.to.design 등 플러그인으로 import 하면 Auto Layout 프레임으로 들어옵니다.
+  - 외부 폰트/이미지/스크립트 의존성 없음. 모든 값은 리터럴 px / hex.
+  - PDF의 빨간색 주석(설명)은 디자인이 아니므로 제외했습니다.
+  - 기준 캔버스 폭: 1440px / 콘텐츠 컨테이너: 1200px (main-page.html과 동일 그리드)
+
+  [5p 고유 사항]
+  - 5p 시안에는 상단 블랙 공지바(topbar)와 푸터 상단 구분선이 없습니다.
+    topbar 는 제외했고, 푸터 구분선은 공통 컴포넌트라 추가했습니다.
+    리스트 패널 하단 4분할선과 붙어 보이지 않도록 .board 에 하단 32px 을 두었습니다.
+
+  [5p 실측 수치]
+  - 헤더 높이 68.5px(스크롤 축소 상태) → 공통 규격 110px 사용
+  - 리스트 패널 배경 #FFFDF8 / 테이블 폭 1227.5px → 1200px 그리드로 정규화
+  - thead 높이 55px, 본문 행 높이 60px × 19행, 구분선 1px #000
+  - 컬럼 비율 번호:제목:글쓴이:등록일 = 100 : 나머지 : 100 : 144
+  - 검색 input 220×44 / 버튼 68×44 (간격 8px), 리스트 하단에서 20px 아래
+  - 페이지네이션은 디자인에 없음(검색 영역만 존재)
+
+  [공통 컴포넌트 사양 — 전 페이지 동일 (헤더 / 푸터)]
+  · 헤더   높이 110px / 배경 #FFF5F5
+           로고 38px 세리프 500 #BA3E1C · GNB 16px 400 #722819 (간격 30px)
+           GNB↔유틸 28px · 유틸칩 #FFFDF8 padding 8/12 · 아이콘 22px #1A1A1A
+  · 푸터   구분선 1px #CD7D7D → 링크 78px (padding-top 76)
+           링크 12.5px 700 #000 (간격 16px) · 안내문 12.5px 400 #000 (line-height 15)
+           인스타 링크 우측 상단 고정 · 하단 여백 100px
+  · 컨테이너 1200px (1440 프레임 기준 좌우 여백 120px)
+  · 헤더 110px 은 6p(로그인)·8p(장바구니) 실측값입니다. 4·5p 캡처의 68.5px 은
+    스크롤 시 축소된 상태로 판단해 기본값(110px)으로 통일했습니다.
+  · 푸터 구분선의 시안 실측값은 #A21515 헤어라인(원본 1px = 0.5css)입니다.
+    1px 로 그리면 과해져, 배경 위 blend 값인 #CD7D7D(1p·4p 실측)를 사용했습니다.
+  · 상단 블랙 공지바(topbar)는 1p 에만 노출되어 main-page.html 에만 두었습니다.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F2EEEC;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    color: #212121;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  ul { list-style: none; }
+
+  /* ===== Page (Figma Frame 1440) ===== */
+  .page {
+    width: 1440px;
+    margin: 0 auto;
+    background: #FFF5F5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container {
+    width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ===== Header / GNB ===== */
+  .header {
+    width: 100%;
+    height: 110px;
+    background: #FFF5F5;
+  }
+  .header__inner {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Hahmlet', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    color: #BA3E1C;
+  }
+  /* 칩 좌측 패딩 12px 포함 시 GNB 끝 → 아이콘 37px (타 페이지와 동일) */
+  .header__right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .gnb {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .gnb__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 110px;
+  }
+  .gnb__link {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #722819;
+  }
+
+  /* GNB 드롭다운: 마우스 오버 시 하단으로 노출 */
+  .gnb__dropdown {
+    display: none;
+    position: absolute;
+    top: 110px;
+    left: -20px;
+    z-index: 10;
+  }
+  .gnb__item:hover .gnb__dropdown { display: block; }
+
+  .dropdown-panel {
+    width: 180px;
+    padding: 18px 20px;
+    background: #FFFFFF;
+    border: 1px solid #F0E2DE;
+    box-shadow: 0 8px 20px rgba(33, 33, 33, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .dropdown-panel__link {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #3D3D3D;
+  }
+
+  /* 유틸 아이콘 3종 + 크림 배경 칩 */
+  .util {
+    padding: 8px 12px;
+    background: #FFFDF8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1A1A1A;
+  }
+  .util__btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== Notice Board (본문) ===== */
+  .board {
+    width: 1280px;
+    margin: 0 auto;
+    padding: 0 40px 1px;
+    background: #FFFDF8;
+  }
+
+  .notice-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .notice-table col.col--no    { width: 100px; }
+  .notice-table col.col--title { width: auto; }
+  .notice-table col.col--user  { width: 100px; }
+  .notice-table col.col--date  { width: 144px; }
+
+  .notice-table th {
+    height: 55px;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #000000;
+    text-align: center;
+    border-bottom: 1px solid #000000;
+  }
+  .notice-table td {
+    height: 60px;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #000000;
+    text-align: center;
+    border-bottom: 1px solid #000000;
+  }
+  .notice-table .cell--title {
+    padding-left: 10px;
+    text-align: left;
+  }
+
+  /* 상단 고정 공지(공지 라벨) 행은 볼드 */
+  .notice-row--pinned td { font-weight: 700; }
+
+  /* ===== 검색 영역 ===== */
+  .board-search {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .board-search__input {
+    width: 220px;
+    height: 44px;
+    padding: 0 12px;
+    background: transparent;
+    border: 1px solid #000000;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .board-search__btn {
+    width: 68px;
+    height: 44px;
+    background: transparent;
+    border: 1px solid #000000;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #000000;
+    cursor: pointer;
+  }
+
+  /* 리스트 패널 하단의 4분할 구분선 (5p 캡처에 노출된 그대로 반영) */
+  .board-bottom-rule {
+    margin-top: 33px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+  }
+  .board-bottom-rule__line {
+    height: 1px;
+    background: #ADADAD;
+  }
+
+  /* 리스트 패널 하단 4분할선과 공통 푸터 구분선이 붙어 보이지 않도록 간격 확보.
+     5p 시안에는 푸터 구분선이 없었으나 전 페이지 공통 컴포넌트로 통일하며 추가된 값입니다. */
+  .board { margin-bottom: 32px; }
+
+  /* ===== Footer ===== */
+  .footer {
+    padding-bottom: 100px;
+  }
+  .footer__inner {
+    position: relative;
+    padding-top: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .footer__links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .footer__link {
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer__info-line {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  /* 5p 시안에는 없지만 전 페이지 공통 요소이므로 타 페이지와 동일하게 포함 */
+  .footer__sns {
+    position: absolute;
+    right: 0;
+    top: 76px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #A99C97;
+  }
+  .footer__sns-text {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #A99C97;
+  }
+  .footer__divider {
+    width: 100%;
+    height: 1px;
+    background: #CD7D7D;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header / GNB -->
+  <header class="header">
+    <div class="container header__inner">
+      <a class="logo" href="#">eatomato</a>
+
+      <div class="header__right">
+        <nav class="gnb">
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone Case</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+                <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone ACC</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Tok</a>
+                <a class="dropdown-panel__link" href="#">Card Wallet</a>
+                <a class="dropdown-panel__link" href="#">Airpods Case</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item"><a class="gnb__link" href="#">SET ITEM</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">About</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#" aria-current="page">Notice</a></div>
+        </nav>
+
+        <div class="util">
+          <a class="util__btn" href="#" aria-label="검색">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9.5" cy="9.5" r="6.8" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M14.6 14.6L20 20" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="마이페이지">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="7" r="4.2" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M3.4 19.6C4.3 15.9 7.3 13.4 11 13.4C14.7 13.4 17.7 15.9 18.6 19.6" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="장바구니">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.5 2.5H4.2L6.6 13.4H17.2L19.4 5.6H5.4" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+              <circle cx="16.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notice 리스트 패널 : 디자인상 별도 페이지 타이틀 없이 헤더 바로 아래에서 시작 -->
+  <main class="board">
+    <table class="notice-table">
+      <colgroup>
+        <col class="col--no">
+        <col class="col--title">
+        <col class="col--user">
+        <col class="col--date">
+      </colgroup>
+      <thead>
+        <tr>
+          <th scope="col">번호</th>
+          <th scope="col">제목</th>
+          <th scope="col">글쓴이</th>
+          <th scope="col">등록일</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 상단 고정 공지 12건 -->
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">[공지] 7월 브랜드 휴무 및 사은품 안내</a></td>
+          <td>관리자</td>
+          <td>2026.07.09 19:21</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">[공지] 4주년 이벤트 안내</a></td>
+          <td>관리자</td>
+          <td>2026.07.01 19:05</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">Lemon Field 신제품 이벤트 당첨자 발표</a></td>
+          <td>관리자</td>
+          <td>2026.02.23 21:01</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">리뷰 이벤트 당첨 안내 (1월)</a></td>
+          <td>관리자</td>
+          <td>2026.02.02 16:42</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">물류 시스템 재정비 및 배송 일정 안내</a></td>
+          <td>관리자</td>
+          <td>2026.01.19 11:46</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">1월 배송 및 CS 휴무 안내</a></td>
+          <td>관리자</td>
+          <td>2026.01.02 08:02</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">고객센터 안내 (CS · Help Center)</a></td>
+          <td>관리자</td>
+          <td>2025.12.20 14:44</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">2026년 회원 등급 정책 변경 안내</a></td>
+          <td>관리자</td>
+          <td>2025.12.14 14:52</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">회원 등급 안내 (~2025.12.31)</a></td>
+          <td>관리자</td>
+          <td>2024.06.10 20:05</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">저작권 관련 (Copyright)</a></td>
+          <td>관리자</td>
+          <td>2022.06.28 01:31</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">배송 안내 (Shipping)</a></td>
+          <td>관리자</td>
+          <td>2022.06.24 13:48</td>
+        </tr>
+        <tr class="notice-row--pinned">
+          <td>공지</td>
+          <td class="cell--title"><a href="#">교환 및 반품 안내 (Exchange and Return)</a></td>
+          <td>관리자</td>
+          <td>2022.06.24 13:46</td>
+        </tr>
+
+        <!-- 일반 게시글 7건 -->
+        <tr>
+          <td>13</td>
+          <td class="cell--title"><a href="#">옹시미 배경화면 공유 이벤트 당첨자 안내</a></td>
+          <td>관리자</td>
+          <td>2025.12.14 18:12</td>
+        </tr>
+        <tr>
+          <td>12</td>
+          <td class="cell--title"><a href="#">블랙감사위크 럭키드로우 이벤트 당첨자 안내</a></td>
+          <td>관리자</td>
+          <td>2025.12.14 17:31</td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td class="cell--title"><a href="#">하드타입 카드 케이스 유의사항 (Card Case)</a></td>
+          <td>관리자</td>
+          <td>2025.12.14 14:58</td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td class="cell--title"><a href="#">하드 및 젤하드 케이스 유의사항 (Hard, Clear Case)</a></td>
+          <td>관리자</td>
+          <td>2025.12.14 14:55</td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td class="cell--title"><a href="#">에어팟 케이스 유의사항 (Airpods Case)</a></td>
+          <td>관리자</td>
+          <td>2024.02.24 22:02</td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td class="cell--title"><a href="#">범퍼 케이스 유의 사항 (Bumper Case)</a></td>
+          <td>관리자</td>
+          <td>2024.02.24 21:54</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td class="cell--title"><a href="#">스마트톡 부착 방법 및 유의사항 (Phone Grip Guide)</a></td>
+          <td>관리자</td>
+          <td>2024.02.24 21:50</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- 검색 : 디자인에 페이지네이션은 없고 검색 영역만 존재 -->
+    <div class="board-search">
+      <input class="board-search__input" type="text" aria-label="공지사항 검색">
+      <button class="board-search__btn" type="button">검색</button>
+    </div>
+
+    <div class="board-bottom-rule">
+      <span class="board-bottom-rule__line"></span>
+      <span class="board-bottom-rule__line"></span>
+      <span class="board-bottom-rule__line"></span>
+      <span class="board-bottom-rule__line"></span>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__divider"></div>
+
+      <div class="footer__inner">
+        <div class="footer__links">
+          <a class="footer__link" href="#">Terms of Use</a>
+          <a class="footer__link" href="#">Privacy Policy</a>
+          <a class="footer__link" href="#">Confirm Entrepreneur Information</a>
+        </div>
+
+        <div class="footer__info">
+          <p class="footer__info-line">Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜</p>
+          <p class="footer__info-line">Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon</p>
+        </div>
+
+        <a class="footer__sns" href="https://www.instagram.com/eatomato__/" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.8" y="0.8" width="13.4" height="13.4" rx="3.6" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="7.5" cy="7.5" r="3.3" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="11.3" cy="3.7" r="0.85" fill="#A99C97"/>
+          </svg>
+          <span class="footer__sns-text">eatomato__</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

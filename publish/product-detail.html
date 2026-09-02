@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>eatomato · 제품 상세 페이지</title>
+<!--
+  eatomato 제품 상세 페이지 레이아웃 (request_layout.pdf 3p 기준 · 전 제품 공통)
+  - Figma 변환용: html.to.design 등 플러그인으로 import 하면 Auto Layout 프레임으로 들어옵니다.
+  - 외부 폰트/이미지/스크립트 의존성 없음. 모든 값은 리터럴 px / hex.
+  - PDF의 빨간색 주석(설명)은 디자인이 아니므로 제외했습니다.
+  - 타이포/좌표/컬러는 PDF 텍스트 레이어에서 추출한 실측값(1440 기준)입니다.
+  - 기준 캔버스 폭: 1440px / 콘텐츠 컨테이너: 1200px
+
+  [공통 컴포넌트 사양 — 전 페이지 동일 (헤더 / 푸터)]
+  · 헤더   높이 110px / 배경 #FFF5F5
+           로고 38px 세리프 500 #BA3E1C · GNB 16px 400 #722819 (간격 30px)
+           GNB↔유틸 28px · 유틸칩 #FFFDF8 padding 8/12 · 아이콘 22px #1A1A1A
+  · 푸터   구분선 1px #CD7D7D → 링크 78px (padding-top 76)
+           링크 12.5px 700 #000 (간격 16px) · 안내문 12.5px 400 #000 (line-height 15)
+           인스타 링크 우측 상단 고정 · 하단 여백 100px
+  · 컨테이너 1200px (1440 프레임 기준 좌우 여백 120px)
+  · 헤더 110px 은 6p(로그인)·8p(장바구니) 실측값입니다. 4·5p 캡처의 68.5px 은
+    스크롤 시 축소된 상태로 판단해 기본값(110px)으로 통일했습니다.
+  · 푸터 구분선의 시안 실측값은 #A21515 헤어라인(원본 1px = 0.5css)입니다.
+    1px 로 그리면 과해져, 배경 위 blend 값인 #CD7D7D(1p·4p 실측)를 사용했습니다.
+  · 상단 블랙 공지바(topbar)는 1p 에만 노출되어 main-page.html 에만 두었습니다.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F2EEEC;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    color: #212121;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ===== Page (Figma Frame 1440) ===== */
+  .page {
+    width: 1440px;
+    margin: 0 auto;
+    background: #FFF5F5;
+    display: flex;
+    flex-direction: column;
+  }
+  .container {
+    width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ===== Header / GNB ===== */
+  .header {
+    width: 100%;
+    height: 110px;
+    background: #FFF5F5;
+  }
+  .header__inner {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Hahmlet', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    color: #BA3E1C;
+  }
+  .header__right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .gnb {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .gnb__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 110px;
+  }
+  .gnb__link {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #722819;
+  }
+  .gnb__dropdown {
+    display: none;
+    position: absolute;
+    top: 110px;
+    left: -20px;
+    z-index: 10;
+  }
+  .gnb__item:hover .gnb__dropdown { display: block; }
+
+  .dropdown-panel {
+    width: 180px;
+    padding: 18px 20px;
+    background: #FFFFFF;
+    border: 1px solid #F0E2DE;
+    box-shadow: 0 8px 20px rgba(33, 33, 33, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .dropdown-panel__link {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #3D3D3D;
+  }
+
+  .util {
+    padding: 8px 12px;
+    background: #FFFDF8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1A1A1A;
+  }
+  .util__btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== 상품 정보 영역 ===== */
+  .product {
+    padding-top: 56px;
+    display: flex;
+    gap: 118px;
+  }
+
+  /* 좌: 대표 이미지 */
+  .product__gallery {
+    width: 583px;
+    flex: 0 0 583px;
+  }
+  .product__thumb {
+    width: 583px;
+    aspect-ratio: 3 / 4;
+    background: #FFFFFF;
+    border: 1px solid #B0AAA9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .product__thumb-label {
+    font-size: 56px;
+    font-weight: 400;
+    letter-spacing: -1px;
+    color: #8C8C8C;
+  }
+
+  /* 우: 구매 정보 */
+  .product__info {
+    width: 499px;
+    flex: 0 0 499px;
+    display: flex;
+    flex-direction: column;
+  }
+  .product__name {
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.45;
+    letter-spacing: -0.3px;
+    color: #000000;
+  }
+  .product__notice {
+    margin-top: 36px;
+    display: flex;
+    flex-direction: column;
+  }
+  .product__notice-line {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 22.5px;
+    letter-spacing: -0.4px;
+    color: #777777;
+  }
+  .product__price {
+    margin-top: 56px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 15px;
+    letter-spacing: -0.2px;
+  }
+  .price--now { color: #545454; }
+  .price--was { color: #8A8A8A; text-decoration: line-through; }
+
+  .spec {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+  .spec__row { display: flex; align-items: flex-start; }
+  .spec__label {
+    width: 90px;
+    flex: 0 0 90px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 22.5px;
+    letter-spacing: -0.2px;
+    color: #545454;
+  }
+  .spec__value {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 22.5px;
+    letter-spacing: -0.2px;
+    color: #545454;
+  }
+
+  /* 옵션 선택 */
+  .options {
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .option { display: flex; flex-direction: column; gap: 8px; }
+  .option__label {
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.2px;
+    color: #545454;
+  }
+  .select {
+    width: 100%;
+    height: 46px;
+    padding: 0 10px;
+    border: 1px solid #545454;
+    background: #FFF5F5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .select__text {
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #545454;
+  }
+
+  /* BETTER TOGETHER */
+  .bt {
+    margin-top: 16px;
+    width: 100%;
+    border: 1px solid #333333;
+    display: flex;
+    flex-direction: column;
+  }
+  .bt__head {
+    height: 62px;
+    padding: 0 21px;
+    border-bottom: 1px solid #333333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .bt__title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: #545454;
+  }
+  .bt__body {
+    padding: 21px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .bt-item { display: flex; flex-direction: column; gap: 14px; }
+  .bt-item__head { display: flex; gap: 16px; }
+  .bt-item__thumb {
+    width: 60px;
+    height: 60px;
+    flex: 0 0 60px;
+    background: #EDEDED;
+  }
+  .bt-item__meta { display: flex; flex-direction: column; gap: 10px; }
+  .bt-item__name {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #212121;
+  }
+  .bt-item__price {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 14px;
+    letter-spacing: -0.2px;
+  }
+  .bt-item__selects { display: flex; flex-direction: column; gap: 10px; }
+
+  /* 합계 / 주문 버튼 */
+  .order { display: flex; flex-direction: column; }
+  .order__divider {
+    margin-top: 19px;
+    width: 100%;
+    height: 1px;
+    background: #B0AAA9;
+  }
+  .order__row {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .order__label {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #212121;
+  }
+  .order__value {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #545454;
+  }
+  .order__buttons {
+    margin-top: 28px;
+    display: flex;
+    gap: 21px;
+  }
+  .btn {
+    height: 52px;
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.2px;
+  }
+  .btn--primary { border: 1px solid #212121; color: #212121; background: #FFF5F5; }
+  .btn--ghost { border: 1px solid #C9C9C9; color: #9A9A9A; background: #FFF5F5; }
+
+  /* 네이버페이 위젯 */
+  .npay {
+    margin-top: 22px;
+    width: 260px;
+    border-top: 3px solid #333333;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+  }
+  .npay__row {
+    padding: 8px 8px 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .npay__brand { display: flex; flex-direction: column; }
+  .npay__brand-name {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    color: #2DB400;
+  }
+  .npay__brand-sub {
+    font-size: 10px;
+    line-height: 13px;
+    letter-spacing: -0.4px;
+    color: #555555;
+  }
+  .npay__buy {
+    flex: 1 1 0;
+    height: 34px;
+    background: #76D86A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #14181A;
+  }
+  .npay__wish {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #DDDDDD;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #333333;
+  }
+  .npay__event {
+    padding: 6px 8px 6px 10px;
+    border-top: 1px solid #EEEEEE;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .npay__event-text {
+    font-size: 11px;
+    letter-spacing: -0.3px;
+    color: #999999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .npay__event-text b { color: #2DB400; font-weight: 700; }
+  .npay__nav { display: flex; gap: 2px; }
+  .npay__nav span {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #DDDDDD;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    color: #999999;
+  }
+
+  /* ===== 탭 (앵커 이동) ===== */
+  .tabs { margin-top: 117px; }
+  .tabs__divider { width: 100%; height: 1px; background: #A9A6A6; }
+  .tabs__list {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .tab {
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #E8D9D7;
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    color: #722819;
+  }
+
+  /* ===== 섹션 공통 ===== */
+  .anchor-title {
+    font-size: 20px;
+    font-weight: 400;
+    letter-spacing: 1.4px;
+    color: #722819;
+    text-align: center;
+  }
+
+  /* DETAILS */
+  .details { padding-top: 180px; }
+  .details__images {
+    margin-top: 38px;
+    display: flex;
+    flex-direction: column;
+    gap: 125px;
+  }
+  .details__image {
+    width: 100%;
+    height: 1130px;
+    background: #FFFFFF;
+    border: 1px solid #B0AAA9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .details__image-label {
+    font-size: 125px;
+    font-weight: 500;
+    letter-spacing: -3px;
+    color: #727272;
+  }
+  .details__more {
+    margin-top: 66px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .details__more span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #212121;
+  }
+
+  /* SHIPPING */
+  .shipping { padding-top: 90px; }
+  .shipping__text {
+    margin-top: 81px;
+    display: flex;
+    flex-direction: column;
+  }
+  .shipping__line {
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 16.5px;
+    letter-spacing: -0.2px;
+    color: #231815;
+  }
+
+  /* REVIEWS */
+  .reviews { padding-top: 205px; }
+  .reviews__banner {
+    margin-top: 57px;
+    width: 100%;
+    height: 76px;
+    background: #B93D1C;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.4px;
+    color: #FFFFFF;
+  }
+  .reviews__summary {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .reviews__score {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .reviews__score-num {
+    font-size: 27px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    color: #545454;
+  }
+  .reviews__score-count {
+    font-size: 14px;
+    letter-spacing: -0.2px;
+    color: #777777;
+  }
+  .reviews__filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    letter-spacing: -0.2px;
+    color: #545454;
+  }
+  .checkbox {
+    width: 15px;
+    height: 15px;
+    border: 1px solid #9A9A9A;
+    background: #FFFFFF;
+  }
+  .reviews__list { display: flex; flex-direction: column; }
+  .review-row {
+    padding: 18px 0;
+    min-height: 135px;
+    border-top: 2px solid #B93D1C;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 30px;
+  }
+  .review-row:last-child { border-bottom: 2px solid #B93D1C; }
+  .review-row__main { display: flex; flex-direction: column; gap: 14px; }
+  .review-row__head { display: flex; align-items: center; gap: 10px; }
+  .badge-best {
+    padding: 3px 8px;
+    background: #B93D1C;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: #FFFFFF;
+  }
+  .stars {
+    display: flex;
+    gap: 1px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: #B93D1C;
+  }
+  .review-row__writer {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #545454;
+  }
+  .review-row__text {
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.3px;
+    color: #333333;
+  }
+  .review-row__photo {
+    width: 105px;
+    height: 105px;
+    flex: 0 0 105px;
+    background: #EDEDED;
+  }
+
+  /* ===== Footer ===== */
+  /* margin-top 은 본문과의 간격이라 페이지별 값입니다 (공통은 padding-bottom) */
+  .footer {
+    margin-top: 221px;
+    padding-bottom: 100px;
+  }
+  .footer__divider {
+    width: 100%;
+    height: 1px;
+    background: #CD7D7D;
+  }
+  .footer__inner {
+    position: relative;
+    padding-top: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .footer__links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .footer__link {
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer__info-line {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+
+  /* ===== [참고용] Hover / Open State — Figma에 상태값이 넘어가지 않아 별도 프레임으로 첨부 ===== */
+  .states {
+    width: 1440px;
+    margin: 40px auto 60px;
+    padding: 40px 135px 56px;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .states__title { font-size: 14px; font-weight: 700; color: #8A8A8A; }
+  .states__row { display: flex; flex-wrap: wrap; gap: 40px; }
+  .states__item { display: flex; flex-direction: column; gap: 12px; }
+  .states__caption { font-size: 12px; color: #8A8A8A; }
+  .option-list {
+    width: 469px;
+    border: 1px solid #545454;
+    background: #FFF5F5;
+    display: flex;
+    flex-direction: column;
+  }
+  .option-list__item {
+    height: 44px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #545454;
+  }
+  .option-list__item + .option-list__item { border-top: 1px solid #545454; }
+  .footer__sns {
+    position: absolute;
+    right: 0;
+    top: 76px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #A99C97;
+  }
+  .footer__sns-text {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #A99C97;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header / GNB -->
+  <header class="header">
+    <div class="container header__inner">
+      <a class="logo" href="#">eatomato</a>
+
+      <div class="header__right">
+        <nav class="gnb">
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone Case</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+                <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone ACC</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Tok</a>
+                <a class="dropdown-panel__link" href="#">Card Wallet</a>
+                <a class="dropdown-panel__link" href="#">Airpods Case</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item"><a class="gnb__link" href="#">SET ITEM</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">About</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">Notice</a></div>
+        </nav>
+
+        <div class="util">
+          <a class="util__btn" href="#" aria-label="검색">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9.5" cy="9.5" r="6.8" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M14.6 14.6L20 20" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="마이페이지">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="7" r="4.2" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M3.4 19.6C4.3 15.9 7.3 13.4 11 13.4C14.7 13.4 17.7 15.9 18.6 19.6" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="장바구니">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.5 2.5H4.2L6.6 13.4H17.2L19.4 5.6H5.4" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+              <circle cx="16.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 상품 정보 -->
+  <section class="container product">
+
+    <!-- 대표 이미지 -->
+    <div class="product__gallery">
+      <div class="product__thumb">
+        <span class="product__thumb-label">제품이미지</span>
+      </div>
+    </div>
+
+    <!-- 구매 정보 -->
+    <div class="product__info">
+      <h1 class="product__name">에폭시&amp;글라스 케이스｜Cherry Tomato</h1>
+
+      <div class="product__notice">
+        <p class="product__notice-line">eatomato의 모든 제품은 주문 후 제작 상품입니다.</p>
+        <p class="product__notice-line">주문 확인 후 순차적으로 제작되며</p>
+        <p class="product__notice-line">제작기간은 평균 3~7일(영업일 기준) 정도 소요됩니다. (주말 및 공휴일 제외)</p>
+        <p class="product__notice-line">제작 후 배송기간은 추가 3~5일 소요되며,</p>
+        <p class="product__notice-line">택배사의 배송 상황에 따라 추가 배송 기간이 발생할 수 있습니다.</p>
+      </div>
+
+      <p class="product__price">
+        <span class="price--now">19,000원</span>
+        <span class="price--was">23,000원</span>
+      </p>
+
+      <div class="spec">
+        <div class="spec__row">
+          <span class="spec__label">적립금</span>
+          <span class="spec__value"><span>3%</span></span>
+        </div>
+        <div class="spec__row">
+          <span class="spec__label">배송비</span>
+          <span class="spec__value">
+            <span>3,000원 (70,000원 이상구매 시 무료)</span>
+            <span>제주 및 도서 산간 3,000원 추가</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- 옵션: 색상 / 부착타입 / 기종 -->
+      <div class="options">
+        <div class="option">
+          <span class="option__label">색상</span>
+          <div class="select">
+            <span class="select__text">선택하세요.</span>
+            <svg width="11" height="7" viewBox="0 0 11 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5.5 5.5L10 1" stroke="#545454" stroke-width="1.1"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="option">
+          <span class="option__label">부착타입</span>
+          <div class="select">
+            <span class="select__text">선택하세요.</span>
+            <svg width="11" height="7" viewBox="0 0 11 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5.5 5.5L10 1" stroke="#545454" stroke-width="1.1"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="option">
+          <span class="option__label">기종</span>
+          <div class="select">
+            <span class="select__text">선택하세요.</span>
+            <svg width="11" height="7" viewBox="0 0 11 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5.5 5.5L10 1" stroke="#545454" stroke-width="1.1"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- BETTER TOGETHER (함께 구매) -->
+      <div class="bt">
+        <div class="bt__head">
+          <span class="bt__title">BETTER TOGETHER</span>
+          <svg width="12" height="7" viewBox="0 0 12 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 6L6 1L11 6" stroke="#333333" stroke-width="1.2"/>
+          </svg>
+        </div>
+
+        <div class="bt__body">
+          <div class="bt-item">
+            <div class="bt-item__head">
+              <div class="bt-item__thumb"></div>
+              <div class="bt-item__meta">
+                <a class="bt-item__name" href="#">맥세이프 카드슬롯_Afternoon Leaf</a>
+                <p class="bt-item__price">
+                  <span class="price--now">21,800원</span>
+                  <span class="price--was">24,000원</span>
+                </p>
+              </div>
+            </div>
+            <div class="bt-item__selects">
+              <div class="select">
+                <span class="select__text">색상</span>
+                <svg width="11" height="7" viewBox="0 0 11 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L5.5 5.5L10 1" stroke="#545454" stroke-width="1.1"/>
+                </svg>
+              </div>
+              <div class="select">
+                <span class="select__text">기종</span>
+                <svg width="11" height="7" viewBox="0 0 11 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L5.5 5.5L10 1" stroke="#545454" stroke-width="1.1"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="bt-item">
+            <div class="bt-item__head">
+              <div class="bt-item__thumb"></div>
+              <div class="bt-item__meta">
+                <a class="bt-item__name" href="#">[+맥세이프] 스마트톡_Afternoon Leaf</a>
+                <p class="bt-item__price">
+                  <span class="price--now">12,900원</span>
+                  <span class="price--was">15,000원</span>
+                </p>
+              </div>
+            </div>
+            <div class="bt-item__selects">
+              <div class="select">
+                <span class="select__text">부착타입</span>
+                <svg width="11" height="7" viewBox="0 0 11 7" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L5.5 5.5L10 1" stroke="#545454" stroke-width="1.1"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 합계 / 주문 -->
+      <div class="order">
+        <div class="order__divider"></div>
+
+        <div class="order__row">
+          <span class="order__label">주문 수량</span>
+          <span class="order__value">0개</span>
+        </div>
+        <div class="order__row">
+          <span class="order__label">총 상품 금액</span>
+          <span class="order__value">0원</span>
+        </div>
+
+        <div class="order__buttons">
+          <a class="btn btn--primary" href="#">바로 구매하기</a>
+          <a class="btn btn--ghost" href="#">잠깐 장바구니</a>
+        </div>
+
+        <div class="npay">
+          <div class="npay__row">
+            <div class="npay__brand">
+              <span class="npay__brand-name">NAVER</span>
+              <span class="npay__brand-sub">네이버ID로 간편구매</span>
+              <span class="npay__brand-sub">네이버페이</span>
+            </div>
+            <div class="npay__buy">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="7" cy="7" r="7" fill="#14181A"/>
+                <path d="M4.6 10V4h1.7l1.6 2.6V4h1.5v6H7.7L6.1 7.4V10H4.6z" fill="#FFFFFF"/>
+              </svg>
+              <span>pay 구매</span>
+            </div>
+            <div class="npay__wish">찜</div>
+          </div>
+          <div class="npay__event">
+            <span class="npay__event-text"><b>이벤트</b> 100% 지급! 최대 1만원 혜택 확…</span>
+            <span class="npay__nav"><span>&lsaquo;</span><span>&rsaquo;</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 탭: 클릭 시 해당 위치로 스크롤 이동 -->
+  <div class="container tabs">
+    <div class="tabs__divider"></div>
+    <nav class="tabs__list">
+      <a class="tab" href="#details">DETAILS</a>
+      <a class="tab" href="#shipping">DELIVERY</a>
+      <a class="tab" href="#reviews">REVIEWS</a>
+    </nav>
+  </div>
+
+  <!-- DETAILS -->
+  <section class="container details" id="details">
+    <h2 class="anchor-title">DETAILS</h2>
+    <div class="details__images">
+      <div class="details__image"><span class="details__image-label">제품이미지 6~10장</span></div>
+      <div class="details__image"><span class="details__image-label">제품이미지 6~10장</span></div>
+    </div>
+    <div class="details__more">
+      <span></span><span></span><span></span>
+    </div>
+  </section>
+
+  <!-- SHIPPING (DELIVERY) -->
+  <section class="container shipping" id="shipping">
+    <h2 class="anchor-title">SHIPPING</h2>
+    <div class="shipping__text">
+      <p class="shipping__line">eatomato의 모든 제품은 주문 후 제작 상품입니다.</p>
+      <p class="shipping__line">주문 확인 후 순차적으로 제작되며</p>
+      <p class="shipping__line">제작기간은 평균 3~7일(영업일 기준) 정도 소요됩니다. (주말 및 공휴일 제외)</p>
+      <p class="shipping__line">제작 후 배송기간은 추가 3~5일 소요되며,</p>
+      <p class="shipping__line">택배사의 배송 상황에 따라 추가 배송 기간이 발생할 수 있습니다.</p>
+    </div>
+  </section>
+
+  <!-- REVIEWS -->
+  <section class="container reviews" id="reviews">
+    <h2 class="anchor-title">REVIEWS</h2>
+
+    <div class="reviews__banner">텍스트 리뷰 200원 적립 ｜ 포토리뷰 500원 적립</div>
+
+    <div class="reviews__summary">
+      <div class="reviews__score">
+        <span class="reviews__score-num">5 / 5</span>
+        <span class="reviews__score-count">(390개 후기)</span>
+      </div>
+      <label class="reviews__filter">
+        <span class="checkbox"></span>
+        <span>사진 후기만 보기</span>
+      </label>
+    </div>
+
+    <div class="reviews__list">
+      <article class="review-row">
+        <div class="review-row__main">
+          <div class="review-row__head">
+            <span class="badge-best">BEST</span>
+            <span class="stars">★★★★★</span>
+            <span class="review-row__writer">김**</span>
+          </div>
+          <p class="review-row__text">사이드에 미끄럼움 방지도 있고 값어치 합니다! 완전 추천합니다.</p>
+        </div>
+        <div class="review-row__photo"></div>
+      </article>
+
+      <article class="review-row">
+        <div class="review-row__main">
+          <div class="review-row__head">
+            <span class="badge-best">BEST</span>
+            <span class="stars">★★★★★</span>
+            <span class="review-row__writer">네******</span>
+          </div>
+          <p class="review-row__text">털가죽을 확대한 느낌ㅎㅎ시크한 느낌찾고있었는데 너무 이뻐요ㅠㅠ 미드멀리는 깔끔해서 더 이쁜거같아요.</p>
+        </div>
+        <div class="review-row__photo"></div>
+      </article>
+
+      <article class="review-row">
+        <div class="review-row__main">
+          <div class="review-row__head">
+            <span class="badge-best">BEST</span>
+            <span class="stars">★★★★★</span>
+            <span class="review-row__writer">문**</span>
+          </div>
+          <p class="review-row__text">기엽고 튼튼함 디테일있고 내구성이 좋아 실용성도 만족스러움</p>
+        </div>
+        <div class="review-row__photo"></div>
+      </article>
+
+      <article class="review-row">
+        <div class="review-row__main">
+          <div class="review-row__head">
+            <span class="badge-best">BEST</span>
+            <span class="stars">★★★★★</span>
+            <span class="review-row__writer">이**</span>
+          </div>
+          <p class="review-row__text">홈페이지랑 흡사하긴 한데 실물이 더 예뻐요ㅠㅠㅠ 실버 테투리가 트렌디하고 예뻐요ㅠㅠ</p>
+        </div>
+        <div class="review-row__photo"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__divider"></div>
+
+      <div class="footer__inner">
+        <div class="footer__links">
+          <a class="footer__link" href="#">Terms of Use</a>
+          <a class="footer__link" href="#">Privacy Policy</a>
+          <a class="footer__link" href="#">Confirm Entrepreneur Information</a>
+        </div>
+
+        <div class="footer__info">
+          <p class="footer__info-line">Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜</p>
+          <p class="footer__info-line">Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon</p>
+        </div>
+
+        <a class="footer__sns" href="https://www.instagram.com/eatomato__/" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.8" y="0.8" width="13.4" height="13.4" rx="3.6" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="7.5" cy="7.5" r="3.3" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="11.3" cy="3.7" r="0.85" fill="#A99C97"/>
+          </svg>
+          <span class="footer__sns-text">eatomato__</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- [참고용 프레임] 열림 상태 — hover/open 상태는 Figma로 넘어가지 않아 정적으로 첨부. 불필요하면 이 블록 전체 삭제 -->
+<section class="states">
+  <p class="states__title">OPTION / GNB OPEN STATE (참고용 프레임)</p>
+  <div class="states__row">
+    <div class="states__item">
+      <p class="states__caption">색상 ▾</p>
+      <div class="option-list">
+        <div class="option-list__item">크림</div>
+        <div class="option-list__item">레드</div>
+      </div>
+    </div>
+    <div class="states__item">
+      <p class="states__caption">부착타입 ▾</p>
+      <div class="option-list">
+        <div class="option-list__item">일반</div>
+        <div class="option-list__item">맥세이프 (+4000원)</div>
+      </div>
+    </div>
+    <div class="states__item">
+      <p class="states__caption">Phone Case ▾</p>
+      <div class="dropdown-panel">
+        <a class="dropdown-panel__link" href="#">All</a>
+        <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+        <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+      </div>
+    </div>
+    <div class="states__item">
+      <p class="states__caption">Phone ACC ▾</p>
+      <div class="dropdown-panel">
+        <a class="dropdown-panel__link" href="#">All</a>
+        <a class="dropdown-panel__link" href="#">Tok</a>
+        <a class="dropdown-panel__link" href="#">Card Wallet</a>
+        <a class="dropdown-panel__link" href="#">Airpods Case</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

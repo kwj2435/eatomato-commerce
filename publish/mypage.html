@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>eatomato · 마이페이지</title>
+<!--
+  eatomato 마이페이지 레이아웃 (request_layout.pdf 7p "6. 마이페이지" 기준)
+  ─────────────────────────────────────────────────────────────────────────────
+  · Figma 변환용: html.to.design 등 플러그인으로 import 하면 Auto Layout 프레임으로 들어옵니다.
+  · 외부 폰트/이미지/스크립트 의존성 없음. 모든 값은 리터럴 px / hex.
+  · 시안의 빨간색 주석("6. 마이페이지" 제목, "폰트색상 블랙", 사람 아이콘 빨간 박스)은 프레임에서 제외했습니다.
+  · 기준 캔버스 폭: 1440px / 콘텐츠 컨테이너: 1200px (main-page.html · about-page.html 과 동일 그리드)
+
+  [원본 특성]
+    7p 본문은 추상화된 시안이 아니라 참고 사이트 스크린샷 1장(1817×3147 래스터)이 통째로
+    붙여진 형태였습니다. PDF 안에 벡터 텍스트가 없어 모든 수치를 픽셀에서 실측했습니다.
+    원본 스크린샷의 내용 폭은 835px (좌 357 / 간격 118 / 우 360).
+
+  [PDF 실측값 vs 적용값]
+    2단 폭      835px (357 / 118 / 360)   →  1200 컨테이너에 비례 확대 (×1.437)
+                                             좌 513 / 간격 170 / 우 517
+    폰트·높이   실측 그대로 유지            →  제목 16 / 라벨 12 / 값 13 / 입력 높이 42 / 필드 피치 85
+    폰트 색상   스크린샷은 전부 네이비        →  빨간 주석 "폰트색상 블랙" 반영해 #000000
+                (#00235C · #234981)          단, 원본이 회색이던 보조 요소(로그아웃 · 후기 쓰러 가기 ·
+                                             적립금 뱃지 · 비밀번호 변경하기/탈퇴하기)는 회색 유지
+    테두리·버튼 실측 색 유지                →  테두리 #B7BBCC / 저장 버튼 #062B62 / 체크 #0070F5
+    헤더 높이   약 110px                    →  110px (공통 컴포넌트 사양)
+    하단 여백   91px                        →  100px (공통 컴포넌트 사양)
+
+  [PDF 에서 그대로 가져온 값]
+    프레임 배경  #FFF5F5              로고        Hahmlet Medium 37.5px  #BA3E1C
+    GNB         Noto Sans KR 16px    #722819     항목 간격 30px / 아이콘 22px
+    입력 높이    42px                 필드 피치   85px (라벨 18 + 9 + 입력 42 + 여백 16)
+    읽기전용 채움 #FBF1F1             테두리      1px #B7BBCC
+    저장 버튼    146×49 → 210×49  #062B62  흰색 Bold 13px
+    섹션 피치    322px  (제목 22 + 여백 37 + 본문영역 200 + 여백 63)
+    푸터 구분선  1px  #CD7D7D  /  푸터 텍스트 12.5px
+
+  [가정 1건]
+    주소 첫 줄 값이 시안에서 입력폭에 잘려 "…송도글로벌캠퍼스푸" 까지만 보입니다.
+    "송도글로벌캠퍼스푸르지오" 로 보고 채웠습니다. 실제 값이 다르면 해당 input value 만 교체하세요.
+  ─────────────────────────────────────────────────────────────────────────────
+
+  [공통 컴포넌트 사양 — 전 페이지 동일 (헤더 / 푸터)]
+  · 헤더   높이 110px / 배경 #FFF5F5
+           로고 38px 세리프 500 #BA3E1C · GNB 16px 400 #722819 (간격 30px)
+           GNB↔유틸 28px · 유틸칩 #FFFDF8 padding 8/12 · 아이콘 22px #1A1A1A
+  · 푸터   구분선 1px #CD7D7D → 링크 78px (padding-top 76)
+           링크 12.5px 700 #000 (간격 16px) · 안내문 12.5px 400 #000 (line-height 15)
+           인스타 링크 우측 상단 고정 · 하단 여백 100px
+  · 컨테이너 1200px (1440 프레임 기준 좌우 여백 120px)
+  · 헤더 110px 은 6p(로그인)·8p(장바구니) 실측값입니다. 4·5p 캡처의 68.5px 은
+    스크롤 시 축소된 상태로 판단해 기본값(110px)으로 통일했습니다.
+  · 푸터 구분선의 시안 실측값은 #A21515 헤어라인(원본 1px = 0.5css)입니다.
+    1px 로 그리면 과해져, 배경 위 blend 값인 #CD7D7D(1p·4p 실측)를 사용했습니다.
+  · 상단 블랙 공지바(topbar)는 1p 에만 노출되어 main-page.html 에만 두었습니다.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F2EEEC;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    color: #212121;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  ul { list-style: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+  /* ===== Page (Figma Frame 1440) ===== */
+  .page {
+    width: 1440px;
+    margin: 0 auto;
+    background: #FFF5F5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container {
+    width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ===== Header / GNB =====
+     main-page.html / about-page.html 과 동일 컴포넌트. 7p 시안에도 상단 공지 바는 없습니다. */
+  .header {
+    width: 100%;
+    height: 110px;
+    background: #FFF5F5;
+  }
+  .header__inner {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Hahmlet', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    color: #BA3E1C;
+  }
+  .header__right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .gnb {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .gnb__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 110px;
+  }
+  .gnb__link {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #722819;
+  }
+
+  /* GNB 드롭다운: 7p 시안에는 노출되지 않지만 헤더 컴포넌트 동일 유지를 위해 포함 */
+  .gnb__dropdown {
+    display: none;
+    position: absolute;
+    top: 110px;
+    left: -20px;
+    z-index: 10;
+  }
+  .gnb__item:hover .gnb__dropdown { display: block; }
+
+  .dropdown-panel {
+    width: 180px;
+    padding: 18px 20px;
+    background: #FFFFFF;
+    border: 1px solid #F0E2DE;
+    box-shadow: 0 8px 20px rgba(33, 33, 33, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .dropdown-panel__link {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #3D3D3D;
+  }
+
+  .util {
+    padding: 8px 12px;
+    background: #FFFDF8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1A1A1A;
+  }
+  .util__btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== 마이페이지 본문 ===== */
+  .mypage { padding: 56px 0 0; }
+  .mypage__cols {
+    display: flex;
+    align-items: flex-start;
+    gap: 170px;
+  }
+  .mypage__left  { width: 513px; }
+  .mypage__right { width: 517px; }
+
+  /* 공통 섹션 제목 (좌측 내역 / 우측 회원 정보) */
+  .block-title {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 22px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+
+  /* ===== 좌측: 주문/글/쿠폰/적립금/재입고 내역 ===== */
+  .history + .history { margin-top: 63px; }
+
+  .history__util {
+    margin-top: 35px;
+    height: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .history__util-link {
+    font-size: 12px;
+    letter-spacing: -0.2px;
+    color: #9E9898;
+  }
+  .badge {
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: #9A9494;
+    font-size: 10px;
+    line-height: 12px;
+    letter-spacing: -0.2px;
+    color: #333030;
+  }
+
+  /* 내역 없음 상태 영역 — 실제 데이터가 들어오면 이 프레임이 목록/테이블로 대체됩니다. */
+  .history__body {
+    margin-top: 37px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .history--first .history__body { margin-top: 15px; }
+  .history__empty {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+
+  /* ===== 우측: 회원 정보 폼 ===== */
+  .member__logout {
+    display: block;
+    margin-top: 35px;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: -0.2px;
+    color: #BCB3B0;
+    text-align: right;
+  }
+
+  .field { margin-top: 16px; }
+  .field__label {
+    display: block;
+    font-size: 12px;
+    line-height: 18px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .field__row {
+    margin-top: 9px;
+    display: flex;
+    align-items: center;
+  }
+  .field__row + .field__row { margin-top: 9px; }
+
+  /* 입력 박스 공통 */
+  .input {
+    height: 42px;
+    width: 100%;
+    border: 1px solid #B7BBCC;
+    background: transparent;
+    padding: 0 14px;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .input--readonly { background: #FBF1F1; }
+  .input::placeholder { color: #A6A2A7; }
+
+  /* 휴대폰 번호 — 3분할 + 하이픈 */
+  .field__row--phone { gap: 0; }
+  .field__row--phone .input { flex: 1; }
+  .field__sep {
+    width: 24px;
+    flex: none;
+    text-align: center;
+    font-size: 13px;
+    color: #000000;
+  }
+
+  /* 우편번호 — 입력 + 검색 버튼 */
+  .field__row--zip { gap: 11px; }
+  .field__row--zip .input { flex: 1; }
+  .btn-outline {
+    width: 131px;
+    height: 42px;
+    flex: none;
+    border: 1px solid #B7BBCC;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+
+  /* 생년월일 — 셀렉트 3개 (컨테이너를 꽉 채우지 않고 좌측 정렬) */
+  .field__row--birth { gap: 24px; }
+  .select {
+    position: relative;
+    flex: none;
+    height: 42px;
+  }
+  .select--year  { width: 157px; }
+  .select--month { width: 106px; }
+  .select--day   { width: 105px; }
+  .select select {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 42px;
+    border: 1px solid #B7BBCC;
+    background: transparent;
+    padding: 0 28px 0 16px;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .select__arrow {
+    position: absolute;
+    top: 19px;
+    right: 9px;
+    width: 9px;
+    height: 5px;
+    pointer-events: none;
+  }
+
+  /* 성별 · 마케팅 수신 — 라디오 / 체크박스 그룹 */
+  .field__row--choice {
+    height: 32px;
+    gap: 31px;
+  }
+  .choice {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .choice__input {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    flex: none;
+    margin: 0;
+    border: 1px solid #A09A9A;
+    background: transparent;
+    position: relative;
+  }
+  .choice__input[type="radio"] { border-radius: 50%; }
+  .choice__input[type="radio"]:checked {
+    border-color: #0070F5;
+    border-width: 2px;
+    background: #FFFFFF;
+  }
+  .choice__input[type="radio"]:checked::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: 50%;
+    background: #0070F5;
+  }
+  .choice__input[type="checkbox"] { border-radius: 2px; }
+  .choice__input[type="checkbox"]:checked {
+    border-color: #0070F5;
+    background: #0070F5;
+  }
+  .choice__input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 0px;
+    width: 6px;
+    height: 3px;
+    border-left: 1.6px solid #FFFFFF;
+    border-bottom: 1.6px solid #FFFFFF;
+    transform: rotate(-45deg);
+  }
+  .choice__label {
+    font-size: 12px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+
+  /* 하단 보조 링크 + 저장 버튼 */
+  .member__links {
+    margin-top: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  .member__link {
+    font-size: 12px;
+    line-height: 17px;
+    letter-spacing: -0.2px;
+    color: #A6A2A7;
+  }
+  .member__submit-wrap {
+    margin-top: 26px;
+    display: flex;
+    justify-content: center;
+  }
+  .btn-primary {
+    width: 210px;
+    height: 49px;
+    background: #062B62;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #FFFFFF;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    padding-bottom: 100px;
+  }
+  .footer__divider {
+    width: 100%;
+    height: 1px;
+    background: #CD7D7D;
+  }
+  .footer__inner {
+    position: relative;
+    padding-top: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .footer__links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .footer__link {
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer__info-line {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  /* 7p 시안에는 없지만 전 페이지 공통 요소이므로 다른 페이지와 동일하게 포함 */
+  .footer__sns {
+    position: absolute;
+    right: 0;
+    top: 76px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #A99C97;
+  }
+  .footer__sns-text {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #A99C97;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header / GNB -->
+  <header class="header">
+    <div class="container header__inner">
+      <a class="logo" href="#">eatomato</a>
+
+      <div class="header__right">
+        <nav class="gnb">
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone Case</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+                <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone ACC</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Tok</a>
+                <a class="dropdown-panel__link" href="#">Card Wallet</a>
+                <a class="dropdown-panel__link" href="#">Airpods Case</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item"><a class="gnb__link" href="#">SET ITEM</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">About</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">Notice</a></div>
+        </nav>
+
+        <div class="util">
+          <a class="util__btn" href="#" aria-label="검색">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9.5" cy="9.5" r="6.8" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M14.6 14.6L20 20" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="마이페이지">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="7" r="4.2" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M3.4 19.6C4.3 15.9 7.3 13.4 11 13.4C14.7 13.4 17.7 15.9 18.6 19.6" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="장바구니">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.5 2.5H4.2L6.6 13.4H17.2L19.4 5.6H5.4" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+              <circle cx="16.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 마이페이지 본문 -->
+  <section class="mypage">
+    <div class="container mypage__cols">
+
+      <!-- 좌측: 각종 내역 -->
+      <div class="mypage__left">
+
+        <section class="history history--first">
+          <h2 class="block-title">주문 내역</h2>
+          <div class="history__util">
+            <a class="history__util-link" href="#">후기 쓰러 가기</a>
+            <span class="badge">적립금</span>
+          </div>
+          <div class="history__body">
+            <p class="history__empty">주문 내역이 없습니다.</p>
+          </div>
+        </section>
+
+        <section class="history">
+          <h2 class="block-title">내가 쓴 글</h2>
+          <div class="history__body">
+            <p class="history__empty">내가 쓴 글이 없습니다.</p>
+          </div>
+        </section>
+
+        <section class="history">
+          <h2 class="block-title">쿠폰 내역</h2>
+          <div class="history__body">
+            <p class="history__empty">쿠폰 내역이 없습니다.</p>
+          </div>
+        </section>
+
+        <section class="history">
+          <h2 class="block-title">적립금 내역</h2>
+          <div class="history__body">
+            <p class="history__empty">적립금 내역이 없습니다.</p>
+          </div>
+        </section>
+
+        <section class="history">
+          <h2 class="block-title">재입고 알림 내역</h2>
+          <div class="history__body">
+            <p class="history__empty">재입고 알림 내역이 없습니다.</p>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 우측: 회원 정보 -->
+      <div class="mypage__right">
+        <h2 class="block-title">회원 정보</h2>
+        <a class="member__logout" href="#">로그아웃</a>
+
+        <form class="member-form" action="#" method="post">
+
+          <div class="field">
+            <label class="field__label" for="mp-id">아이디</label>
+            <div class="field__row">
+              <input class="input input--readonly" id="mp-id" type="text" value="dpfla3611" readonly>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="mp-email">이메일</label>
+            <div class="field__row">
+              <input class="input" id="mp-email" type="email" value="dpfla3611@naver.com">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="mp-name">이름</label>
+            <div class="field__row">
+              <input class="input" id="mp-name" type="text" value="김예림">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="mp-grade">등급</label>
+            <div class="field__row">
+              <input class="input input--readonly" id="mp-grade" type="text" value="Membership Benefit" readonly>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="mp-tel1">휴대폰 번호</label>
+            <div class="field__row field__row--phone">
+              <input class="input" id="mp-tel1" type="text" value="010" aria-label="휴대폰 번호 앞자리">
+              <span class="field__sep">-</span>
+              <input class="input" type="text" value="4549" aria-label="휴대폰 번호 가운데자리">
+              <span class="field__sep">-</span>
+              <input class="input" type="text" value="3839" aria-label="휴대폰 번호 뒷자리">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="mp-zip">우편번호</label>
+            <div class="field__row field__row--zip">
+              <input class="input input--readonly" id="mp-zip" type="text" value="21986" readonly>
+              <button class="btn-outline" type="button">검색하기</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="mp-addr1">주소</label>
+            <div class="field__row">
+              <!-- 시안에서 입력폭에 잘려 "…송도글로벌캠퍼스푸" 까지만 보이던 값 -->
+              <input class="input input--readonly" id="mp-addr1" type="text" value="인천 연수구 송도문화로28번길 28 (송도동, 송도글로벌캠퍼스푸르지오)" readonly>
+            </div>
+            <div class="field__row">
+              <input class="input" type="text" value="오피스텔 202동 3109호" aria-label="상세 주소">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="mp-year">생년월일</label>
+            <!-- 시안에 보이는 값만 option 으로 넣었습니다. 구현 시 연/월/일 전체 목록으로 교체하세요. -->
+            <div class="field__row field__row--birth">
+              <span class="select select--year">
+                <select id="mp-year" aria-label="생년"><option>1995</option></select>
+                <svg class="select__arrow" width="9" height="5" viewBox="0 0 9 5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L4.5 4L8 1" stroke="#000000" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="select select--month">
+                <select aria-label="생월"><option>10</option></select>
+                <svg class="select__arrow" width="9" height="5" viewBox="0 0 9 5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L4.5 4L8 1" stroke="#000000" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="select select--day">
+                <select aria-label="생일"><option>27</option></select>
+                <svg class="select__arrow" width="9" height="5" viewBox="0 0 9 5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 1L4.5 4L8 1" stroke="#000000" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="field__label">성별</span>
+            <div class="field__row field__row--choice">
+              <label class="choice">
+                <input class="choice__input" type="radio" name="mp-gender" value="male">
+                <span class="choice__label">남자</span>
+              </label>
+              <label class="choice">
+                <input class="choice__input" type="radio" name="mp-gender" value="female" checked>
+                <span class="choice__label">여자</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="field__label">마케팅 정보 수신 동의</span>
+            <div class="field__row field__row--choice">
+              <label class="choice">
+                <input class="choice__input" type="checkbox" name="mp-agree" value="email" checked>
+                <span class="choice__label">이메일</span>
+              </label>
+              <label class="choice">
+                <input class="choice__input" type="checkbox" name="mp-agree" value="sms" checked>
+                <span class="choice__label">문자 메시지</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="member__links">
+            <a class="member__link" href="#">비밀번호 변경하기</a>
+            <a class="member__link" href="#">탈퇴하기</a>
+          </div>
+
+          <div class="member__submit-wrap">
+            <button class="btn-primary" type="submit">변경 사항 저장하기</button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__divider"></div>
+
+      <div class="footer__inner">
+        <div class="footer__links">
+          <a class="footer__link" href="#">Terms of Use</a>
+          <a class="footer__link" href="#">Privacy Policy</a>
+          <a class="footer__link" href="#">Confirm Entrepreneur Information</a>
+        </div>
+
+        <div class="footer__info">
+          <p class="footer__info-line">Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜</p>
+          <p class="footer__info-line">Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon</p>
+        </div>
+
+        <a class="footer__sns" href="https://www.instagram.com/eatomato__/" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.8" y="0.8" width="13.4" height="13.4" rx="3.6" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="7.5" cy="7.5" r="3.3" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="11.3" cy="3.7" r="0.85" fill="#A99C97"/>
+          </svg>
+          <span class="footer__sns-text">eatomato__</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

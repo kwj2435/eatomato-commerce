@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>eatomato · About 페이지</title>
+<!--
+  eatomato About 페이지 레이아웃 (request_layout.pdf 4p 기준)
+  ─────────────────────────────────────────────────────────────────────────────
+  · Figma 변환용: html.to.design 등 플러그인으로 import 하면 Auto Layout 프레임으로 들어옵니다.
+  · 외부 폰트/이미지/스크립트 의존성 없음. 모든 값은 리터럴 px / hex.
+  · PDF 상단의 "4. About 페이지" 라벨은 시안 주석이므로 프레임에서 제외했습니다.
+  · 기준 캔버스 폭: 1440px / 콘텐츠 컨테이너: 1200px (main-page.html과 동일 그리드)
+
+  [PDF 실측값 vs 적용값]  — PDF는 요소별 좌표가 서로 어긋나 있어 아래와 같이 정규화했습니다.
+    좌측 여백    로고 96px / 푸터 구분선 130.5px / 본문 150px  →  120px 로 통일 (1200 컨테이너)
+    헤더 높이    약 64px                                       →  110px (공통 컴포넌트 사양)
+    본문 타이포  10px / 행간 12px(1.2) / 단 폭 510px            →  15px / 행간 1.7 / 단 폭 760px (가독성 보정)
+    푸터 SNS     4p 시안에는 없음                               →  전 페이지 공통 요소이므로 포함
+    하단 여백    209px (시안 프레임 그대로)                      →  100px (공통 컴포넌트 사양)
+    프레임 높이  2542px                                         →  2848px (본문 타이포 보정분 +306px)
+                 ※ 헤더/이미지/푸터 사이의 간격(65 · 74 · 148 · 76 · 209px)은 실측값을 그대로 유지했고,
+                   늘어난 높이는 전부 본문 텍스트 블록(156px → 307.5px ×2)에서 발생한 것입니다.
+
+  [PDF 에서 그대로 가져온 값]
+    페이지 배경  #FFF5F5              로고        Hahmlet Medium 37.5px  #BA3E1C
+    GNB         Noto Sans KR 16px    #722819     항목 간격 30px / 아이콘 22px
+    본문 색      #000000              단락 간격   1행 분량
+    이미지 영역  1440 × 1430 풀블리드  라벨        NanumGothic ExtraBold 200px #050505
+    Help 버튼   56 × 56 라운드 스퀘어  #C7DDBF     우측 21px
+    푸터 구분선  1px  #CD7D7D  (폭은 컨테이너 1200px 에 맞춤)
+    푸터 텍스트  12.5px  #000000  (링크 Bold)
+  ─────────────────────────────────────────────────────────────────────────────
+
+  [공통 컴포넌트 사양 — 전 페이지 동일 (헤더 / 푸터)]
+  · 헤더   높이 110px / 배경 #FFF5F5
+           로고 38px 세리프 500 #BA3E1C · GNB 16px 400 #722819 (간격 30px)
+           GNB↔유틸 28px · 유틸칩 #FFFDF8 padding 8/12 · 아이콘 22px #1A1A1A
+  · 푸터   구분선 1px #CD7D7D → 링크 78px (padding-top 76)
+           링크 12.5px 700 #000 (간격 16px) · 안내문 12.5px 400 #000 (line-height 15)
+           인스타 링크 우측 상단 고정 · 하단 여백 100px
+  · 컨테이너 1200px (1440 프레임 기준 좌우 여백 120px)
+  · 헤더 110px 은 6p(로그인)·8p(장바구니) 실측값입니다. 4·5p 캡처의 68.5px 은
+    스크롤 시 축소된 상태로 판단해 기본값(110px)으로 통일했습니다.
+  · 푸터 구분선의 시안 실측값은 #A21515 헤어라인(원본 1px = 0.5css)입니다.
+    1px 로 그리면 과해져, 배경 위 blend 값인 #CD7D7D(1p·4p 실측)를 사용했습니다.
+  · 상단 블랙 공지바(topbar)는 1p 에만 노출되어 main-page.html 에만 두었습니다.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F2EEEC;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    color: #212121;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  ul { list-style: none; }
+
+  /* ===== Page (Figma Frame 1440) ===== */
+  .page {
+    width: 1440px;
+    margin: 0 auto;
+    background: #FFF5F5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container {
+    width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ===== Header / GNB =====
+     4p 시안에는 상단 공지 바(Top Notice Bar)가 없어 헤더가 프레임 최상단에 붙습니다. */
+  .header {
+    width: 100%;
+    height: 110px;
+    background: #FFF5F5;
+  }
+  .header__inner {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Hahmlet', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    color: #BA3E1C;
+  }
+  .header__right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .gnb {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .gnb__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 110px;
+  }
+  .gnb__link {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #722819;
+  }
+
+  /* GNB 드롭다운: 4p 시안에는 노출되지 않지만 헤더 컴포넌트를 메인과 동일하게 유지하기 위해 포함 */
+  .gnb__dropdown {
+    display: none;
+    position: absolute;
+    top: 110px;
+    left: -20px;
+    z-index: 10;
+  }
+  .gnb__item:hover .gnb__dropdown { display: block; }
+
+  .dropdown-panel {
+    width: 180px;
+    padding: 18px 20px;
+    background: #FFFFFF;
+    border: 1px solid #F0E2DE;
+    box-shadow: 0 8px 20px rgba(33, 33, 33, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .dropdown-panel__link {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #3D3D3D;
+  }
+
+  .util {
+    padding: 8px 12px;
+    background: #FFFDF8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1A1A1A;
+  }
+  .util__btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== About 본문 텍스트 블록 =====
+     PDF 4p 는 이미지 위 / 아래에 동일한 텍스트 블록이 한 번씩 놓입니다. */
+  .about-text {
+    width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+  .about-text__p {
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.7;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+
+  .about-intro { padding: 104px 0 65px; }
+  .about-outro { padding: 74px 0 148px; }
+
+  /* ===== 풀블리드 이미지 영역 (시안 라벨: "이미지 한장") ===== */
+  .about-visual {
+    position: relative;
+    width: 100%;
+    height: 1430px;
+    background: #E9E2DB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .about-visual__spec {
+    position: absolute;
+    top: 24px;
+    left: 32px;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    color: #B3A79C;
+  }
+  /* 시안에서는 라벨이 이미지 영역 상단 23% 지점에 얹혀 있으나(사진 위 주석 성격),
+     플레이스홀더로 쓰기 좋게 정중앙 정렬했습니다. */
+  .about-visual__label {
+    font-family: 'NanumGothic ExtraBold', 'Nanum Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    font-size: 200px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -6px;
+    color: #050505;
+    white-space: nowrap;
+  }
+
+  /* Help 플로팅 버튼 — 시안에서는 스티키 버튼이 스크롤 캡처에 3번 찍혀 있어 1개만 배치했습니다. */
+  .help-fab {
+    position: absolute;
+    right: 21px;
+    bottom: 172px;
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: #C7DDBF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #2F3D31;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    padding-bottom: 100px;
+  }
+  .footer__divider {
+    width: 100%;
+    height: 1px;
+    background: #CD7D7D;
+  }
+  .footer__inner {
+    position: relative;
+    padding-top: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .footer__links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .footer__link {
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer__info-line {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  /* 4p 시안에는 없지만 전 페이지 공통 요소이므로 main-page.html 과 동일하게 포함 */
+  .footer__sns {
+    position: absolute;
+    right: 0;
+    top: 76px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #A99C97;
+  }
+  .footer__sns-text {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #A99C97;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header / GNB -->
+  <header class="header">
+    <div class="container header__inner">
+      <a class="logo" href="#">eatomato</a>
+
+      <div class="header__right">
+        <nav class="gnb">
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone Case</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+                <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone ACC</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Tok</a>
+                <a class="dropdown-panel__link" href="#">Card Wallet</a>
+                <a class="dropdown-panel__link" href="#">Airpods Case</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item"><a class="gnb__link" href="#">SET ITEM</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#" aria-current="page">About</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">Notice</a></div>
+        </nav>
+
+        <div class="util">
+          <a class="util__btn" href="#" aria-label="검색">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9.5" cy="9.5" r="6.8" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M14.6 14.6L20 20" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="마이페이지">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="7" r="4.2" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M3.4 19.6C4.3 15.9 7.3 13.4 11 13.4C14.7 13.4 17.7 15.9 18.6 19.6" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="장바구니">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.5 2.5H4.2L6.6 13.4H17.2L19.4 5.6H5.4" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+              <circle cx="16.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- About 본문 · 이미지 상단 -->
+  <section class="about-intro">
+    <div class="container">
+      <div class="about-text">
+        <p class="about-text__p">국가는 노인과 청소년의 복지향상을 위한 정책을 실시할 의무를 진다. 언론·출판에 대한 허가나 검열과 집회·결사에 대한 허가는 인정되지 아니한다. 학교교육 및 평생교육을 포함한 교육제도와 그 운영, 교육재정 및 교원의 지위에 관한 기본적인 사항은 법률로 정한다.</p>
+        <p class="about-text__p">신체장애자 및 질병·노령 기타의 사유로 생활능력이 없는 국민은 법률이 정하는 바에 의하여 국가의 보호를 받는다. 대통령은 제3항과 제4항의 사유를 지체없이 공포하여야 한다.</p>
+        <p class="about-text__p">원장은 국회의 동의를 얻어 대통령이 임명하고, 그 임기는 4년으로 하며, 1차에 한하여 중임할 수 있다. 모든 국민은 근로의 권리를 가진다. 국가는 사회적·경제적 방법으로 근로자의 고용의 증진과 적정임금의 보장에 노력하여야 하며, 법률이 정하는 바에 의하여 최저임금제를 시행하여야 한다.</p>
+        <p class="about-text__p">선거에 있어서 최고득표자가 2인 이상인 때에는 국회의 재적의원 과반수가 출석한 공개회의에서 다수표를 얻은 자를 당선자로 한다. 공무원의 신분과 정치적 중립성은 법률이 정하는 바에 의하여 보장된다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 풀블리드 이미지 한 장 -->
+  <section class="about-visual">
+    <span class="about-visual__spec">ABOUT IMAGE · 1440 × 1430</span>
+    <span class="about-visual__label">이미지 한장</span>
+    <div class="help-fab">Help</div>
+  </section>
+
+  <!-- About 본문 · 이미지 하단 (상단과 동일 내용) -->
+  <section class="about-outro">
+    <div class="container">
+      <div class="about-text">
+        <p class="about-text__p">국가는 노인과 청소년의 복지향상을 위한 정책을 실시할 의무를 진다. 언론·출판에 대한 허가나 검열과 집회·결사에 대한 허가는 인정되지 아니한다. 학교교육 및 평생교육을 포함한 교육제도와 그 운영, 교육재정 및 교원의 지위에 관한 기본적인 사항은 법률로 정한다.</p>
+        <p class="about-text__p">신체장애자 및 질병·노령 기타의 사유로 생활능력이 없는 국민은 법률이 정하는 바에 의하여 국가의 보호를 받는다. 대통령은 제3항과 제4항의 사유를 지체없이 공포하여야 한다.</p>
+        <p class="about-text__p">원장은 국회의 동의를 얻어 대통령이 임명하고, 그 임기는 4년으로 하며, 1차에 한하여 중임할 수 있다. 모든 국민은 근로의 권리를 가진다. 국가는 사회적·경제적 방법으로 근로자의 고용의 증진과 적정임금의 보장에 노력하여야 하며, 법률이 정하는 바에 의하여 최저임금제를 시행하여야 한다.</p>
+        <p class="about-text__p">선거에 있어서 최고득표자가 2인 이상인 때에는 국회의 재적의원 과반수가 출석한 공개회의에서 다수표를 얻은 자를 당선자로 한다. 공무원의 신분과 정치적 중립성은 법률이 정하는 바에 의하여 보장된다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__divider"></div>
+
+      <div class="footer__inner">
+        <div class="footer__links">
+          <a class="footer__link" href="#">Terms of Use</a>
+          <a class="footer__link" href="#">Privacy Policy</a>
+          <a class="footer__link" href="#">Confirm Entrepreneur Information</a>
+        </div>
+
+        <div class="footer__info">
+          <p class="footer__info-line">Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜</p>
+          <p class="footer__info-line">Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon</p>
+        </div>
+
+        <a class="footer__sns" href="https://www.instagram.com/eatomato__/" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.8" y="0.8" width="13.4" height="13.4" rx="3.6" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="7.5" cy="7.5" r="3.3" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="11.3" cy="3.7" r="0.85" fill="#A99C97"/>
+          </svg>
+          <span class="footer__sns-text">eatomato__</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

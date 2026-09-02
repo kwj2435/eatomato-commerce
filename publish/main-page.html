@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>eatomato · 메인 페이지</title>
+<!--
+  eatomato 메인 페이지 레이아웃 (request_layout.pdf 1p 기준)
+  - Figma 변환용: html.to.design 등 플러그인으로 import 하면 Auto Layout 프레임으로 들어옵니다.
+  - 외부 폰트/이미지/스크립트 의존성 없음. 모든 값은 리터럴 px / hex.
+  - PDF의 빨간색 주석(설명)은 디자인이 아니므로 제외했습니다.
+  - 기준 캔버스 폭: 1440px / 콘텐츠 컨테이너: 1200px
+
+  [공통 컴포넌트 사양 — 전 페이지 동일 (헤더 / 푸터)]
+  · 헤더   높이 110px / 배경 #FFF5F5
+           로고 38px 세리프 500 #BA3E1C · GNB 16px 400 #722819 (간격 30px)
+           GNB↔유틸 28px · 유틸칩 #FFFDF8 padding 8/12 · 아이콘 22px #1A1A1A
+  · 푸터   구분선 1px #CD7D7D → 링크 78px (padding-top 76)
+           링크 12.5px 700 #000 (간격 16px) · 안내문 12.5px 400 #000 (line-height 15)
+           인스타 링크 우측 상단 고정 · 하단 여백 100px
+  · 컨테이너 1200px (1440 프레임 기준 좌우 여백 120px)
+  · 헤더 110px 은 6p(로그인)·8p(장바구니) 실측값입니다. 4·5p 캡처의 68.5px 은
+    스크롤 시 축소된 상태로 판단해 기본값(110px)으로 통일했습니다.
+  · 푸터 구분선의 시안 실측값은 #A21515 헤어라인(원본 1px = 0.5css)입니다.
+    1px 로 그리면 과해져, 배경 위 blend 값인 #CD7D7D(1p·4p 실측)를 사용했습니다.
+  · 상단 블랙 공지바(topbar)는 1p 에만 노출되어 main-page.html 에만 두었습니다.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F2EEEC;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    color: #212121;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  ul { list-style: none; }
+
+  /* ===== Page (Figma Frame 1440) ===== */
+  .page {
+    width: 1440px;
+    margin: 0 auto;
+    background: #FFF5F5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container {
+    width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ===== Top Notice Bar ===== */
+  .topbar {
+    width: 100%;
+    height: 55px;
+    background: #212121;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .topbar__text {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #FFFFFF;
+  }
+  .topbar__close {
+    position: absolute;
+    right: 32px;
+    top: 17px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+  }
+
+  /* ===== Header / GNB ===== */
+  .header {
+    width: 100%;
+    height: 110px;
+    background: #FFF5F5;
+  }
+  .header__inner {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Hahmlet', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    color: #BA3E1C;
+  }
+  .header__right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .gnb {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .gnb__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 110px;
+  }
+  .gnb__link {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #722819;
+  }
+
+  /* GNB 드롭다운: 마우스 오버 시 하단으로 노출 */
+  .gnb__dropdown {
+    display: none;
+    position: absolute;
+    top: 110px;
+    left: -20px;
+    z-index: 10;
+  }
+  .gnb__item:hover .gnb__dropdown { display: block; }
+
+  .dropdown-panel {
+    width: 180px;
+    padding: 18px 20px;
+    background: #FFFFFF;
+    border: 1px solid #F0E2DE;
+    box-shadow: 0 8px 20px rgba(33, 33, 33, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .dropdown-panel__link {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #3D3D3D;
+  }
+
+  .util {
+    padding: 8px 12px;
+    background: #FFFDF8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1A1A1A;
+  }
+  .util__btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== Hero / Main Banner ===== */
+  .hero {
+    position: relative;
+    width: 100%;
+    height: 814px;
+    background: #E9E2DB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .hero__image-label {
+    position: absolute;
+    top: 24px;
+    left: 32px;
+    font-size: 13px;
+    letter-spacing: 0.4px;
+    color: #B3A79C;
+  }
+  .hero__caption {
+    width: 980px;
+    padding: 60px 40px;
+    background: #E8DCD0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .hero__caption-line {
+    font-size: 50px;
+    font-weight: 500;
+    line-height: 60px;
+    letter-spacing: -0.6px;
+    color: #111111;
+    text-align: center;
+  }
+  .hero__dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid #B9AFA6;
+  }
+  .dot--active {
+    background: #6B625B;
+    border-color: #6B625B;
+  }
+  .hero__help {
+    position: absolute;
+    right: 26px;
+    bottom: 192px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #C1D9B9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #3B4A36;
+  }
+
+  /* ===== Section 공통 ===== */
+  .section__title {
+    font-size: 25px;
+    font-weight: 500;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .section__desc {
+    margin-top: 39px;
+    font-size: 17.5px;
+    font-weight: 400;
+    line-height: 25.1px;
+    letter-spacing: -0.3px;
+    color: #353535;
+  }
+
+  /* ===== What's New ===== */
+  .whats-new {
+    padding: 59px 0 0;
+  }
+  .product-grid {
+    margin-top: 66px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 13px;
+  }
+  .product-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .product-card__thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .badge-new {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 4px 10px;
+    background: #EDA591;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.4px;
+    color: #FFFFFF;
+  }
+  .thumb__label {
+    font-size: 40px;
+    font-weight: 400;
+    letter-spacing: -0.8px;
+    color: #8C8C8C;
+  }
+  .product-card__info {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .product-card__name {
+    margin-bottom: 11px;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 23px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .product-card__option {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 20px;
+    letter-spacing: -0.2px;
+    color: #353535;
+  }
+  .product-card__price {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    line-height: 20px;
+    letter-spacing: -0.2px;
+  }
+  .price--now { color: #353535; }
+  .price--was { color: #8A8A8A; text-decoration: line-through; }
+
+  /* ===== Review ===== */
+  .review {
+    padding: 94px 0 0;
+  }
+  .review-grid {
+    margin-top: 66px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 13px;
+  }
+  .review-card {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .review-card__label {
+    font-size: 60px;
+    font-weight: 400;
+    letter-spacing: -1.2px;
+    color: #8C8C8C;
+  }
+
+  /* ===== Footer ===== */
+  /* margin-top 은 본문과의 간격이라 페이지별 값입니다 (공통은 padding-bottom) */
+  .footer {
+    margin-top: 100px;
+    padding-bottom: 100px;
+  }
+  .footer__divider {
+    width: 100%;
+    height: 1px;
+    background: #CD7D7D;
+  }
+  .footer__inner {
+    position: relative;
+    padding-top: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .footer__links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .footer__link {
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer__info-line {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__sns {
+    position: absolute;
+    right: 0;
+    top: 76px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #A99C97;
+  }
+  .footer__sns-text {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #A99C97;
+  }
+
+  /* ===== [참고용] GNB Hover State — Figma에 hover가 넘어가지 않아 별도 프레임으로 첨부 ===== */
+  .states {
+    width: 1440px;
+    margin: 40px auto 60px;
+    padding: 40px 135px 56px;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .states__title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #8A8A8A;
+  }
+  .states__row {
+    display: flex;
+    gap: 40px;
+  }
+  .states__item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .states__caption {
+    font-size: 12px;
+    color: #8A8A8A;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Top Notice Bar -->
+  <div class="topbar">
+    <span class="topbar__text">신규가입 시 2,000원 쿠폰과 멤버 전용 혜택을 즐겨보세요.</span>
+    <span class="topbar__close">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 1L13 13M13 1L1 13" stroke="#FFFFFF" stroke-width="1.2"/>
+      </svg>
+    </span>
+  </div>
+
+  <!-- Header / GNB -->
+  <header class="header">
+    <div class="container header__inner">
+      <a class="logo" href="#">eatomato</a>
+
+      <div class="header__right">
+        <nav class="gnb">
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone Case</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+                <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone ACC</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Tok</a>
+                <a class="dropdown-panel__link" href="#">Card Wallet</a>
+                <a class="dropdown-panel__link" href="#">Airpods Case</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item"><a class="gnb__link" href="#">SET ITEM</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">About</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">Notice</a></div>
+        </nav>
+
+        <div class="util">
+          <a class="util__btn" href="#" aria-label="검색">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9.5" cy="9.5" r="6.8" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M14.6 14.6L20 20" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="마이페이지">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="7" r="4.2" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M3.4 19.6C4.3 15.9 7.3 13.4 11 13.4C14.7 13.4 17.7 15.9 18.6 19.6" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="장바구니">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.5 2.5H4.2L6.6 13.4H17.2L19.4 5.6H5.4" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+              <circle cx="16.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero / Main Banner Slide -->
+  <section class="hero">
+    <span class="hero__image-label">MAIN BANNER IMAGE · 1440 × 814</span>
+
+    <!-- 배너 카피 영역 (이미지 클릭 시 관련 제품 페이지로 이동) -->
+    <div class="hero__caption">
+      <p class="hero__caption-line">메인화면 이미지 클릭하면</p>
+      <p class="hero__caption-line">이미지 관련한 제품으로 넘어갈 수 있게</p>
+    </div>
+
+    <div class="hero__dots">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot dot--active"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+
+    <div class="hero__help">Help</div>
+  </section>
+
+  <!-- What's New -->
+  <section class="whats-new">
+    <div class="container">
+      <h2 class="section__title">What&rsquo;s New</h2>
+      <p class="section__desc">신제품설명이들어갑니다신제품설명이<br>들어갑니다신제품설명이들어갑니다</p>
+
+      <div class="product-grid">
+        <article class="product-card">
+          <div class="product-card__thumb">
+            <span class="badge-new">NEW</span>
+            <span class="thumb__label">제품이미지</span>
+          </div>
+          <div class="product-card__info">
+            <p class="product-card__name">핸드폰 케이스 MELLOW</p>
+            <p class="product-card__option">옵션｜맥세이프</p>
+            <p class="product-card__price">
+              <span class="price--now">23,000원</span>
+              <span class="price--was">19,000원</span>
+            </p>
+          </div>
+        </article>
+
+        <article class="product-card">
+          <div class="product-card__thumb">
+            <span class="badge-new">NEW</span>
+            <span class="thumb__label">제품이미지</span>
+          </div>
+          <div class="product-card__info">
+            <p class="product-card__name">핸드폰 케이스 MELLOW</p>
+            <p class="product-card__option">옵션｜맥세이프</p>
+            <p class="product-card__price">
+              <span class="price--now">23,000원</span>
+              <span class="price--was">19,000원</span>
+            </p>
+          </div>
+        </article>
+
+        <article class="product-card">
+          <div class="product-card__thumb">
+            <span class="badge-new">NEW</span>
+            <span class="thumb__label">제품이미지</span>
+          </div>
+          <div class="product-card__info">
+            <p class="product-card__name">핸드폰 케이스 MELLOW</p>
+            <p class="product-card__option">옵션｜맥세이프</p>
+            <p class="product-card__price">
+              <span class="price--now">23,000원</span>
+              <span class="price--was">19,000원</span>
+            </p>
+          </div>
+        </article>
+
+        <article class="product-card">
+          <div class="product-card__thumb">
+            <span class="badge-new">NEW</span>
+            <span class="thumb__label">제품이미지</span>
+          </div>
+          <div class="product-card__info">
+            <p class="product-card__name">핸드폰 케이스 MELLOW</p>
+            <p class="product-card__option">옵션｜맥세이프</p>
+            <p class="product-card__price">
+              <span class="price--now">23,000원</span>
+              <span class="price--was">19,000원</span>
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Review (제품별 리뷰탭 이미지 노출) -->
+  <section class="review">
+    <div class="container">
+      <h2 class="section__title">Review</h2>
+      <p class="section__desc">신제품설명이들어갑니다신제품설명이<br>들어갑니다신제품설명이들어갑니다</p>
+
+      <div class="review-grid">
+        <div class="review-card"><span class="review-card__label">리뷰사진</span></div>
+        <div class="review-card"><span class="review-card__label">리뷰사진</span></div>
+        <div class="review-card"><span class="review-card__label">리뷰사진</span></div>
+        <div class="review-card"><span class="review-card__label">리뷰사진</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__divider"></div>
+
+      <div class="footer__inner">
+        <div class="footer__links">
+          <a class="footer__link" href="#">Terms of Use</a>
+          <a class="footer__link" href="#">Privacy Policy</a>
+          <a class="footer__link" href="#">Confirm Entrepreneur Information</a>
+        </div>
+
+        <div class="footer__info">
+          <p class="footer__info-line">Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜</p>
+          <p class="footer__info-line">Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon</p>
+        </div>
+
+        <a class="footer__sns" href="https://www.instagram.com/eatomato__/" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.8" y="0.8" width="13.4" height="13.4" rx="3.6" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="7.5" cy="7.5" r="3.3" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="11.3" cy="3.7" r="0.85" fill="#A99C97"/>
+          </svg>
+          <span class="footer__sns-text">eatomato__</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- [참고용 프레임] GNB Hover 상태 — hover는 Figma로 넘어가지 않아 정적으로 첨부. 불필요하면 이 블록 전체 삭제 -->
+<section class="states">
+  <p class="states__title">GNB HOVER STATE (참고용 프레임)</p>
+  <div class="states__row">
+    <div class="states__item">
+      <p class="states__caption">Phone Case ▾</p>
+      <div class="dropdown-panel">
+        <a class="dropdown-panel__link" href="#">All</a>
+        <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+        <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+      </div>
+    </div>
+    <div class="states__item">
+      <p class="states__caption">Phone ACC ▾</p>
+      <div class="dropdown-panel">
+        <a class="dropdown-panel__link" href="#">All</a>
+        <a class="dropdown-panel__link" href="#">Tok</a>
+        <a class="dropdown-panel__link" href="#">Card Wallet</a>
+        <a class="dropdown-panel__link" href="#">Airpods Case</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

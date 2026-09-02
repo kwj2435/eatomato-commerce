@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>eatomato · 제품 리스트 페이지</title>
+<!--
+  eatomato 제품 리스트 페이지 (request_layout.pdf 2p 기준)
+  Phone Case / Phone ACC 클릭 시 진입하는 상품 리스트 화면.
+
+  [Figma 전환]
+  - html.to.design 등 플러그인으로 import 하면 Auto Layout 프레임으로 들어옵니다.
+  - 외부 폰트/이미지/스크립트 의존성 없음. 모든 값은 리터럴 px / hex.
+  - 기준 캔버스 1440px / 콘텐츠 컨테이너 1200px (main-page.html 과 동일 그리드)
+
+  [PDF 주석 처리 방침]
+  - 빨간색 텍스트/화살표는 설명(주석)이므로 디자인 요소로 그리지 않았습니다.
+  - 단, 주석이 지시하는 "동작"은 구현했습니다.
+      · "이미지에 마우스 올렸을 때 사진 바뀌게 (모든 제품에 적용)" → .product-card:hover 시 썸네일 교체
+      · 정렬 셀렉트에서 화살표로 연결된 리스트 → 셀렉트 하단 드롭다운(open state)
+        ※ PDF에는 리스트가 셀렉트 오른쪽에 그려져 있으나, 화살표로 연결된 "열린 상태" 설명이므로
+          실제 UI 규칙에 맞춰 셀렉트 바로 아래에 배치했습니다.
+  - hover / open 상태는 Figma로 넘어가지 않으므로 문서 하단에 [참고용 프레임]으로 별도 첨부했습니다.
+    불필요하면 <section class="states"> 블록 전체를 삭제하세요.
+
+  [수치 근거]
+  PDF 2페이지를 2배 렌더링해 픽셀 계측하고, 1p(main-page.html)와 동일한 배율(캔버스 1440px)로 환산했습니다.
+  - 헤더: 높이 110px (2p에는 상단 공지바가 없습니다)
+  - 카테고리 탭: 상단 58px, 탭 간격 93px, 활성 탭 pill #EEDEDD
+  - 정렬: 탭 하단 86px, 셀렉트 높이 35px, 컨테이너 우측 정렬
+  - 그리드: 3열 × 392px, column-gap 12px, row-gap 35px, 썸네일 비율 3:4 (392 × 523)
+    (시안 실측 382px → 컨테이너 1200 통일에 맞춰 392px 로 확장)
+  - 푸터: 그리드 하단 138px, 구분선 1px #A91A1F
+  - 1p와 공유하는 토큰(로고/GNB/상품카드 텍스트/푸터 텍스트)은 main-page.html 값을 그대로 사용했습니다.
+    2p에서만 측정값을 쓴 항목: 카테고리 탭 21px, 썸네일 라벨 48px, 상품명 17px/600,
+    SALE/BEST 배지 18px, 정렬 셀렉트, 구분선 컬러(#A91A1F).
+
+  [공통 컴포넌트 사양 — 전 페이지 동일 (헤더 / 푸터)]
+  · 헤더   높이 110px / 배경 #FFF5F5
+           로고 38px 세리프 500 #BA3E1C · GNB 16px 400 #722819 (간격 30px)
+           GNB↔유틸 28px · 유틸칩 #FFFDF8 padding 8/12 · 아이콘 22px #1A1A1A
+  · 푸터   구분선 1px #CD7D7D → 링크 78px (padding-top 76)
+           링크 12.5px 700 #000 (간격 16px) · 안내문 12.5px 400 #000 (line-height 15)
+           인스타 링크 우측 상단 고정 · 하단 여백 100px
+  · 컨테이너 1200px (1440 프레임 기준 좌우 여백 120px)
+  · 헤더 110px 은 6p(로그인)·8p(장바구니) 실측값입니다. 4·5p 캡처의 68.5px 은
+    스크롤 시 축소된 상태로 판단해 기본값(110px)으로 통일했습니다.
+  · 푸터 구분선의 시안 실측값은 #A21515 헤어라인(원본 1px = 0.5css)입니다.
+    1px 로 그리면 과해져, 배경 위 blend 값인 #CD7D7D(1p·4p 실측)를 사용했습니다.
+  · 상단 블랙 공지바(topbar)는 1p 에만 노출되어 main-page.html 에만 두었습니다.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F2EEEC;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    color: #212121;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ===== Page (Figma Frame 1440) ===== */
+  .page {
+    width: 1440px;
+    margin: 0 auto;
+    background: #FFF5F5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container {
+    width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ===== Header / GNB ===== */
+  .header {
+    width: 100%;
+    height: 110px;
+    background: #FFF5F5;
+  }
+  .header__inner {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Hahmlet', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    color: #BA3E1C;
+  }
+  .header__right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .gnb {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .gnb__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 110px;
+  }
+  .gnb__link {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #722819;
+  }
+
+  /* GNB 드롭다운: 마우스 오버 시 하단으로 노출 */
+  .gnb__dropdown {
+    display: none;
+    position: absolute;
+    top: 110px;
+    left: -20px;
+    z-index: 10;
+  }
+  .gnb__item:hover .gnb__dropdown { display: block; }
+
+  .dropdown-panel {
+    width: 180px;
+    padding: 18px 20px;
+    background: #FFFFFF;
+    border: 1px solid #F0E2DE;
+    box-shadow: 0 8px 20px rgba(33, 33, 33, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .dropdown-panel__link {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #3D3D3D;
+  }
+
+  .util {
+    padding: 8px 12px;
+    background: #FFFDF8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1A1A1A;
+  }
+  .util__btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== Category Tabs (Phone Case 하위 카테고리) ===== */
+  .tabs {
+    margin-top: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 93px;
+  }
+  .tab {
+    font-size: 21px;
+    font-weight: 400;
+    line-height: 24px;
+    letter-spacing: -0.4px;
+    color: #722819;
+  }
+  .tab--active {
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: #EEDEDD;
+  }
+
+  /* ===== Sort ===== */
+  .sort {
+    margin-top: 86px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .sort__field {
+    position: relative;
+  }
+  .sort__select {
+    font-family: inherit;
+    width: 116px;
+    height: 35px;
+    padding: 0 10px;
+    background: #FFFFFF;
+    border: 1px solid #7A7A7A;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sort__value {
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 23px;
+    letter-spacing: -0.6px;
+    color: #000000;
+    white-space: nowrap;
+  }
+
+  /* 정렬 드롭다운: 셀렉트 클릭(=hover) 시 하단 노출 */
+  .sort__dropdown {
+    display: none;
+    position: absolute;
+    top: 35px;
+    right: 0;
+    z-index: 20;
+  }
+  .sort__field:hover .sort__dropdown { display: block; }
+
+  .sort-panel {
+    width: 116px;
+    background: #FFFFFF;
+    border: 1px solid #888888;
+    display: flex;
+    flex-direction: column;
+  }
+  .sort-panel__option {
+    padding: 5px 10px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 17px;
+    letter-spacing: -0.3px;
+    color: #000000;
+  }
+  .sort-panel__option--selected { font-weight: 700; }
+
+  /* ===== Product Grid ===== */
+  .product-list {
+    margin-top: 14px;
+  }
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: 12px;
+    row-gap: 35px;
+  }
+  .product-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .product-card__thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    background: #FFFFFF;
+    overflow: hidden;
+  }
+  /* 기본 이미지 / hover 이미지 2개 레이어 — 주석: 마우스 오버 시 사진 교체 */
+  .thumb__img {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #FFFFFF;
+    font-size: 48px;
+    font-weight: 400;
+    letter-spacing: -1px;
+    color: #8C8C8C;
+  }
+  .thumb__img--hover { opacity: 0; }
+  .product-card:hover .thumb__img--hover { opacity: 1; }
+
+  .badge-stack {
+    position: absolute;
+    top: 10px;
+    left: 11px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .badge {
+    padding: 4px 17px;
+    background: #EEAB99;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 22px;
+    letter-spacing: -0.2px;
+    color: #FFFFFF;
+  }
+
+  .product-card__info {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .product-card__name {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 23px;
+    letter-spacing: -0.3px;
+    color: #000000;
+  }
+  .product-card__option {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 20px;
+    letter-spacing: -0.2px;
+    color: #353535;
+  }
+  .product-card__price {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    line-height: 20px;
+    letter-spacing: -0.2px;
+  }
+  .price--now { color: #353535; }
+  .price--was { color: #8A8A8A; text-decoration: line-through; }
+
+  /* ===== Footer ===== */
+  /* margin-top 은 본문과의 간격이라 페이지별 값입니다 (공통은 padding-bottom) */
+  .footer {
+    margin-top: 138px;
+    padding-bottom: 100px;
+  }
+  .footer__divider {
+    width: 100%;
+    height: 1px;
+    background: #CD7D7D;
+  }
+  .footer__inner {
+    position: relative;
+    padding-top: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .footer__links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .footer__link {
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer__info-line {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+
+  /* ===== [참고용] Hover / Open State — Figma에 상태가 넘어가지 않아 별도 프레임으로 첨부 ===== */
+  .states {
+    width: 1440px;
+    margin: 40px auto 60px;
+    padding: 40px 135px 56px;
+    background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .states__title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #8A8A8A;
+  }
+  .states__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .states__item {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .states__caption {
+    font-size: 12px;
+    color: #8A8A8A;
+  }
+  .states__thumb {
+    position: relative;
+    width: 392px;
+    aspect-ratio: 3 / 4;
+    background: #FFFFFF;
+    border: 1px solid #EFE6E4;
+    overflow: hidden;
+  }
+  .footer__sns {
+    position: absolute;
+    right: 0;
+    top: 76px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #A99C97;
+  }
+  .footer__sns-text {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #A99C97;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header / GNB -->
+  <header class="header">
+    <div class="container header__inner">
+      <a class="logo" href="#">eatomato</a>
+
+      <div class="header__right">
+        <nav class="gnb">
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone Case</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+                <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone ACC</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Tok</a>
+                <a class="dropdown-panel__link" href="#">Card Wallet</a>
+                <a class="dropdown-panel__link" href="#">Airpods Case</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item"><a class="gnb__link" href="#">SET ITEM</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">About</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">Notice</a></div>
+        </nav>
+
+        <div class="util">
+          <a class="util__btn" href="#" aria-label="검색">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9.5" cy="9.5" r="6.8" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M14.6 14.6L20 20" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="마이페이지">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="7" r="4.2" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M3.4 19.6C4.3 15.9 7.3 13.4 11 13.4C14.7 13.4 17.7 15.9 18.6 19.6" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="장바구니">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.5 2.5H4.2L6.6 13.4H17.2L19.4 5.6H5.4" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+              <circle cx="16.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Category Tabs -->
+  <nav class="container tabs">
+    <a class="tab tab--active" href="#">All</a>
+    <a class="tab" href="#">Epoxy &amp; Glass</a>
+    <a class="tab" href="#">Clear Jelly Hard</a>
+  </nav>
+
+  <!-- Sort -->
+  <div class="container sort">
+    <div class="sort__field">
+      <button class="sort__select" type="button">
+        <span class="sort__value">판매많은순</span>
+        <svg width="9" height="6" viewBox="0 0 9 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M1 1L4.5 4.5L8 1" stroke="#000000" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <div class="sort__dropdown">
+        <div class="sort-panel">
+          <span class="sort-panel__option">낮은가격순</span>
+          <span class="sort-panel__option">높은가격순</span>
+          <span class="sort-panel__option sort-panel__option--selected">판매많은순</span>
+          <span class="sort-panel__option">평점높은순</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Grid : 3열 × 2행 -->
+  <section class="container product-list">
+    <div class="product-grid">
+
+      <article class="product-card">
+        <div class="product-card__thumb">
+          <div class="badge-stack">
+            <span class="badge">SALE</span>
+            <span class="badge">BEST</span>
+          </div>
+          <span class="thumb__img thumb__img--default">제품이미지</span>
+          <span class="thumb__img thumb__img--hover">제품이미지 2</span>
+        </div>
+        <div class="product-card__info">
+          <p class="product-card__name">핸드폰 케이스 MELLOW</p>
+          <p class="product-card__option">옵션 | 맥세이프</p>
+          <p class="product-card__price">
+            <span class="price--now">23,000원</span>
+            <span class="price--was">19,000원</span>
+          </p>
+        </div>
+      </article>
+
+      <article class="product-card">
+        <div class="product-card__thumb">
+          <div class="badge-stack">
+            <span class="badge">SALE</span>
+            <span class="badge">BEST</span>
+          </div>
+          <span class="thumb__img thumb__img--default">제품이미지</span>
+          <span class="thumb__img thumb__img--hover">제품이미지 2</span>
+        </div>
+        <div class="product-card__info">
+          <p class="product-card__name">핸드폰 케이스 DOTTIE (cream / red)</p>
+          <p class="product-card__option">옵션 | 맥세이프</p>
+          <p class="product-card__price">
+            <span class="price--now">23,000원</span>
+            <span class="price--was">19,000원</span>
+          </p>
+        </div>
+      </article>
+
+      <article class="product-card">
+        <div class="product-card__thumb">
+          <div class="badge-stack">
+            <span class="badge">SALE</span>
+            <span class="badge">BEST</span>
+          </div>
+          <span class="thumb__img thumb__img--default">제품이미지</span>
+          <span class="thumb__img thumb__img--hover">제품이미지 2</span>
+        </div>
+        <div class="product-card__info">
+          <p class="product-card__name">핸드폰 케이스 MELLOW</p>
+          <p class="product-card__option">옵션 | 맥세이프</p>
+          <p class="product-card__price">
+            <span class="price--now">23,000원</span>
+            <span class="price--was">19,000원</span>
+          </p>
+        </div>
+      </article>
+
+      <article class="product-card">
+        <div class="product-card__thumb">
+          <div class="badge-stack">
+            <span class="badge">SALE</span>
+            <span class="badge">BEST</span>
+          </div>
+          <span class="thumb__img thumb__img--default">제품이미지</span>
+          <span class="thumb__img thumb__img--hover">제품이미지 2</span>
+        </div>
+        <div class="product-card__info">
+          <p class="product-card__name">핸드폰 케이스 MELLOW</p>
+          <p class="product-card__option">옵션 | 맥세이프</p>
+          <p class="product-card__price">
+            <span class="price--now">23,000원</span>
+            <span class="price--was">19,000원</span>
+          </p>
+        </div>
+      </article>
+
+      <article class="product-card">
+        <div class="product-card__thumb">
+          <div class="badge-stack">
+            <span class="badge">SALE</span>
+            <span class="badge">BEST</span>
+          </div>
+          <span class="thumb__img thumb__img--default">제품이미지</span>
+          <span class="thumb__img thumb__img--hover">제품이미지 2</span>
+        </div>
+        <div class="product-card__info">
+          <p class="product-card__name">핸드폰 케이스 DOTTIE (cream / red)</p>
+          <p class="product-card__option">옵션 | 맥세이프</p>
+          <p class="product-card__price">
+            <span class="price--now">23,000원</span>
+            <span class="price--was">19,000원</span>
+          </p>
+        </div>
+      </article>
+
+      <article class="product-card">
+        <div class="product-card__thumb">
+          <div class="badge-stack">
+            <span class="badge">SALE</span>
+            <span class="badge">BEST</span>
+          </div>
+          <span class="thumb__img thumb__img--default">제품이미지</span>
+          <span class="thumb__img thumb__img--hover">제품이미지 2</span>
+        </div>
+        <div class="product-card__info">
+          <p class="product-card__name">핸드폰 케이스 MELLOW</p>
+          <p class="product-card__option">옵션 | 맥세이프</p>
+          <p class="product-card__price">
+            <span class="price--now">23,000원</span>
+            <span class="price--was">19,000원</span>
+          </p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__divider"></div>
+
+      <div class="footer__inner">
+        <div class="footer__links">
+          <a class="footer__link" href="#">Terms of Use</a>
+          <a class="footer__link" href="#">Privacy Policy</a>
+          <a class="footer__link" href="#">Confirm Entrepreneur Information</a>
+        </div>
+
+        <div class="footer__info">
+          <p class="footer__info-line">Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜</p>
+          <p class="footer__info-line">Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon</p>
+        </div>
+
+        <a class="footer__sns" href="https://www.instagram.com/eatomato__/" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.8" y="0.8" width="13.4" height="13.4" rx="3.6" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="7.5" cy="7.5" r="3.3" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="11.3" cy="3.7" r="0.85" fill="#A99C97"/>
+          </svg>
+          <span class="footer__sns-text">eatomato__</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- [참고용 프레임] hover / open 상태 — Figma로 넘어가지 않아 정적으로 첨부. 불필요하면 이 블록 전체 삭제 -->
+<section class="states">
+  <p class="states__title">INTERACTION STATE (참고용 프레임)</p>
+
+  <div class="states__row">
+    <div class="states__item">
+      <p class="states__caption">Thumbnail · Default</p>
+      <div class="states__thumb">
+        <div class="badge-stack">
+          <span class="badge">SALE</span>
+          <span class="badge">BEST</span>
+        </div>
+        <span class="thumb__img">제품이미지</span>
+      </div>
+    </div>
+
+    <div class="states__item">
+      <p class="states__caption">Thumbnail · Hover (사진 교체 · 모든 제품 적용)</p>
+      <div class="states__thumb">
+        <div class="badge-stack">
+          <span class="badge">SALE</span>
+          <span class="badge">BEST</span>
+        </div>
+        <span class="thumb__img">제품이미지 2</span>
+      </div>
+    </div>
+
+    <div class="states__item">
+      <p class="states__caption">Sort · Open</p>
+      <div class="sort__select">
+        <span class="sort__value">판매많은순</span>
+        <svg width="9" height="6" viewBox="0 0 9 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M1 1L4.5 4.5L8 1" stroke="#000000" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="sort-panel">
+        <span class="sort-panel__option">낮은가격순</span>
+        <span class="sort-panel__option">높은가격순</span>
+        <span class="sort-panel__option sort-panel__option--selected">판매많은순</span>
+        <span class="sort-panel__option">평점높은순</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>eatomato · 장바구니 페이지</title>
+<!--
+  eatomato 장바구니(Cart) 페이지 레이아웃 (request_layout.pdf 8p "7. 장바구니" 기준)
+  - Figma 변환용: html.to.design 등 플러그인으로 import 하면 Auto Layout 프레임으로 들어옵니다.
+  - 외부 폰트/이미지/스크립트 의존성 없음. 모든 값은 리터럴 px / hex.
+  - PDF의 빨간색 박스(마이페이지 아이콘 표시)는 시안 주석이므로 제외했습니다.
+  - 기준 캔버스 폭: 1440px / 콘텐츠 컨테이너: 1200px
+
+  [8p 실측 수치]
+  - 캡처 원본 1448×1920 (2배율). 프레임 폭 1440 기준으로 정규화했습니다.
+  - 헤더 높이 110px (로고/GNB 중심 y=55) — 공통 컴포넌트 사양과 일치합니다.
+  - 장바구니 영역 배경 #FEF3EE (페이지 배경 #FFF5F5 와 다름), 높이 약 1098px
+  - 테이블 폭 1259px → 1200px 그리드로 정규화
+  - 컬럼 상품정보:수량:가격:배송비 = 604 : 123 : 221 : 252
+  - 행 구분선은 배송비 칸(rowspan) 앞에서 끊깁니다 (컨테이너 기준 0→1007px)
+  - 수량 스테퍼 123×40 / 바로구매 버튼 172.5×58 / 결제위젯 블록 폭 243
+
+  [정규화한 부분]
+  - 시안의 3개 행 높이는 143 / 144 / 125 로 제각각입니다(상품 이미지 원본 비율 차이).
+    리스트 일관성을 위해 썸네일 80×100 고정 + 행 높이 142 로 통일했습니다.
+  - 가격 컬럼 중심이 실측(x=887)보다 9.5px 우측입니다.
+    배송비 컬럼 경계(1007)와 수량 스테퍼 위치를 우선한 결과입니다.
+  - 8p 캡처에는 푸터가 없고 하단에 빈 여백 687px 이 있습니다.
+    푸터는 공통 컴포넌트이므로 타 페이지와 동일하게 포함했습니다.
+  - 네이버페이/토스페이는 외부 PG 위젯 영역입니다. 실제로는 스크립트가 삽입되며
+    여기서는 위치·크기·브랜드 컬러만 잡은 플레이스홀더입니다.
+
+  [공통 컴포넌트 사양 — 전 페이지 동일 (헤더 / 푸터)]
+  · 헤더   높이 110px / 배경 #FFF5F5
+           로고 38px 세리프 500 #BA3E1C · GNB 16px 400 #722819 (간격 30px)
+           GNB↔유틸 28px · 유틸칩 #FFFDF8 padding 8/12 · 아이콘 22px #1A1A1A
+  · 푸터   구분선 1px #CD7D7D → 링크 78px (padding-top 76)
+           링크 12.5px 700 #000 (간격 16px) · 안내문 12.5px 400 #000 (line-height 15)
+           인스타 링크 우측 상단 고정 · 하단 여백 100px
+  · 컨테이너 1200px (1440 프레임 기준 좌우 여백 120px)
+  · 헤더 110px 은 6p(로그인)·8p(장바구니) 실측값입니다. 4·5p 캡처의 68.5px 은
+    스크롤 시 축소된 상태로 판단해 기본값(110px)으로 통일했습니다.
+  · 푸터 구분선의 시안 실측값은 #A21515 헤어라인(원본 1px = 0.5css)입니다.
+    1px 로 그리면 과해져, 배경 위 blend 값인 #CD7D7D(1p·4p 실측)를 사용했습니다.
+  · 상단 블랙 공지바(topbar)는 1p 에만 노출되어 main-page.html 에만 두었습니다.
+-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #F2EEEC;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    color: #1A1A1A;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  ul { list-style: none; }
+
+  /* ===== Page (Figma Frame 1440) ===== */
+  .page {
+    width: 1440px;
+    margin: 0 auto;
+    background: #FFF5F5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container {
+    width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ===== Header / GNB ===== */
+  .header {
+    width: 100%;
+    height: 110px;
+    background: #FFF5F5;
+  }
+  .header__inner {
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Hahmlet', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+    font-size: 38px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
+    color: #BA3E1C;
+  }
+  .header__right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .gnb {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+  }
+  .gnb__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 110px;
+  }
+  .gnb__link {
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #722819;
+  }
+
+  /* GNB 드롭다운: 8p 시안에는 노출되지 않지만 헤더 컴포넌트를 타 페이지와 동일하게 유지 */
+  .gnb__dropdown {
+    display: none;
+    position: absolute;
+    top: 110px;
+    left: -20px;
+    z-index: 10;
+  }
+  .gnb__item:hover .gnb__dropdown { display: block; }
+
+  .dropdown-panel {
+    width: 180px;
+    padding: 18px 20px;
+    background: #FFFFFF;
+    border: 1px solid #F0E2DE;
+    box-shadow: 0 8px 20px rgba(33, 33, 33, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .dropdown-panel__link {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #3D3D3D;
+  }
+
+  .util {
+    padding: 8px 12px;
+    background: #FFFDF8;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1A1A1A;
+  }
+  .util__btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== Cart 본문 영역 ===== */
+  /* 헤더(110) 아래 25px 은 페이지 배경(#FFF5F5)이 노출됩니다 — 시안 실측 */
+  .cart {
+    width: 100%;
+    margin-top: 25px;
+    padding: 34px 0 39px;
+    background: #FEF3EE;
+  }
+  .cart__notice {
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 20px;
+    letter-spacing: -0.3px;
+    color: #1A1A1A;
+  }
+
+  /* ===== 장바구니 테이블 ===== */
+  .cart-table {
+    margin-top: 46px;
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .cart-table col.col--info  { width: 604px; }
+  .cart-table col.col--qty   { width: 123px; }
+  .cart-table col.col--price { width: 221px; }
+  .cart-table col.col--ship  { width: 252px; }
+
+  .cart-table th {
+    height: 56px;
+    padding: 0;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+    text-align: center;
+    border-bottom: 1.5px solid #1A1A1A;
+  }
+  /* 상품 정보 칸: 체크박스 + 라벨 좌측 정렬 (컨테이너 기준 체크박스 0px, 라벨 27px) */
+  .cart-table th.th--info { text-align: left; }
+  .cart-table th.th--info .checkbox {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-right: 12px;
+  }
+  .cart-table td {
+    padding: 21px 0;
+    vertical-align: middle;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+    text-align: center;
+  }
+  /* 행 구분선은 배송비 칸을 제외한 3개 칸에만 들어갑니다 */
+  .cart-row td:not(.cell--ship) { border-bottom: 1.5px solid #1A1A1A; }
+  .cart-row--last td:not(.cell--ship) { border-bottom: none; }
+  .cart-table tbody { border-bottom: 1.5px solid #1A1A1A; }
+
+  /* 체크박스 (선택 상태) */
+  .checkbox {
+    flex: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+    background: #4F71EC;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 상품 정보 칸 */
+  /* td 에 직접 flex 를 주면 표 레이아웃이 깨지므로 내부 래퍼(.cart-item)로 감쌉니다 */
+  .cell--info { text-align: left; }
+  .cart-item {
+    display: flex;
+    align-items: center;
+  }
+  .cart-item > .checkbox { margin-right: 11px; }
+  .cart-item__thumb {
+    flex: none;
+    width: 80px;
+    height: 100px;
+    margin-right: 27px;
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cart-item__thumb-label {
+    font-size: 11px;
+    letter-spacing: -0.2px;
+    color: #B3A79C;
+  }
+  .cart-item__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .cart-item__name {
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+  }
+  .cart-item__option {
+    margin-top: 11px;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 14px;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+  }
+  .cart-item__remove {
+    margin-top: 18px;
+    align-self: flex-start;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 13px;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+  }
+
+  /* 수량 스테퍼 */
+  .stepper {
+    width: 123px;
+    height: 40px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+  }
+  .stepper__btn {
+    width: 41px;
+    height: 40px;
+    background: transparent;
+    border: 1.5px solid #1A1A1A;
+    font-family: inherit;
+    font-size: 15px;
+    color: #1A1A1A;
+    cursor: pointer;
+  }
+  .stepper__value {
+    width: 41px;
+    height: 40px;
+    border: 1.5px solid #1A1A1A;
+    border-left: none;
+    border-right: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+  }
+
+  /* 배송비 칸 (3개 행 rowspan) */
+  .cell--ship {
+    text-align: center;
+    line-height: 1;
+  }
+  .ship__free {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 15px;
+    font-weight: 400;
+    color: #1A1A1A;
+  }
+  .ship__note {
+    margin-top: 8px;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 19px;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+  }
+
+  /* ===== 결제 요약 ===== */
+  .cart-summary {
+    width: 630px;
+    margin: 29px 0 0 auto;
+  }
+  .summary-row {
+    display: grid;
+    grid-template-columns: 356px 274px;
+    align-items: center;
+    height: 19px;
+    font-size: 15px;
+    letter-spacing: -0.2px;
+  }
+  .summary-row + .summary-row { margin-top: 29px; }
+  .summary-row__label { text-align: right; }
+  .summary-row__value { text-align: right; }
+
+  .summary-divider {
+    margin-top: 23px;
+    width: 100%;
+    height: 1.5px;
+    background: #1A1A1A;
+  }
+  .summary-row--total {
+    margin-top: 26px;
+    height: 21px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #000000;
+  }
+
+  /* ===== 구매 버튼 ===== */
+  .cart-actions {
+    margin-top: 68px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .btn-buy {
+    width: 173px;
+    height: 58px;
+    background: transparent;
+    border: 1.5px solid #1A1A1A;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: -0.2px;
+    color: #1A1A1A;
+    cursor: pointer;
+  }
+
+  /* ===== 간편결제 위젯 (외부 PG 삽입 영역) ===== */
+  .pay-widgets {
+    margin: 43px 0 0 auto;
+    width: 243px;
+  }
+  .pay-naver {
+    border-top: 1.5px solid #1A1A1A;
+    border-bottom: 1.5px solid #1A1A1A;
+    background: #FFFDF8;
+  }
+  .pay-naver__main {
+    height: 59px;
+    padding: 0 5px 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pay-naver__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .pay-naver__brand {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: #2DB400;
+  }
+  .pay-naver__desc {
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 14px;
+    letter-spacing: -0.3px;
+    color: #1A1A1A;
+  }
+  .pay-naver__btn {
+    width: 138px;
+    height: 36px;
+    background: #77D167;
+    border: none;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #1A1A1A;
+    cursor: pointer;
+  }
+  .pay-naver__event {
+    height: 44px;
+    padding: 0 5px 0 8px;
+    border-top: 1px solid #E3DCD6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .pay-naver__event-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    letter-spacing: -0.3px;
+    color: #6B6B6B;
+  }
+  .pay-naver__event-text b {
+    font-weight: 400;
+    color: #2DB400;
+  }
+  .pay-naver__nav {
+    flex: none;
+    display: flex;
+    border: 1px solid #E3DCD6;
+  }
+  .pay-naver__nav span {
+    width: 18px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #8A8A8A;
+  }
+  .pay-naver__nav span + span { border-left: 1px solid #E3DCD6; }
+
+  .pay-toss {
+    margin-top: 11px;
+    height: 40px;
+    padding-left: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pay-toss__desc {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 16px;
+    letter-spacing: -0.3px;
+    color: #1A1A1A;
+  }
+  .pay-toss__btn {
+    width: 138px;
+    height: 40px;
+    background: #5D7EE5;
+    border: none;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: #FFFFFF;
+    cursor: pointer;
+  }
+
+  /* ===== Footer ===== */
+  /* 8p 시안에는 푸터가 없으나(하단 빈 여백) 전 페이지 공통 요소이므로 포함했습니다. */
+  .footer {
+    padding-bottom: 100px;
+  }
+  .footer__inner {
+    position: relative;
+    padding-top: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .footer__links {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .footer__link {
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .footer__info-line {
+    font-size: 12.5px;
+    font-weight: 400;
+    line-height: 15px;
+    letter-spacing: -0.2px;
+    color: #000000;
+  }
+  .footer__sns {
+    position: absolute;
+    right: 0;
+    top: 76px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #A99C97;
+  }
+  .footer__sns-text {
+    font-size: 13px;
+    letter-spacing: -0.2px;
+    color: #A99C97;
+  }
+  .footer__divider {
+    width: 100%;
+    height: 1px;
+    background: #CD7D7D;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Header / GNB -->
+  <header class="header">
+    <div class="container header__inner">
+      <a class="logo" href="#">eatomato</a>
+
+      <div class="header__right">
+        <nav class="gnb">
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone Case</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Epoxy &amp; Glass</a>
+                <a class="dropdown-panel__link" href="#">Clear Jelly Hard</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item">
+            <a class="gnb__link" href="#">Phone ACC</a>
+            <div class="gnb__dropdown">
+              <div class="dropdown-panel">
+                <a class="dropdown-panel__link" href="#">All</a>
+                <a class="dropdown-panel__link" href="#">Tok</a>
+                <a class="dropdown-panel__link" href="#">Card Wallet</a>
+                <a class="dropdown-panel__link" href="#">Airpods Case</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="gnb__item"><a class="gnb__link" href="#">SET ITEM</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">About</a></div>
+          <div class="gnb__item"><a class="gnb__link" href="#">Notice</a></div>
+        </nav>
+
+        <div class="util">
+          <a class="util__btn" href="#" aria-label="검색">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9.5" cy="9.5" r="6.8" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M14.6 14.6L20 20" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="마이페이지">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="7" r="4.2" stroke="#1A1A1A" stroke-width="1.3"/>
+              <path d="M3.4 19.6C4.3 15.9 7.3 13.4 11 13.4C14.7 13.4 17.7 15.9 18.6 19.6" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </a>
+          <a class="util__btn" href="#" aria-label="장바구니">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1.5 2.5H4.2L6.6 13.4H17.2L19.4 5.6H5.4" stroke="#1A1A1A" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+              <circle cx="16.2" cy="18" r="1.6" stroke="#1A1A1A" stroke-width="1.3"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 장바구니 본문 -->
+  <main class="cart">
+    <div class="container">
+
+      <p class="cart__notice">8만원 이상 구매시 무료배송 (3)</p>
+
+      <table class="cart-table">
+        <colgroup>
+          <col class="col--info">
+          <col class="col--qty">
+          <col class="col--price">
+          <col class="col--ship">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="th--info" scope="col">
+              <span class="checkbox" role="img" aria-label="전체 선택됨">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 4.1L3.6 6.7L9 1.3" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>상품 정보
+            </th>
+            <th scope="col">수량</th>
+            <th scope="col">가격</th>
+            <th scope="col">배송비</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="cart-row">
+            <td class="cell--info">
+              <div class="cart-item">
+              <span class="checkbox" role="img" aria-label="선택됨">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 4.1L3.6 6.7L9 1.3" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="cart-item__thumb"><span class="cart-item__thumb-label">상품이미지</span></span>
+              <span class="cart-item__body">
+                <span class="cart-item__name">맥세이프 카드슬롯_Afternoon Leaf</span>
+                <span class="cart-item__option">Option: 세트 상품 / Model: 아이폰 17 AIR</span>
+                <a class="cart-item__remove" href="#">삭제하기</a>
+              </span>
+              </div>
+            </td>
+            <td>
+              <div class="stepper">
+                <button class="stepper__btn" type="button" aria-label="수량 감소">−</button>
+                <span class="stepper__value">1</span>
+                <button class="stepper__btn" type="button" aria-label="수량 증가">+</button>
+              </div>
+            </td>
+            <td>46,800원</td>
+
+            <!-- 배송비: 3개 행 공통 (rowspan) -->
+            <td class="cell--ship" rowspan="3">
+              <span class="ship__free">
+                무료
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="6.5" cy="6.5" r="5.8" stroke="#1A1A1A" stroke-width="1"/>
+                  <path d="M6.5 5.6V9.4" stroke="#1A1A1A" stroke-width="1.2" stroke-linecap="round"/>
+                  <circle cx="6.5" cy="3.6" r="0.75" fill="#1A1A1A"/>
+                </svg>
+              </span>
+              <p class="ship__note">80,000원 이상 구매 시 무료<br>(배송비 3,000원)</p>
+            </td>
+          </tr>
+
+          <tr class="cart-row">
+            <td class="cell--info">
+              <div class="cart-item">
+              <span class="checkbox" role="img" aria-label="선택됨">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 4.1L3.6 6.7L9 1.3" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="cart-item__thumb"><span class="cart-item__thumb-label">상품이미지</span></span>
+              <span class="cart-item__body">
+                <span class="cart-item__name">실버 범퍼 케이스_Afternoon Leaf</span>
+                <span class="cart-item__option">Option: 맥세이프 글로시 / Model: 아이폰 17 PROMAX</span>
+                <a class="cart-item__remove" href="#">삭제하기</a>
+              </span>
+              </div>
+            </td>
+            <td>
+              <div class="stepper">
+                <button class="stepper__btn" type="button" aria-label="수량 감소">−</button>
+                <span class="stepper__value">1</span>
+                <button class="stepper__btn" type="button" aria-label="수량 증가">+</button>
+              </div>
+            </td>
+            <td>26,850원</td>
+          </tr>
+
+          <tr class="cart-row cart-row--last">
+            <td class="cell--info">
+              <div class="cart-item">
+              <span class="checkbox" role="img" aria-label="선택됨">
+                <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 4.1L3.6 6.7L9 1.3" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="cart-item__thumb"><span class="cart-item__thumb-label">상품이미지</span></span>
+              <span class="cart-item__body">
+                <span class="cart-item__name">[+맥세이프] 스마트톡_Afternoon Leaf</span>
+                <span class="cart-item__option">Type: 맥세이프형</span>
+                <a class="cart-item__remove" href="#">삭제하기</a>
+              </span>
+              </div>
+            </td>
+            <td>
+              <div class="stepper">
+                <button class="stepper__btn" type="button" aria-label="수량 감소">−</button>
+                <span class="stepper__value">1</span>
+                <button class="stepper__btn" type="button" aria-label="수량 증가">+</button>
+              </div>
+            </td>
+            <td>14,900원</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 결제 요약 -->
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span class="summary-row__label">상품 합계</span>
+          <span class="summary-row__value">88,550원</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-row__label">배송비</span>
+          <span class="summary-row__value">0원</span>
+        </div>
+
+        <div class="summary-divider"></div>
+
+        <div class="summary-row summary-row--total">
+          <span class="summary-row__label">합계</span>
+          <span class="summary-row__value">88,550원</span>
+        </div>
+      </div>
+
+      <div class="cart-actions">
+        <button class="btn-buy" type="button">바로 구매하기</button>
+      </div>
+
+      <!-- 간편결제 위젯 : 실제로는 외부 PG 스크립트가 삽입되는 영역 -->
+      <div class="pay-widgets">
+        <div class="pay-naver">
+          <div class="pay-naver__main">
+            <div class="pay-naver__text">
+              <span class="pay-naver__brand">NAVER</span>
+              <span class="pay-naver__desc">네이버ID로 간편구매<br>네이버페이</span>
+            </div>
+            <button class="pay-naver__btn" type="button">N pay 구매</button>
+          </div>
+          <div class="pay-naver__event">
+            <span class="pay-naver__event-text"><b>이벤트</b> 100% 지급! 최대 1만원…</span>
+            <span class="pay-naver__nav"><span>‹</span><span>›</span></span>
+          </div>
+        </div>
+
+        <div class="pay-toss">
+          <span class="pay-toss__desc">쉽고 빠른<br>토스페이 간편결제</span>
+          <button class="pay-toss__btn" type="button">tosspay 구매하기</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__divider"></div>
+
+      <div class="footer__inner">
+        <div class="footer__links">
+          <a class="footer__link" href="#">Terms of Use</a>
+          <a class="footer__link" href="#">Privacy Policy</a>
+          <a class="footer__link" href="#">Confirm Entrepreneur Information</a>
+        </div>
+
+        <div class="footer__info">
+          <p class="footer__info-line">Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜</p>
+          <p class="footer__info-line">Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon</p>
+        </div>
+
+        <a class="footer__sns" href="https://www.instagram.com/eatomato__/" target="_blank" rel="noopener noreferrer">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0.8" y="0.8" width="13.4" height="13.4" rx="3.6" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="7.5" cy="7.5" r="3.3" stroke="#A99C97" stroke-width="1.1"/>
+            <circle cx="11.3" cy="3.7" r="0.85" fill="#A99C97"/>
+          </svg>
+          <span class="footer__sns-text">eatomato__</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>
