@@ -1,9 +1,14 @@
+import {
+  findMockProductDetail,
+  listMockProductSlugs,
+} from "@/lib/mock/product-details";
 import { MOCK_PRODUCTS } from "@/lib/mock/products";
 import type {
   CategoryKey,
   Product,
   SubcategoryKey,
 } from "@/types/product";
+import type { ProductDetail } from "@/types/product-detail";
 
 /**
  * 상품 API.
@@ -106,4 +111,20 @@ function sortProducts(products: Product[], sort: SortValue): Product[] {
 
 function currentPrice(product: Product): number {
   return product.salePrice ?? product.price;
+}
+
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * 슬러그로 상품 상세를 조회한다.
+ * 서버 컴포넌트에서 이 값을 await 로 받아 `notFound()` 처리에 사용한다.
+ * 실서비스에서는 `fetch(`${API_BASE}/products/${slug}`)` 로 교체.
+ */
+export async function getProductDetail(slug: string): Promise<ProductDetail | null> {
+  return findMockProductDetail(slug);
+}
+
+/** 정적 파라미터 생성용 슬러그 목록. */
+export async function listAllProductSlugs(): Promise<string[]> {
+  return listMockProductSlugs();
 }
