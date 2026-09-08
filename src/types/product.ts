@@ -6,7 +6,7 @@
 export type ProductBadge = "NEW" | "BEST" | "SALE";
 
 /** 최상위 카테고리 키. GNB · 라우트 · 상품 데이터가 공유하는 리터럴. */
-export type CategoryKey = "phone-case" | "phone-acc";
+export type CategoryKey = "phone-case" | "phone-acc" | "set";
 
 /** 서브카테고리 키. `null` 은 "전체" 를 의미한다(URL 상 세그먼트 없음). */
 export type SubcategoryKey =

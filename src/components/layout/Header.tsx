@@ -6,13 +6,14 @@ import { SearchIcon, UserIcon } from "@/components/ui/icons";
 import {
   CATEGORY_LIST,
   categoryHref,
+  hasSubcategories,
 } from "@/features/product-list/categories";
 import { cn } from "@/lib/utils/cn";
 
 /**
  * GNB 정의.
  *
- * Phone Case / Phone ACC 항목은 `features/product-list/categories.ts` 를
+ * Phone Case / Phone ACC / SET ITEM 항목은 `features/product-list/categories.ts` 를
  * 단일 진실 원천으로 삼아 그 목록에서 파생시킨다. 카테고리를 추가·변경할 때
  * 헤더와 라우트가 동시에 갱신되어 서로 엇갈릴 여지를 없앤다.
  */
@@ -25,15 +26,17 @@ type NavItem = {
 const CATEGORY_NAV_ITEMS: NavItem[] = CATEGORY_LIST.map((category) => ({
   label: category.label,
   href: categoryHref(category.slug),
-  children: category.subcategories.map((sub) => ({
-    label: sub.label,
-    href: categoryHref(category.slug, sub.slug),
-  })),
+  // "All" 하나뿐인 카테고리(SET ITEM)는 시안대로 드롭다운 없이 단독 링크로 둔다.
+  children: hasSubcategories(category)
+    ? category.subcategories.map((sub) => ({
+        label: sub.label,
+        href: categoryHref(category.slug, sub.slug),
+      }))
+    : undefined,
 }));
 
 const NAV_ITEMS: NavItem[] = [
   ...CATEGORY_NAV_ITEMS,
-  { label: "SET ITEM", href: "/products/set" },
   { label: "About", href: "/about" },
   { label: "Notice", href: "/notice" },
 ];

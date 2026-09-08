@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils/cn";
 import type { SubcategoryKey } from "@/types/product";
 
 import type { CategoryEntry } from "./categories";
-import { categoryHref } from "./categories";
+import { categoryHref, hasSubcategories } from "./categories";
 
 type CategoryTabsProps = {
   category: CategoryEntry;
@@ -15,8 +15,13 @@ type CategoryTabsProps = {
 /**
  * 상품 리스트 상단의 서브카테고리 탭.
  * 각 탭은 URL 을 바꾸는 링크 → 서버 컴포넌트로 두어도 충분하고, 뒤로가기·SEO 에도 유리하다.
+ *
+ * 하위 분류가 없는 카테고리(SET ITEM)는 "All" 탭 하나만 남아 이동할 곳이 없으므로
+ * 탭 줄 자체를 렌더링하지 않는다.
  */
 export function CategoryTabs({ category, activeSubcategory }: CategoryTabsProps) {
+  if (!hasSubcategories(category)) return null;
+
   return (
     <nav
       aria-label={`${category.label} 서브카테고리`}

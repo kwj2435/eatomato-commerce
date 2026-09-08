@@ -41,6 +41,16 @@ export const CATEGORIES: Record<CategoryKey, CategoryEntry> = {
       { slug: "airpods-case", label: "Airpods Case" },
     ],
   },
+  /**
+   * 세트 상품. 시안의 GNB 에서 SET ITEM 은 드롭다운 없는 단독 메뉴라
+   * 서브카테고리를 "All" 하나만 둔다. 이 경우 헤더는 드롭다운을,
+   * 리스트 페이지는 탭 줄을 각각 생략한다(`hasSubcategories` 참고).
+   */
+  set: {
+    slug: "set",
+    label: "SET ITEM",
+    subcategories: [{ slug: null, label: "All" }],
+  },
 };
 
 /**
@@ -51,7 +61,19 @@ export const CATEGORIES: Record<CategoryKey, CategoryEntry> = {
 export const CATEGORY_LIST: CategoryEntry[] = [
   CATEGORIES["phone-case"],
   CATEGORIES["phone-acc"],
+  CATEGORIES["set"],
 ];
+
+/**
+ * 하위 분류를 실제로 가진 카테고리인지 판별한다.
+ *
+ * "All" 하나뿐인 카테고리(SET ITEM)는 탭이나 드롭다운을 그려도 이동할 곳이 없어
+ * 헤더 드롭다운과 리스트 탭 양쪽에서 이 헬퍼로 노출 여부를 판단한다.
+ * 판단 규칙을 한 곳에 두어 두 화면이 서로 엇갈리지 않게 한다.
+ */
+export function hasSubcategories(category: CategoryEntry): boolean {
+  return category.subcategories.length > 1;
+}
 
 /** 카테고리 · 서브카테고리 조합이 유효한지 확인한다. 유효하지 않으면 `null`. */
 export function resolveCategory(
