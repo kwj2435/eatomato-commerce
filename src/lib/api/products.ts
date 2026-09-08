@@ -90,6 +90,38 @@ export async function listProducts(
   return sortProducts(filtered, sort);
 }
 
+// ────────────────────────────────────────────────────────────────
+
+export type SearchProductsParams = {
+  /** 검색어. 공백만 있거나 비어 있으면 빈 배열을 반환한다(전체 노출이 아니라 "검색 전" 상태). */
+  query: string;
+  sort?: SortValue;
+};
+
+/**
+ * 상품 검색.
+ *
+ * 검색 대상은 상품명과 옵션 라벨이다. mock 단계라 단순 부분 일치로 처리하지만,
+ * 실서비스에서는 서버가 형태소 분석·동의어까지 처리하므로 이 함수는 질의 전달만 남는다.
+ *
+ * 빈 검색어에 전체 목록을 돌려주지 않는 이유:
+ * 검색 페이지의 초기 진입(검색어 없음)과 "결과 0건" 은 사용자에게 다른 상태이고,
+ * 이를 호출부가 `query` 유무로 구분할 수 있어야 안내 문구를 나눠 보여줄 수 있다.
+ */
+export async function searchProducts(
+  params: SearchProductsParams,
+): Promise<Product[]> {
+  const { query, sort = DEFAULT_SORT } = params;
+  const keyword = query.trim().toLowerCase();
+  if (!keyword) return [];
+
+  const matched = MOCK_PRODUCTS.filter((product) =>
+    `${product.name} ${product.option ?? ""}`.toLowerCase().includes(keyword),
+  );
+
+  return sortProducts(matched, sort);
+}
+
 /**
  * 정렬은 원 배열을 훼손하지 않도록 얕은 복사 후 정렬.
  * 별도 함수로 뽑아 두면 실 API 로 옮길 때 이 로직만 삭제하면 된다.
