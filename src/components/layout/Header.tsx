@@ -105,38 +105,50 @@ function NavItemNode({ item }: { item: NavItem }) {
   return (
     <li
       className={cn(
-        "group relative flex h-[110px] items-center",
+        "group flex h-[110px] items-center",
         hasChildren && "focus-within:z-10 hover:z-10",
       )}
     >
-      <Link
-        href={item.href}
-        className="text-[16px] font-normal tracking-[-0.2px] text-brand-secondary transition-opacity hover:opacity-70"
-      >
-        {item.label}
-      </Link>
-
-      {hasChildren && (
-        <div
-          className={cn(
-            // 헤더 하단에 붙는 드롭다운 패널
-            "invisible absolute left-[-20px] top-[110px] opacity-0 transition-[opacity,visibility] duration-150",
-            "group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100",
-          )}
+      {/*
+       * 기준점(relative)을 li 가 아니라 링크 텍스트 줄에 둔다.
+       *
+       * 시안 CSS 는 `top: 110px`(헤더 바닥)이었는데, 링크는 110px 헤더의 세로 중앙에 있어
+       * 텍스트와 패널 사이에 약 45px 의 빈 공간이 생겼다. 패널이 헤더가 아니라
+       * 메인 배너에서 떨어지는 것처럼 보이는 원인이다.
+       * 텍스트 줄 박스를 기준으로 삼으면 `top-full + mt-3` 만으로 "글자 12px 아래" 가 된다.
+       *
+       * 호버는 그대로 유지된다 — 패널이 li 의 자손이라 패널 위에서도 `group-hover` 가 살아 있고,
+       * 텍스트와 패널 사이 구간은 li(높이 110px)가 덮는다.
+       */}
+      <div className="relative">
+        <Link
+          href={item.href}
+          className="text-[16px] font-normal tracking-[-0.2px] text-brand-secondary transition-opacity hover:opacity-70"
         >
-          <div className="flex w-[180px] flex-col gap-3.5 border border-[#F0E2DE] bg-surface-elevated px-5 py-[18px] shadow-[0_8px_20px_rgba(33,33,33,0.08)]">
-            {item.children!.map((child) => (
-              <Link
-                key={child.href}
-                href={child.href}
-                className="text-[14px] font-normal tracking-[-0.2px] text-[#3D3D3D] transition-colors hover:text-brand-primary"
-              >
-                {child.label}
-              </Link>
-            ))}
+          {item.label}
+        </Link>
+
+        {hasChildren && (
+          <div
+            className={cn(
+              "invisible absolute left-[-20px] top-full mt-3 opacity-0 transition-[opacity,visibility] duration-150",
+              "group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100",
+            )}
+          >
+            <div className="flex w-[180px] flex-col gap-3.5 border border-[#F0E2DE] bg-surface-elevated px-5 py-[18px] shadow-[0_8px_20px_rgba(33,33,33,0.08)]">
+              {item.children!.map((child) => (
+                <Link
+                  key={child.href}
+                  href={child.href}
+                  className="text-[14px] font-normal tracking-[-0.2px] text-[#3D3D3D] transition-colors hover:text-brand-primary"
+                >
+                  {child.label}
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </li>
   );
 }
