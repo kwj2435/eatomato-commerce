@@ -8,19 +8,10 @@ export const metadata: Metadata = {
   description: "eatomato 상품을 검색해 보세요.",
 };
 
-type PageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default async function SearchPage({ searchParams }: PageProps) {
-  const sp = await searchParams;
-
+export default function SearchPage() {
   return (
     <SiteFrame>
-      <SearchView
-        rawQuery={typeof sp.q === "string" ? sp.q : undefined}
-        rawSort={typeof sp.sort === "string" ? sp.sort : undefined}
-      />
+      <SearchView />
     </SiteFrame>
   );
 }

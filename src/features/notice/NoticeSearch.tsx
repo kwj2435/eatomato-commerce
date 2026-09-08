@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 type NoticeSearchProps = {
@@ -25,18 +25,13 @@ type NoticeSearchProps = {
 export function NoticeSearch({ currentQuery }: NoticeSearchProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [keyword, setKeyword] = useState(currentQuery);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const params = new URLSearchParams(searchParams.toString());
     const next = keyword.trim();
-    if (next) params.set("q", next);
-    else params.delete("q");
-
-    const queryString = params.toString();
+    const queryString = next ? new URLSearchParams({ q: next }).toString() : "";
     router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
       scroll: false,
     });

@@ -18,7 +18,6 @@ import { ProductListView } from "@/features/product-list/ProductListView";
 type RouteParams = { slug: string; subcategory: string };
 type PageProps = {
   params: Promise<RouteParams>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateStaticParams(): Promise<RouteParams[]> {
@@ -40,23 +39,17 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductSubcategoryPage({
-  params,
-  searchParams,
-}: PageProps) {
-  const [{ slug, subcategory }, sp] = await Promise.all([params, searchParams]);
+export default async function ProductSubcategoryPage({ params }: PageProps) {
+  const { slug, subcategory } = await params;
 
   const resolved = resolveCategory(slug, subcategory);
   if (!resolved) notFound();
-
-  const rawSort = typeof sp.sort === "string" ? sp.sort : undefined;
 
   return (
     <SiteFrame>
       <ProductListView
         category={resolved.category}
         activeSubcategory={resolved.subcategory.slug}
-        rawSort={rawSort}
       />
     </SiteFrame>
   );

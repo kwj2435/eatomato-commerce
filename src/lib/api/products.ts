@@ -9,6 +9,11 @@ import type {
   SubcategoryKey,
 } from "@/types/product";
 import type { ProductDetail } from "@/types/product-detail";
+import {
+  DEFAULT_SORT,
+  sortProducts,
+  type SortValue,
+} from "@/lib/utils/product-filter";
 
 /**
  * 상품 API.
@@ -18,33 +23,6 @@ import type { ProductDetail } from "@/types/product-detail";
  *
  * 서버 컴포넌트에서만 호출한다고 가정. 클라이언트에서 필요할 경우 별도 client SDK 를 둔다.
  */
-
-/**
- * 상품 정렬 옵션.
- * URL 쿼리(`?sort=popularity`)와 1:1 매핑되며, UI 는 이 리터럴 유니온에 의존한다.
- */
-export const SORT_OPTIONS = [
-  { value: "price-asc", label: "낮은가격순" },
-  { value: "price-desc", label: "높은가격순" },
-  { value: "popularity", label: "판매많은순" },
-  { value: "rating", label: "평점높은순" },
-] as const;
-
-export type SortValue = (typeof SORT_OPTIONS)[number]["value"];
-export const DEFAULT_SORT: SortValue = "popularity";
-
-/** URL 쿼리에서 넘어온 문자열을 안전하게 SortValue 로 좁힌다. */
-export function normalizeSort(input: string | undefined): SortValue {
-  return SORT_OPTIONS.some((o) => o.value === input)
-    ? (input as SortValue)
-    : DEFAULT_SORT;
-}
-
-export function getSortLabel(value: SortValue): string {
-  return SORT_OPTIONS.find((o) => o.value === value)!.label;
-}
-
-// ────────────────────────────────────────────────────────────────
 
 export type ListNewProductsParams = {
   limit?: number;
@@ -92,57 +70,17 @@ export async function listProducts(
 
 // ────────────────────────────────────────────────────────────────
 
-export type SearchProductsParams = {
-  /** 검색어. 공백만 있거나 비어 있으면 빈 배열을 반환한다(전체 노출이 아니라 "검색 전" 상태). */
-  query: string;
-  sort?: SortValue;
-};
-
 /**
- * 상품 검색.
+ * 검색 대상 상품 목록.
  *
- * 검색 대상은 상품명과 옵션 라벨이다. mock 단계라 단순 부분 일치로 처리하지만,
- * 실서비스에서는 서버가 형태소 분석·동의어까지 처리하므로 이 함수는 질의 전달만 남는다.
+ * 정적 배포에서는 서버가 `searchParams` 를 읽을 수 없어, 서버는 후보 목록만 넘기고
+ * 실제 필터·정렬은 클라이언트(SearchResults)가 `lib/utils/product-filter` 로 수행한다.
  *
- * 빈 검색어에 전체 목록을 돌려주지 않는 이유:
- * 검색 페이지의 초기 진입(검색어 없음)과 "결과 0건" 은 사용자에게 다른 상태이고,
- * 이를 호출부가 `query` 유무로 구분할 수 있어야 안내 문구를 나눠 보여줄 수 있다.
+ * 실 API 를 붙이면 이 함수 자리에 `searchProducts({ query, sort })` 가 들어와
+ * 서버가 형태소 분석·동의어까지 처리한 결과를 그대로 반환하게 된다.
  */
-export async function searchProducts(
-  params: SearchProductsParams,
-): Promise<Product[]> {
-  const { query, sort = DEFAULT_SORT } = params;
-  const keyword = query.trim().toLowerCase();
-  if (!keyword) return [];
-
-  const matched = MOCK_PRODUCTS.filter((product) =>
-    `${product.name} ${product.option ?? ""}`.toLowerCase().includes(keyword),
-  );
-
-  return sortProducts(matched, sort);
-}
-
-/**
- * 정렬은 원 배열을 훼손하지 않도록 얕은 복사 후 정렬.
- * 별도 함수로 뽑아 두면 실 API 로 옮길 때 이 로직만 삭제하면 된다.
- */
-function sortProducts(products: Product[], sort: SortValue): Product[] {
-  const copy = [...products];
-  switch (sort) {
-    case "price-asc":
-      return copy.sort((a, b) => currentPrice(a) - currentPrice(b));
-    case "price-desc":
-      return copy.sort((a, b) => currentPrice(b) - currentPrice(a));
-    case "rating":
-      return copy.sort((a, b) => b.rating - a.rating);
-    case "popularity":
-    default:
-      return copy.sort((a, b) => b.salesCount - a.salesCount);
-  }
-}
-
-function currentPrice(product: Product): number {
-  return product.salePrice ?? product.price;
+export async function listSearchableProducts(): Promise<Product[]> {
+  return MOCK_PRODUCTS;
 }
 
 // ────────────────────────────────────────────────────────────────

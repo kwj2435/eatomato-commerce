@@ -30,7 +30,6 @@ import {
 type RouteParams = { slug: string };
 type PageProps = {
   params: Promise<RouteParams>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateStaticParams(): Promise<RouteParams[]> {
@@ -53,19 +52,17 @@ export async function generateMetadata({
   return { title: "상품을 찾을 수 없습니다" };
 }
 
-export default async function ProductRoute({ params, searchParams }: PageProps) {
-  const [{ slug }, sp] = await Promise.all([params, searchParams]);
+export default async function ProductRoute({ params }: PageProps) {
+  const { slug } = await params;
 
   // 1) 카테고리 슬러그면 → 리스트 뷰(전체)
   const asCategory = resolveCategory(slug);
   if (asCategory) {
-    const rawSort = typeof sp.sort === "string" ? sp.sort : undefined;
     return (
       <SiteFrame>
         <ProductListView
           category={asCategory.category}
           activeSubcategory={null}
-          rawSort={rawSort}
         />
       </SiteFrame>
     );

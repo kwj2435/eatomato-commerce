@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { SearchIcon } from "@/components/ui/icons";
@@ -8,6 +8,8 @@ import { SearchIcon } from "@/components/ui/icons";
 type SearchInputProps = {
   /** 현재 URL 에 반영된 검색어. 입력의 초기값이다. */
   currentQuery: string;
+  /** 검색어 외에 URL 에 유지할 쿼리(정렬값). SortSelect 와 같은 이유로 prop 으로 받는다. */
+  preserveParams?: Record<string, string>;
 };
 
 /**
@@ -18,16 +20,15 @@ type SearchInputProps = {
  *
  * URL 이 바뀌었을 때의 입력값 동기화는 effect 가 아니라 호출부의 `key` 로 처리한다.
  */
-export function SearchInput({ currentQuery }: SearchInputProps) {
+export function SearchInput({ currentQuery, preserveParams }: SearchInputProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [keyword, setKeyword] = useState(currentQuery);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(preserveParams);
     const next = keyword.trim();
     if (next) params.set("q", next);
     else params.delete("q");
