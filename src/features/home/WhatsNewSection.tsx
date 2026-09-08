@@ -24,9 +24,9 @@ export async function WhatsNewSection() {
           What&rsquo;s New
         </h2>
         <p className="mt-[39px] text-[17.5px] font-normal leading-[25.1px] tracking-[-0.3px] text-ink-muted">
-          신제품설명이들어갑니다신제품설명이
+          일상에 신선한 감각을 더해줄 신제품 컬렉션.
           <br />
-          들어갑니다신제품설명이들어갑니다
+          갓 채집한 듯 다채로운 그래픽으로 새로운 기분을 선사합니다.
         </p>
 
         <ul className="mt-[66px] grid grid-cols-2 gap-[13px] md:grid-cols-4">
