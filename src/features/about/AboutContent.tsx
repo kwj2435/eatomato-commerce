@@ -34,7 +34,7 @@ export function AboutContent() {
           alt="eatomato 브랜드 비주얼"
           fill
           priority
-          sizes="(min-width: 1440px) 1440px, 100vw"
+          sizes="100vw"
           className="object-cover"
         />
       </section>

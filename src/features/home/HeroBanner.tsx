@@ -79,7 +79,9 @@ export function HeroBanner({
                 alt={banner.alt}
                 fill
                 priority={index === 0}
-                sizes="(min-width: 1440px) 1440px, 100vw"
+                /* 배너가 화면 끝까지 차므로 뷰포트 폭 그대로 요청한다.
+                   1440px 상한을 남기면 그보다 넓은 화면에서 확대되어 흐려진다. */
+                sizes="100vw"
                 className="object-cover"
               />
             ) : null}
