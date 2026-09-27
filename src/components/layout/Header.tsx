@@ -63,7 +63,7 @@ export function Header() {
         {/* 모바일에선 좌우 요소 폭과 무관하게 화면 정중앙에 오도록 절대 위치로 둔다. */}
         <Link
           href="/"
-          className="absolute left-1/2 -translate-x-1/2 font-serif text-[24px] font-medium leading-none tracking-[-0.3px] text-brand-primary lg:static lg:translate-x-0 lg:text-[38px] lg:tracking-[-0.5px]"
+          className="absolute left-1/2 -translate-x-1/2 font-serif text-[7pt] font-medium leading-none text-brand-primary lg:static lg:translate-x-0"
         >
           eatomato
         </Link>

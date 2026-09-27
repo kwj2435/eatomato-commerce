@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
-import { Hahmlet } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 
 import "./globals.css";
 
 /**
- * 로고/세리프 카피에 사용할 Hahmlet.
+ * 로고/세리프 카피에 사용할 Hahmlet (디자이너 전달 폰트 파일).
+ *
+ * 원본 ttf 는 한글 포함 1.5MB 라, 로고에 쓰는 라틴(U+0020–007E)만 남겨
+ * woff2 로 서브셋했다(약 16KB). 한글 세리프가 필요해지면 서브셋 범위를 넓혀 다시 생성한다.
  * `variable` 옵션으로 CSS 변수(`--font-hahmlet`)를 노출하고,
  * globals.css 의 `--font-serif` 가 이 변수를 참조하도록 연결한다.
  */
-const hahmlet = Hahmlet({
-  subsets: ["latin"],
-  weight: ["400", "500"],
+const hahmlet = localFont({
+  src: "./fonts/Hahmlet-Medium-latin.woff2",
+  weight: "500",
   variable: "--font-hahmlet",
   display: "swap",
 });

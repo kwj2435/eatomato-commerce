@@ -95,7 +95,7 @@ export function MobileMenu({ items }: MobileMenuProps) {
           <Link
             href="/"
             onClick={close}
-            className="font-serif text-[22px] font-medium leading-[26px] tracking-[-0.3px] text-brand-deep"
+            className="font-serif text-[7pt] font-medium leading-none text-brand-deep"
           >
             eatomato
           </Link>
