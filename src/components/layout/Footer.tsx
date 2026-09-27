@@ -16,7 +16,7 @@ const POLICY_LINKS = [
 ];
 
 const COMPANY_INFO = [
-  "Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜",
+  "Company Name : eatomato ｜ Owner : YerimKim ｜ Email : eatomato.design@gmail.com ｜ Business Registration Number : 889-36-01721",
   "Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon",
 ];
 

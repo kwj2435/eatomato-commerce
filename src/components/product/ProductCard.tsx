@@ -73,18 +73,19 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
 const BADGE_STYLES: Record<ProductBadge, string> = {
   NEW: "bg-brand-badge text-ink-inverse",
-  BEST: "bg-brand-secondary text-ink-inverse",
+  BEST: "bg-brand-badge text-ink-inverse",
   SALE: "bg-black text-ink-inverse",
 };
 
 function BadgeGroup({ badges }: { badges: ProductBadge[] }) {
   return (
     <div className="absolute left-3.5 top-3.5 z-10 flex flex-col items-start gap-1">
+      {/* 배지 문구 길이와 무관하게 박스 크기를 통일하기 위해 고정 폭 + 가운데 정렬 */}
       {badges.map((badge) => (
         <span
           key={badge}
           className={cn(
-            "px-2.5 py-1 text-[12px] font-medium tracking-[0.4px]",
+            "w-[52px] py-1 text-center text-[12px] font-medium tracking-[0.4px]",
             BADGE_STYLES[badge],
           )}
         >

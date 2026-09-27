@@ -25,7 +25,9 @@ export function CategoryTabs({ category, activeSubcategory }: CategoryTabsProps)
   return (
     <nav
       aria-label={`${category.label} 서브카테고리`}
-      className="mt-14 flex flex-wrap items-center justify-center gap-6 md:gap-[93px]"
+      // md 이상: 균등 폭 컬럼(auto-cols-fr)에 라벨을 가운데 정렬해,
+      // 라벨 길이가 달라도 가운데 탭이 화면 중앙에 오도록 한다.
+      className="mt-14 flex flex-wrap items-center justify-center gap-6 md:mx-auto md:grid md:w-fit md:auto-cols-fr md:grid-flow-col md:justify-items-center md:gap-x-[60px]"
     >
       {category.subcategories.map((sub) => {
         const isActive = sub.slug === activeSubcategory;

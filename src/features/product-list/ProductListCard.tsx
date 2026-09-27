@@ -14,7 +14,7 @@ type ProductListCardProps = {
  * 상품 리스트 페이지 전용 카드.
  *
  * 메인 페이지의 `ProductCard` 와 다르게:
- * - 상품명이 17px/600 으로 더 굵고, SALE/BEST 배지가 더 크다(시안 실측 18px).
+ * - 상품명이 17px/600 으로 더 굵고, SALE/BEST 배지가 더 크다(14px).
  * - hover 시 썸네일이 서브 이미지로 교체된다(모든 카드 공통 규칙).
  *
  * 카드 전체가 링크. 배지는 `pointer-events-none` 으로 링크 클릭 히트 영역을 방해하지 않는다.
@@ -99,11 +99,12 @@ const BADGE_STYLES: Record<ProductBadge, string> = {
 function BadgeStack({ badges }: { badges: ProductBadge[] }) {
   return (
     <div className="pointer-events-none absolute left-[11px] top-[10px] z-10 flex flex-col items-start gap-0.5">
+      {/* 배지 문구 길이와 무관하게 박스 크기를 통일하기 위해 고정 폭 + 가운데 정렬 */}
       {badges.map((badge) => (
         <span
           key={badge}
           className={cn(
-            "px-[17px] py-1 text-[18px] font-medium leading-[22px] tracking-[-0.2px]",
+            "w-[58px] py-1 text-center text-[14px] font-medium leading-[18px] tracking-[-0.2px]",
             BADGE_STYLES[badge],
           )}
         >
