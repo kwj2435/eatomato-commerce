@@ -14,8 +14,9 @@ type ProductGalleryProps = {
  */
 export function ProductGallery({ product }: ProductGalleryProps) {
   return (
-    <div className="w-full lg:w-[583px] lg:flex-none">
-      <div className="relative aspect-[3/4] w-full overflow-hidden border border-[#B0AAA9] bg-white">
+    // 모바일에선 Container 좌우 패딩(20px)을 음수 마진으로 상쇄해 화면 폭을 꽉 채운다.
+    <div className="-mx-5 md:mx-0 lg:w-[583px] lg:flex-none">
+      <div className="relative aspect-[3/4] w-full overflow-hidden bg-white md:border md:border-[#B0AAA9]">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}

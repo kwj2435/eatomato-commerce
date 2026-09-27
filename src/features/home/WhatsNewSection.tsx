@@ -19,17 +19,17 @@ export async function WhatsNewSection() {
       <Container>
         <h2
           id="whats-new-title"
-          className="text-[25px] font-medium tracking-[-0.2px] text-black"
+          className="text-[22px] font-medium tracking-[-0.2px] text-black md:text-[25px]"
         >
           What&rsquo;s New
         </h2>
-        <p className="mt-[39px] text-[17.5px] font-normal leading-[25.1px] tracking-[-0.3px] text-ink-muted">
+        <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
           일상에 신선한 감각을 더해줄 신제품 컬렉션.
           <br />
           갓 채집한 듯 다채로운 그래픽으로 새로운 기분을 선사합니다.
         </p>
 
-        <ul className="mt-[66px] grid grid-cols-2 gap-[13px] md:grid-cols-4">
+        <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
           {products.map((product) => (
             <li key={product.id}>
               <ProductCard product={product} />

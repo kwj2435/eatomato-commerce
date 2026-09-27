@@ -48,16 +48,16 @@ export function ProductCard({ product, className }: ProductCardProps) {
           )}
         </div>
 
-        <div className="mt-5 flex flex-col items-center">
-          <p className="mb-[11px] text-[16px] font-normal leading-[23px] tracking-[-0.2px] text-black">
+        <div className="mt-3 flex flex-col items-center text-center md:mt-5">
+          <p className="mb-1.5 text-[14px] font-normal leading-5 tracking-[-0.2px] text-black md:mb-[11px] md:text-[16px] md:leading-[23px]">
             {product.name}
           </p>
           {product.option ? (
-            <p className="text-[12.5px] font-normal leading-5 tracking-[-0.2px] text-ink-muted">
+            <p className="text-[12px] font-normal leading-5 tracking-[-0.2px] text-ink-muted md:text-[12.5px]">
               {product.option}
             </p>
           ) : null}
-          <p className="flex items-center gap-1.5 text-[12.5px] leading-5 tracking-[-0.2px]">
+          <p className="flex items-center gap-1.5 text-[12px] leading-5 tracking-[-0.2px] md:text-[12.5px]">
             <span className="text-ink-muted">{formatKRW(displayPrice)}</span>
             {hasDiscount ? (
               <span className="text-ink-subtle line-through">

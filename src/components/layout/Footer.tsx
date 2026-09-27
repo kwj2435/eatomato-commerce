@@ -28,11 +28,11 @@ const COMPANY_INFO = [
  */
 export function Footer() {
   return (
-    <footer className="mt-[100px] pb-[100px]">
+    <footer className="mt-16 pb-16 md:mt-[100px] md:pb-[100px]">
       <Container>
         <div className="h-px w-full bg-brand-divider" />
 
-        <div className="relative flex flex-col items-center gap-[5px] pt-[76px]">
+        <div className="relative flex flex-col items-center gap-[5px] pt-12 md:pt-[76px]">
           <ul className="flex flex-wrap items-center justify-center gap-4">
             {POLICY_LINKS.map((link) => (
               <li key={link.href}>
@@ -50,7 +50,7 @@ export function Footer() {
             {COMPANY_INFO.map((line) => (
               <p
                 key={line}
-                className="text-center text-[12.5px] font-normal leading-[15px] tracking-[-0.2px] text-black"
+                className="text-center text-[12.5px] font-normal leading-[18px] tracking-[-0.2px] text-[#6B6B6B]"
               >
                 {line}
               </p>

@@ -160,3 +160,17 @@ export function MenuIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function CameraIcon(props: IconProps) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" {...baseSvgProps} {...props}>
+      {/* 렌즈는 evenodd 로 뚫어 배경색이 비치게 한다(색 하드코딩 없이 currentColor 유지). */}
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M8.5 5.5L9.8 3.8C10 3.6 10.2 3.5 10.5 3.5H13.5C13.8 3.5 14 3.6 14.2 3.8L15.5 5.5H19C20.1 5.5 21 6.4 21 7.5V17.5C21 18.6 20.1 19.5 19 19.5H5C3.9 19.5 3 18.6 3 17.5V7.5C3 6.4 3.9 5.5 5 5.5H8.5ZM12 9.2A3.3 3.3 0 1 0 12 15.8A3.3 3.3 0 1 0 12 9.2Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}

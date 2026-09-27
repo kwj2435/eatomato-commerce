@@ -11,7 +11,7 @@ import type { ReactNode } from "react";
  */
 export function BoardPanel({ children }: { children: ReactNode }) {
   return (
-    <section className="mx-auto w-full max-w-[1280px] bg-surface-util px-5 pb-px md:px-10">
+    <section className="mx-auto w-full max-w-[1280px] bg-surface-primary px-5 pb-px md:px-10">
       {children}
 
       <div className="mt-[33px] grid grid-cols-4 gap-8">

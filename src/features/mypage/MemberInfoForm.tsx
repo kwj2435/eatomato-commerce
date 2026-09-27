@@ -224,7 +224,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
                 message: "주소 검색은 준비 중입니다.",
               })
             }
-            className="h-[42px] w-[131px] flex-none border border-[#B7BBCC] text-[12px] font-bold tracking-[-0.2px] text-black transition-colors hover:bg-black hover:text-white"
+            className="h-[42px] w-[131px] flex-none border border-brand-deep text-[12px] font-bold tracking-[-0.2px] text-black transition-colors hover:bg-brand-deep hover:text-white"
           >
             검색하기
           </button>
@@ -359,7 +359,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
         <div className="mt-[26px] flex justify-center">
           <button
             type="submit"
-            className="h-[49px] w-[210px] bg-[#062B62] text-[13px] font-bold tracking-[-0.2px] text-white transition-opacity hover:opacity-90"
+            className="h-[49px] w-[210px] bg-brand-deep text-[13px] font-bold tracking-[-0.2px] text-white transition-opacity hover:opacity-90"
           >
             변경 사항 저장하기
           </button>
@@ -371,7 +371,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
             aria-live="polite"
             className={cn(
               "mt-4 text-center text-[13px] tracking-[-0.2px]",
-              status.kind === "error" ? "text-brand-primary" : "text-[#062B62]",
+              status.kind === "error" ? "text-brand-primary" : "text-brand-deep",
             )}
           >
             {status.message}
@@ -386,12 +386,12 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
 // 시안 `.input` / `.select` / `.member__link` 규격. 여러 필드가 공유하므로 상수로 뺀다.
 
 const inputClass =
-  "h-[42px] w-full min-w-0 border border-[#B7BBCC] bg-transparent px-3.5 text-[13px] tracking-[-0.2px] text-black outline-none placeholder:text-[#A6A2A7] focus:border-black";
+  "h-[42px] w-full min-w-0 border border-brand-deep bg-transparent px-3.5 text-[13px] tracking-[-0.2px] text-black outline-none placeholder:text-[#A6A2A7] focus:border-brand-secondary";
 
-const readonlyClass = "cursor-default bg-[#FBF1F1] focus:border-[#B7BBCC]";
+const readonlyClass = "cursor-default bg-[#FBF1F1] focus:border-brand-deep";
 
 const selectClass =
-  "h-[42px] w-full appearance-none border border-[#B7BBCC] bg-transparent pl-4 pr-7 text-[13px] tracking-[-0.2px] text-black outline-none focus:border-black";
+  "h-[42px] w-full appearance-none border border-brand-deep bg-transparent pl-4 pr-7 text-[13px] tracking-[-0.2px] text-black outline-none focus:border-brand-secondary";
 
 const fieldLabelClass =
   "block text-[12px] leading-[18px] tracking-[-0.2px] text-black";

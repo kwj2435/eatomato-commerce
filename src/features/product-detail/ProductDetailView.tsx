@@ -20,8 +20,8 @@ type ProductDetailViewProps = {
 export function ProductDetailView({ product }: ProductDetailViewProps) {
   return (
     <>
-      <Container as="section" aria-label="상품 정보" className="pt-14">
-        <div className="flex flex-col gap-12 lg:flex-row lg:gap-[118px]">
+      <Container as="section" aria-label="상품 정보" className="pt-0 md:pt-14">
+        <div className="flex flex-col gap-9 md:gap-12 lg:flex-row lg:gap-[118px]">
           <ProductGallery product={product} />
           <ProductBuyPanel product={product} />
         </div>

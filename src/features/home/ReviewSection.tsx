@@ -12,21 +12,21 @@ export async function ReviewSection() {
   const reviews = await listFeaturedReviews({ limit: 4 });
 
   return (
-    <section aria-labelledby="review-title" className="pt-[94px]">
+    <section aria-labelledby="review-title" className="pt-14 md:pt-[94px]">
       <Container>
         <h2
           id="review-title"
-          className="text-[25px] font-medium tracking-[-0.2px] text-black"
+          className="text-[22px] font-medium tracking-[-0.2px] text-black md:text-[25px]"
         >
           Review
         </h2>
-        <p className="mt-[39px] text-[17.5px] font-normal leading-[25.1px] tracking-[-0.3px] text-ink-muted">
+        <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
           신제품설명이들어갑니다신제품설명이
           <br />
           들어갑니다신제품설명이들어갑니다
         </p>
 
-        <ul className="mt-[66px] grid grid-cols-2 gap-[13px] md:grid-cols-4">
+        <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
           {reviews.map((review) => (
             <li key={review.id}>
               <Link

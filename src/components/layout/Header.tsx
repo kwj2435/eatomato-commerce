@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
 import { HeaderCartLink } from "@/components/layout/HeaderCartLink";
+import { MobileMenu } from "@/components/layout/MobileMenu";
 import { SearchIcon, UserIcon } from "@/components/ui/icons";
 import {
   CATEGORY_LIST,
@@ -49,16 +50,20 @@ const NAV_ITEMS: NavItem[] = [
  *   자바스크립트 없이도 마우스/키보드 접근성이 유지된다.
  *
  * 반응형:
- * - lg(1024) 이상에서 GNB 를 노출한다. 그보다 좁을 땐 유틸 아이콘만 유지한다.
- *   (모바일 드로어 메뉴는 다음 이터레이션에서 추가 예정)
+ * - lg(1024) 이상에서 GNB 를 노출한다.
+ * - 그보다 좁을 땐 [햄버거 | 로고(가운데) | 유틸 아이콘] 3단으로 바꾸고,
+ *   GNB 는 햄버거로 여는 드로어(`MobileMenu`)가 대신한다(모바일 2차 시안).
  */
 export function Header() {
   return (
     <header className="w-full bg-surface-primary">
-      <Container className="flex h-[110px] items-center justify-between">
+      <Container className="relative flex h-[58px] items-center justify-between lg:h-[110px]">
+        <MobileMenu items={NAV_ITEMS} />
+
+        {/* 모바일에선 좌우 요소 폭과 무관하게 화면 정중앙에 오도록 절대 위치로 둔다. */}
         <Link
           href="/"
-          className="font-serif text-[38px] font-medium leading-none tracking-[-0.5px] text-brand-primary"
+          className="absolute left-1/2 -translate-x-1/2 font-serif text-[24px] font-medium leading-none tracking-[-0.3px] text-brand-primary lg:static lg:translate-x-0 lg:text-[38px] lg:tracking-[-0.5px]"
         >
           eatomato
         </Link>

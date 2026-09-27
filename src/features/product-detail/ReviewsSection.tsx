@@ -21,8 +21,8 @@ export function ReviewsSection({
   averageRating,
 }: ReviewsSectionProps) {
   return (
-    <Container as="section" id="reviews" className="scroll-mt-24 pt-[205px]">
-      <h2 className="text-center text-[20px] font-normal tracking-[1.4px] text-brand-secondary">
+    <Container as="section" id="reviews" className="scroll-mt-24 pt-[100px] md:pt-[205px]">
+      <h2 className="text-center text-[17px] font-normal tracking-[1.2px] text-brand-secondary md:text-[20px] md:tracking-[1.4px]">
         REVIEWS
       </h2>
 

@@ -115,22 +115,22 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
 
   return (
     <div className="flex w-full flex-col lg:w-[499px] lg:flex-none">
-      <h1 className="text-[20px] font-medium leading-[1.45] tracking-[-0.3px] text-black">
+      <h1 className="text-[17px] font-medium leading-[1.45] tracking-[-0.3px] text-black md:text-[20px]">
         {product.name}
       </h1>
 
-      <div className="mt-9 flex flex-col">
+      <div className="mt-4 flex flex-col md:mt-9">
         {product.noticeLines.map((line, i) => (
           <p
             key={i}
-            className="text-[15px] font-normal leading-[22.5px] tracking-[-0.4px] text-[#777]"
+            className="text-[13px] font-normal leading-[20px] tracking-[-0.4px] text-[#777] md:text-[15px] md:leading-[22.5px]"
           >
             {line}
           </p>
         ))}
       </div>
 
-      <p className="mt-14 flex items-baseline gap-2 text-[15px] tracking-[-0.2px]">
+      <p className="mt-10 flex items-baseline gap-2 text-[15px] tracking-[-0.2px] md:mt-14">
         <span className="text-[#545454]">{formatKRW(basePrice)}</span>
         {product.salePrice !== undefined ? (
           <span className="text-ink-subtle line-through">
@@ -315,10 +315,11 @@ function SpecRow({
 }) {
   return (
     <div className="flex items-start">
-      <dt className="w-[90px] flex-none text-[14px] font-medium leading-[22.5px] tracking-[-0.2px] text-[#545454]">
+      {/* 모바일: 라벨 폭을 줄여 값 열이 정가(취소선) 시작점 부근에 오도록 맞추고 글씨를 한 단계 줄인다. */}
+      <dt className="w-[70px] flex-none text-[13px] font-medium leading-[20px] tracking-[-0.2px] text-[#545454] md:w-[90px] md:text-[14px] md:leading-[22.5px]">
         {label}
       </dt>
-      <dd className="flex flex-col text-[14px] font-normal leading-[22.5px] tracking-[-0.2px] text-[#545454]">
+      <dd className="flex flex-col text-[13px] font-normal leading-[20px] tracking-[-0.2px] text-[#545454] md:text-[14px] md:leading-[22.5px]">
         {children}
       </dd>
     </div>

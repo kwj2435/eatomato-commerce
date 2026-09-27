@@ -13,12 +13,12 @@ type DetailsSectionProps = {
  */
 export function DetailsSection({ images }: DetailsSectionProps) {
   return (
-    <Container as="section" id="details" className="scroll-mt-24 pt-[180px]">
-      <h2 className="text-center text-[20px] font-normal tracking-[1.4px] text-brand-secondary">
+    <Container as="section" id="details" className="scroll-mt-24 pt-[100px] md:pt-[180px]">
+      <h2 className="text-center text-[17px] font-normal tracking-[1.2px] text-brand-secondary md:text-[20px] md:tracking-[1.4px]">
         DETAILS
       </h2>
 
-      <div className="mt-[38px] flex flex-col gap-[125px]">
+      <div className="mt-[38px] flex flex-col gap-[30px] md:gap-[125px]">
         {images.map((src, i) => (
           <div
             key={src + i}

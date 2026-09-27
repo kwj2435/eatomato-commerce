@@ -21,67 +21,180 @@ type CartTableProps = {
  * 시안이 `table` 을 기반으로 rowspan(배송비 셀)을 쓰므로 여기서도 `<table>` 을 유지한다.
  * 시맨틱 관점에서도 컬럼 헤더와 데이터 셀의 관계가 명확해 스크린리더 친화적이다.
  *
- * 열 폭은 시안 실측(604/123/221/252) 을 그대로 사용해 콘텐츠가 흔들리지 않도록 고정한다.
+ * 열 폭은 시안 실측(604/123/221/252, 합 1200px)의 비율로 둔다. px 로 고정하면
+ * 컨테이너가 1200px 보다 좁을 때 표가 화면 밖으로 밀려났다.
+ *
+ * md(768) 미만에선 4열 표가 들어갈 폭이 없어 카드형 목록(`CartMobileList`)으로 바꿔 보여준다.
  */
 export function CartTable({ items }: CartTableProps) {
   const allSelected = items.length > 0 && items.every((it) => it.selected);
   const toggleAll = useCartStore((s) => s.toggleAllSelected);
 
   return (
-    <table className="mt-[46px] w-full table-fixed border-collapse">
-      <colgroup>
-        <col className="w-[604px]" />
-        <col className="w-[123px]" />
-        <col className="w-[221px]" />
-        <col className="w-[252px]" />
-      </colgroup>
-      <thead>
-        <tr>
-          <th
-            scope="col"
-            className="h-14 border-b-[1.5px] border-black text-left text-[15px] font-normal tracking-[-0.2px]"
+    <>
+      <CartMobileList
+        items={items}
+        allSelected={allSelected}
+        onToggleAll={toggleAll}
+      />
+      <table className="mt-[46px] hidden w-full table-fixed border-collapse md:table">
+        <colgroup>
+          <col className="w-[50.3%]" />
+          <col className="w-[10.3%]" />
+          <col className="w-[18.4%]" />
+          <col className="w-[21%]" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              className="h-14 border-b-[1.5px] border-black text-left text-[15px] font-normal tracking-[-0.2px]"
+            >
+              <span className="mr-3 inline-flex align-middle">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={(next) => toggleAll(next)}
+                  label="전체 선택"
+                />
+              </span>
+              상품 정보
+            </th>
+            <th
+              scope="col"
+              className="h-14 border-b-[1.5px] border-black text-center text-[15px] font-normal tracking-[-0.2px]"
+            >
+              수량
+            </th>
+            <th
+              scope="col"
+              className="h-14 border-b-[1.5px] border-black text-center text-[15px] font-normal tracking-[-0.2px]"
+            >
+              가격
+            </th>
+            <th
+              scope="col"
+              className="h-14 border-b-[1.5px] border-black text-center text-[15px] font-normal tracking-[-0.2px]"
+            >
+              배송비
+            </th>
+          </tr>
+        </thead>
+        <tbody className="border-b-[1.5px] border-black">
+          {items.map((item, index) => (
+            <CartItemRow
+              key={item.id}
+              item={item}
+              isLast={index === items.length - 1}
+              showShipCell={index === 0}
+              shipRowSpan={items.length}
+            />
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────
+
+type CartMobileListProps = {
+  items: CartItem[];
+  allSelected: boolean;
+  onToggleAll: (next: boolean) => void;
+};
+
+/**
+ * 모바일 장바구니 목록.
+ * 표의 열(상품 정보 / 수량 / 가격)을 한 카드 안에 세로로 쌓고,
+ * 표에서 rowspan 으로 한 번만 보이던 배송비 안내는 목록 하단에 한 번만 둔다.
+ */
+function CartMobileList({ items, allSelected, onToggleAll }: CartMobileListProps) {
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const toggleSelected = useCartStore((s) => s.toggleSelected);
+
+  return (
+    <div className="mt-8 md:hidden">
+      <div className="flex h-12 items-center gap-3 border-b-[1.5px] border-black text-[15px] tracking-[-0.2px]">
+        <Checkbox
+          checked={allSelected}
+          onCheckedChange={(next) => onToggleAll(next)}
+          label="전체 선택"
+        />
+        상품 정보
+      </div>
+
+      <ul>
+        {items.map((item) => (
+          <li
+            key={item.id}
+            className="flex gap-3 border-b-[1.5px] border-black py-5"
           >
-            <span className="mr-3 inline-flex align-middle">
+            <span className="pt-0.5">
               <Checkbox
-                checked={allSelected}
-                onCheckedChange={(next) => toggleAll(next)}
-                label="전체 선택"
+                checked={item.selected}
+                onCheckedChange={() => toggleSelected(item.id)}
+                label={`${item.name} 선택`}
               />
             </span>
-            상품 정보
-          </th>
-          <th
-            scope="col"
-            className="h-14 border-b-[1.5px] border-black text-center text-[15px] font-normal tracking-[-0.2px]"
-          >
-            수량
-          </th>
-          <th
-            scope="col"
-            className="h-14 border-b-[1.5px] border-black text-center text-[15px] font-normal tracking-[-0.2px]"
-          >
-            가격
-          </th>
-          <th
-            scope="col"
-            className="h-14 border-b-[1.5px] border-black text-center text-[15px] font-normal tracking-[-0.2px]"
-          >
-            배송비
-          </th>
-        </tr>
-      </thead>
-      <tbody className="border-b-[1.5px] border-black">
-        {items.map((item, index) => (
-          <CartItemRow
-            key={item.id}
-            item={item}
-            isLast={index === items.length - 1}
-            showShipCell={index === 0}
-            shipRowSpan={items.length}
-          />
+            <span className="flex h-[100px] w-20 flex-none items-center justify-center overflow-hidden bg-white">
+              {item.imageUrl ? (
+                <Image
+                  src={item.imageUrl}
+                  alt={item.name}
+                  width={80}
+                  height={100}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-[11px] tracking-[-0.2px] text-[#B3A79C]">
+                  상품이미지
+                </span>
+              )}
+            </span>
+
+            <div className="flex min-w-0 flex-1 flex-col">
+              <p className="break-keep text-[14px] font-medium leading-5 tracking-[-0.2px]">
+                {item.name}
+              </p>
+              {item.option ? (
+                <p className="mt-1 break-keep text-[12.5px] leading-[18px] tracking-[-0.2px] text-[#545454]">
+                  {item.option}
+                </p>
+              ) : null}
+
+              <div className="mt-3 flex items-center justify-between gap-2">
+                {/* 스테퍼 자체의 mx-auto 가 가격 쪽 여백을 먹지 않도록 콘텐츠 폭 래퍼로 감싼다. */}
+                <div>
+                  <QuantityStepper
+                    value={item.quantity}
+                    onChange={(next) => updateQuantity(item.id, next)}
+                    label={`${item.name} 수량`}
+                  />
+                </div>
+                <span className="text-[14px] font-medium tracking-[-0.2px]">
+                  {formatKRW(item.unitPrice * item.quantity)}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => removeItem(item.id)}
+                className="mt-3 self-start text-[13px] tracking-[-0.2px] underline-offset-2 hover:underline"
+              >
+                삭제하기
+              </button>
+            </div>
+          </li>
         ))}
-      </tbody>
-    </table>
+      </ul>
+
+      <p className="mt-4 flex items-center gap-1 text-[13px] leading-[19px] tracking-[-0.2px]">
+        <InfoIcon className="flex-none text-black" />
+        배송비 {formatKRW(SHIPPING_POLICY.standardFee)} ·{" "}
+        {formatKRW(SHIPPING_POLICY.freeThreshold)} 이상 구매 시 무료
+      </p>
+    </div>
   );
 }
 
