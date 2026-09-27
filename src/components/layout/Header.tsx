@@ -67,7 +67,7 @@ export function Header() {
          */}
         <Link
           href="/"
-          className="absolute left-1/2 -translate-x-1/2 font-serif text-[clamp(22px,calc((100vw-232px)/4.7),35px)] font-medium leading-none text-brand-primary lg:static lg:translate-x-0 lg:text-[35px]"
+          className="absolute left-1/2 -translate-x-1/2 font-serif text-[clamp(22px,calc((100vw-232px)/4.7),35px)] font-semibold leading-none text-brand-primary lg:static lg:translate-x-0 lg:text-[35px]"
         >
           eatomato
         </Link>

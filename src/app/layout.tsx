@@ -13,8 +13,8 @@ import "./globals.css";
  * globals.css 의 `--font-serif` 가 이 변수를 참조하도록 연결한다.
  */
 const hahmlet = localFont({
-  src: "./fonts/Hahmlet-Medium-latin.woff2",
-  weight: "500",
+  src: "./fonts/Hahmlet-SemiBold-latin.woff2",
+  weight: "600",
   variable: "--font-hahmlet",
   display: "swap",
 });
