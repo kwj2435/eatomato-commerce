@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { KakaoIcon } from "@/components/ui/icons";
 import { AuthField as Field } from "./AuthField";
+import { KakaoStartButton } from "./KakaoStartButton";
 import { login } from "@/lib/api/auth";
 import { errorMessage } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/store/auth-store";
@@ -20,7 +20,7 @@ type Status =
  *
  * - 아이디 또는 이메일 + 비밀번호로 `/api/auth/login` 을 호출하고, 받은 토큰을 세션 스토어에 저장한다.
  * - 성공하면 `?next=` 로 넘어온 화면(없으면 마이페이지)으로 이동한다.
- * - 소셜 로그인 버튼은 준비 중 문구를 노출.
+ * - 가입은 이메일 가입(/signup)과 카카오로 시작하기 두 가지만 둔다. 카카오는 연동 전이라 준비 중 문구를 노출.
  */
 export function LoginForm() {
   const router = useRouter();
@@ -46,11 +46,8 @@ export function LoginForm() {
     }
   };
 
-  const notifyComingSoon = (provider: "카카오" | "네이버") => {
-    setStatus({
-      kind: "error",
-      message: `${provider} 로그인은 준비 중입니다.`,
-    });
+  const notifyKakaoComingSoon = () => {
+    setStatus({ kind: "error", message: "카카오 로그인은 준비 중입니다." });
   };
 
   return (
@@ -104,31 +101,11 @@ export function LoginForm() {
         href="/signup"
         className="mx-auto mt-[22px] flex h-[59px] w-full max-w-[264px] items-center justify-center border border-[#7F7E7C] text-[15px] font-normal tracking-[-0.2px] text-[#7F7E7C] transition-colors hover:border-black hover:text-black"
       >
-        간편하게 가입하기
+        이메일로 가입하기
       </Link>
 
-      {/* 소셜 로그인 */}
-      <button
-        type="button"
-        onClick={() => notifyComingSoon("카카오")}
-        className="mx-auto mt-[22px] flex h-12 w-full max-w-[264px] items-center gap-3.5 bg-[#FEE500] px-[18px] text-[15px] font-normal tracking-[-0.2px] text-black transition-opacity hover:opacity-90"
-      >
-        <span className="flex w-[22px] flex-none items-center justify-center text-black">
-          <KakaoIcon />
-        </span>
-        <span className="flex-1 text-center">카카오로 시작하기</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => notifyComingSoon("네이버")}
-        className="mx-auto mt-[23px] flex h-12 w-full max-w-[264px] items-center gap-3.5 bg-[#03C75A] px-[18px] text-[15px] font-normal tracking-[-0.2px] text-white transition-opacity hover:opacity-90"
-      >
-        <span className="flex h-[22px] w-[22px] flex-none items-center justify-center bg-white text-[14px] font-bold text-[#03C75A]">
-          N
-        </span>
-        <span className="flex-1 text-center">네이버로 로그인하기</span>
-      </button>
+      {/* 소셜 로그인: 카카오만 둔다 */}
+      <KakaoStartButton onClick={notifyKakaoComingSoon} className="mt-[22px]" />
 
       {status.kind !== "idle" ? (
         <p

@@ -108,6 +108,32 @@ class ApiIntegrationTest {
 	}
 
 	@Test
+	void 이메일만으로_가입하면_아이디가_생성되고_이메일로_로그인() throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"password":"password123","email":"Tomato.Kim@example.com","name":"김토마"}
+					"""))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.member.id").value(org.hamcrest.Matchers.matchesPattern("tomatokim\\d{4}")));
+
+		mockMvc.perform(post("/api/auth/signup")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"password":"password123","email":"Tomato.Kim@example.com","name":"중복"}
+					"""))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("DUPLICATE_EMAIL"));
+
+		mockMvc.perform(post("/api/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"loginId":"Tomato.Kim@example.com","password":"password123"}
+					"""))
+			.andExpect(status().isOk());
+	}
+
+	@Test
 	void 인증_필요한_API는_토큰없이_401() throws Exception {
 		mockMvc.perform(get("/api/me")).andExpect(status().isUnauthorized());
 		mockMvc.perform(get("/api/cart")).andExpect(status().isUnauthorized());

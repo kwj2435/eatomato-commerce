@@ -1,8 +1,10 @@
 package com.eatomato.backend.auth;
 
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -31,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthService {
 
 	private static final String ISSUER = "eatomato";
+	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private final MemberRepository memberRepository;
 	private final PasswordEncoder passwordEncoder;
@@ -39,18 +42,40 @@ public class AuthService {
 
 	@Transactional
 	public TokenResponse signup(SignupRequest request) {
-		if (memberRepository.existsByLoginId(request.loginId())) {
-			throw new ApiException(ErrorCode.DUPLICATE_LOGIN_ID);
-		}
-		if (memberRepository.existsByEmail(request.email())) {
+		String email = request.email().trim();
+		if (memberRepository.existsByEmail(email)) {
 			throw new ApiException(ErrorCode.DUPLICATE_EMAIL);
 		}
+		String loginId = request.loginId();
+		if (loginId == null || loginId.isBlank()) {
+			loginId = generateLoginId(email);
+		} else if (memberRepository.existsByLoginId(loginId)) {
+			throw new ApiException(ErrorCode.DUPLICATE_LOGIN_ID);
+		}
 		Member member = memberRepository.save(new Member(
-			request.loginId(),
+			loginId,
 			passwordEncoder.encode(request.password()),
-			request.email(),
+			email,
 			request.name().trim()));
 		return issueToken(member);
+	}
+
+	/**
+	 * 이메일 앞부분(영문 소문자·숫자만, 최대 12자) + 숫자 4자리로 아이디를 만든다. 예: tomato.kim@… → tomatokim4821
+	 */
+	private String generateLoginId(String email) {
+		String base = email.substring(0, email.indexOf('@')).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
+		if (base.length() > 12) {
+			base = base.substring(0, 12);
+		}
+		if (base.isEmpty()) {
+			base = "user";
+		}
+		String candidate;
+		do {
+			candidate = base + String.format("%04d", RANDOM.nextInt(10_000));
+		} while (memberRepository.existsByLoginId(candidate));
+		return candidate;
 	}
 
 	public TokenResponse login(LoginRequest request) {
