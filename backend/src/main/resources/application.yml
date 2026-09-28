@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: eatomato-backend
+  datasource:
+    # Azure Database for MySQL(Flexible Server) 는 TLS 접속을 강제한다.
+    url: jdbc:mysql://${DB_HOST:eatomato-db.mysql.database.azure.com}:${DB_PORT:3306}/${DB_NAME:eatomato}?sslMode=REQUIRED&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&createDatabaseIfNotExist=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    open-in-view: false
+    hibernate:
+      # 스키마는 Flyway(db/migration) 가 관리한다.
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_batch_fetch_size: 100
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 55MB
+
+server:
+  port: 8080
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+app:
+  jwt:
+    # HS256 서명 키. 32바이트 이상의 임의 문자열이어야 한다.
+    secret: ${JWT_SECRET}
+    access-token-ttl: 2h
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://40.82.137.98}
+  upload:
+    dir: ${UPLOAD_DIR:./uploads}
+    # 업로드 파일 URL 의 앞부분. 프론트와 출처가 달라 절대 URL 로 내려준다.
+    public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
+  seed:
+    # 상품 테이블이 비어 있으면 프론트 mock 과 같은 데모 데이터를 넣는다.
+    enabled: ${SEED_DEMO_DATA:true}
+
+---
+# DB 접속 정보 없이 실행해 보는 용도. `./gradlew bootRun --args='--spring.profiles.active=local'`
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:h2:mem:eatomato;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+
+app:
+  jwt:
+    secret: local-development-secret-key-must-be-32-bytes-or-more

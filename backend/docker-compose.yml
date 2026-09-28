@@ -1,0 +1,19 @@
+# VM 배포용 compose. 접속 정보는 같은 디렉터리의 .env 에서 읽는다(.env.example 참고).
+services:
+  backend:
+    build: .
+    image: eatomato-backend
+    container_name: eatomato-backend
+    env_file: .env
+    ports:
+      # 외부에는 호스트 nginx 의 /api, /uploads 로만 노출한다.
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - uploads:/app/uploads
+    environment:
+      UPLOAD_DIR: /app/uploads
+    restart: unless-stopped
+    mem_limit: 450m
+
+volumes:
+  uploads:

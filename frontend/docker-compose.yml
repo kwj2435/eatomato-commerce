@@ -1,0 +1,11 @@
+# VM 배포용 compose. 백엔드·DB 는 이후 같은 파일에 서비스로 추가한다.
+services:
+  frontend:
+    build: .
+    image: eatomato-frontend
+    container_name: eatomato-frontend
+    ports:
+      # 외부 80/443 은 호스트 nginx 가 받아 이 포트로 넘긴다(저장소 루트 deploy/host-nginx/eatomato.kr.conf).
+      - "127.0.0.1:3000:80"
+    restart: unless-stopped
+    mem_limit: 128m
