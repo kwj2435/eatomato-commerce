@@ -11,8 +11,18 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
+import com.eatomato.backend.member.MemberRepository;
 
+import lombok.RequiredArgsConstructor;
+
+/**
+ * `@CurrentMemberId` 에 JWT subject(회원 PK)를 넣는다.
+ * 이용 정지된 회원은 이미 받은 토큰이 남아 있어도 여기서 막는다(회원 API 는 모두 이 경로를 지난다).
+ */
+@RequiredArgsConstructor
 public class CurrentMemberIdArgumentResolver implements HandlerMethodArgumentResolver {
+
+	private final MemberRepository memberRepository;
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
@@ -27,6 +37,11 @@ public class CurrentMemberIdArgumentResolver implements HandlerMethodArgumentRes
 		if (!(authentication instanceof JwtAuthenticationToken token)) {
 			throw new ApiException(ErrorCode.UNAUTHORIZED);
 		}
-		return Long.valueOf(token.getName());
+		Long memberId = Long.valueOf(token.getName());
+		boolean enabled = memberRepository.findById(memberId).map(member -> member.isEnabled()).orElse(false);
+		if (!enabled) {
+			throw new ApiException(ErrorCode.MEMBER_DISABLED);
+		}
+		return memberId;
 	}
 }

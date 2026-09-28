@@ -52,7 +52,10 @@ export class ApiError extends Error {
  * 이 파일은 빌드(서버)에서도 쓰이므로 스토어를 직접 import 하지 않는다.
  */
 type AuthBridge = {
-  getToken: () => string | null;
+  /** 요청에 실을 액세스 토큰. 만료가 가까우면 리프레시 토큰으로 먼저 갱신한다. */
+  getToken: () => Promise<string | null>;
+  /** 서버가 401 을 주면 한 번 갱신을 시도한다. 새 액세스 토큰, 실패하면 null. */
+  refresh: () => Promise<string | null>;
   onUnauthorized: () => void;
 };
 
@@ -63,7 +66,10 @@ export function registerAuthBridge(bridge: AuthBridge) {
 }
 
 type ApiInit = Omit<RequestInit, "body"> & {
-  /** true 면 Authorization 헤더를 붙인다. 토큰이 없으면 요청 없이 401 로 실패한다. */
+  /**
+   * true 면 Authorization 헤더를 붙인다. 토큰이 없으면 요청 없이 401 로 실패한다.
+   * 서버가 401 을 주면 리프레시 토큰으로 갱신한 뒤 한 번 다시 보낸다.
+   */
   auth?: boolean;
   /** JSON 본문. 지정하면 Content-Type 을 자동으로 붙인다. */
   json?: unknown;
@@ -75,28 +81,39 @@ export async function apiFetch<T>(path: string, init: ApiInit = {}): Promise<T> 
   const headers = new Headers(initHeaders);
 
   if (auth) {
-    const token = authBridge?.getToken();
+    const token = await authBridge?.getToken();
     if (!token) throw new ApiError(401, "UNAUTHORIZED", "로그인이 필요합니다.");
     headers.set("Authorization", `Bearer ${token}`);
   }
   if (json !== undefined) headers.set("Content-Type", "application/json");
 
   const onServer = typeof window === "undefined";
-  const res = await fetch(`${baseUrl()}${path}`, {
-    ...(onServer && !auth && !STATIC_EXPORT && !rest.cache
-      ? { next: { revalidate: SERVER_REVALIDATE_SECONDS } }
-      : {}),
-    ...rest,
-    headers,
-    body: json !== undefined ? JSON.stringify(json) : body,
-  });
+  const send = () =>
+    fetch(`${baseUrl()}${path}`, {
+      ...(onServer && !auth && !STATIC_EXPORT && !rest.cache
+        ? { next: { revalidate: SERVER_REVALIDATE_SECONDS } }
+        : {}),
+      ...rest,
+      headers,
+      body: json !== undefined ? JSON.stringify(json) : body,
+    });
+
+  let res = await send();
+  if (res.status === 401 && auth) {
+    // 토큰이 서버 기준으로 만료됐거나(시계 차이 등) 폐기된 경우. 갱신에 성공하면 한 번만 다시 보낸다.
+    const renewed = await authBridge?.refresh();
+    if (renewed) {
+      headers.set("Authorization", `Bearer ${renewed}`);
+      res = await send();
+    }
+  }
 
   if (!res.ok) {
     const error = (await res.json().catch(() => null)) as
       | { code?: string; message?: string }
       | null;
-    // 만료·위조 토큰이면 저장된 세션을 비워 화면이 로그아웃 상태로 돌아가게 한다.
-    if (res.status === 401 && auth) authBridge?.onUnauthorized();
+    // 갱신해도 401 이거나 이용 정지(403 MEMBER_DISABLED)면 세션을 비워 화면이 로그아웃 상태로 돌아가게 한다.
+    if (auth && (res.status === 401 || error?.code === "MEMBER_DISABLED")) authBridge?.onUnauthorized();
     throw new ApiError(
       res.status,
       error?.code ?? `HTTP_${res.status}`,

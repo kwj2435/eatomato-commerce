@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import { QuantityStepper } from "@/features/cart/QuantityStepper";
 import type { AddCartItemInput } from "@/lib/api/cart";
 import { errorMessage } from "@/lib/api/client";
-import { currentToken } from "@/lib/store/auth-store";
+import { hasSession } from "@/lib/store/auth-store";
 import { useCartStore } from "@/lib/store/cart-store";
 import { formatKRW } from "@/lib/utils/format";
 import type { OptionGroup, ProductDetail } from "@/types/product-detail";
@@ -106,7 +106,7 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
       setStatus({ kind: "warn", message: "옵션을 모두 선택해 주세요." });
       return false;
     }
-    if (!currentToken()) {
+    if (!hasSession()) {
       setStatus({ kind: "login" });
       return false;
     }

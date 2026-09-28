@@ -7,7 +7,7 @@ import { useId, useMemo, useState } from "react";
 import { ChevronDownIcon } from "@/components/ui/icons";
 import { errorMessage } from "@/lib/api/client";
 import { updateMyMember } from "@/lib/api/member";
-import { useAuthStore } from "@/lib/store/auth-store";
+import { logout, useAuthStore } from "@/lib/store/auth-store";
 import { cn } from "@/lib/utils/cn";
 import {
   GENDER_OPTIONS,
@@ -38,7 +38,7 @@ type MemberInfoFormProps = {
  * - 아이디/등급/우편번호/기본주소는 시안에서 readonly 이므로 상태로 들지 않고 prop 을 그대로 쓴다.
  *   (우편번호·기본주소는 주소 검색이 붙으면 그때 상태로 승격시킨다.)
  *
- * 저장은 `PATCH /api/me`, 로그아웃은 저장된 토큰을 지우고 메인으로 보낸다.
+ * 저장은 `PATCH /api/me`, 로그아웃은 서버에서 리프레시 토큰을 폐기하고 메인으로 보낸다.
  * 주소 검색은 아직 준비 중이라 안내 문구만 띄운다.
  */
 export function MemberInfoForm({ member }: MemberInfoFormProps) {
@@ -59,7 +59,6 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [pending, setPending] = useState(false);
   const setMember = useAuthStore((s) => s.setMember);
-  const clearSession = useAuthStore((s) => s.clear);
   const router = useRouter();
 
   const yearOptions = useMemo(() => {
@@ -139,7 +138,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
   };
 
   const handleLogout = () => {
-    clearSession();
+    logout();
     router.push("/");
   };
 

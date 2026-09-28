@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 export default function KakaoCallbackPage() {
   return (
     <SiteFrame>
-      <main>
+      <div>
         <KakaoCallback />
-      </main>
+      </div>
     </SiteFrame>
   );
 }

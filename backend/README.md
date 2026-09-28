@@ -31,7 +31,10 @@ docker compose up -d --build
 
 ## 인증
 
-`POST /api/auth/login` 응답의 `accessToken` 을 `Authorization: Bearer <token>` 헤더로 보낸다(기본 2시간 유효).
+로그인·가입 응답의 `accessToken`(30분)을 `Authorization: Bearer <token>` 헤더로 보낸다.
+만료되면 `refreshToken`(14일)으로 `POST /api/auth/refresh` 를 불러 새 토큰 한 쌍을 받는다. 리프레시 토큰은 한 번 쓰면 바뀌고(rotation),
+서버에는 SHA-256 해시만 저장된다. 로그아웃은 리프레시 토큰을, 회원 정지는 그 회원의 모든 리프레시 토큰을 폐기하며,
+정지된 회원은 남은 액세스 토큰으로도 회원 API 를 쓸 수 없다(`MEMBER_DISABLED`).
 🔒 표시는 토큰이 필요한 API.
 
 ## API
@@ -51,6 +54,8 @@ docker compose up -d --build
 | GET | `/api/notices/ids` · `/api/notices/{id}` | 공지 id 목록 / 단건 | `listNoticeIds` · `getNotice` |
 | POST | `/api/auth/signup` | 가입 `{loginId,password,email,name}` → 토큰 | |
 | POST | `/api/auth/login` | 로그인 `{loginId(아이디 또는 이메일),password}` → 토큰 | `LoginForm` |
+| POST | `/api/auth/refresh` | 토큰 갱신 `{refreshToken}` → 새 토큰 한 쌍 | `auth-store` |
+| POST | `/api/auth/logout` | 리프레시 토큰 폐기 `{refreshToken}` → 204 | 로그아웃 |
 | GET | `/api/auth/kakao/authorize?redirectUri=&state=` | 카카오 인가 화면으로 302 | 카카오 로그인 버튼 |
 | POST | `/api/auth/kakao` | 카카오 인가 코드로 로그인·가입 `{code, redirectUri}` → 토큰 | `/login/kakao/` |
 | GET · PATCH | `/api/me` 🔒 | 회원 정보 조회 / 수정 (null 필드는 유지) | `getMyMember` · `updateMyMember` |

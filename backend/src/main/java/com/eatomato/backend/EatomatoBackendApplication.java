@@ -5,11 +5,13 @@ import java.util.TimeZone;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.eatomato.backend.global.time.Times;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
+@EnableScheduling
 public class EatomatoBackendApplication {
 
 	public static void main(String[] args) {

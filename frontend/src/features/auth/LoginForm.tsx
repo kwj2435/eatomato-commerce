@@ -7,6 +7,8 @@ import { useState } from "react";
 import { AuthField as Field } from "./AuthField";
 import { KakaoLoginButton } from "./KakaoLoginButton";
 import { login } from "@/lib/api/auth";
+import { useRedirectIfLoggedIn } from "@/lib/store/use-redirect-if-logged-in";
+import { nextPathFromLocation } from "@/lib/utils/next-path";
 import { startKakaoLogin } from "@/lib/api/kakao";
 import { errorMessage } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/store/auth-store";
@@ -20,7 +22,7 @@ type Status =
  * 로그인 폼.
  *
  * - 아이디 또는 이메일 + 비밀번호로 `/api/auth/login` 을 호출하고, 받은 토큰을 세션 스토어에 저장한다.
- * - 성공하면 `?next=` 로 넘어온 화면(없으면 마이페이지)으로 이동한다.
+ * - 성공하면 `?next=` 로 넘어온 화면(없으면 마이페이지)으로 이동한다. 이미 로그인돼 있으면 폼 없이 바로 이동한다.
  * - 가입·로그인 수단은 이메일과 카카오 두 가지만 둔다. 카카오는 처음이면 자동 가입된다.
  */
 export function LoginForm() {
@@ -30,6 +32,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const redirecting = useRedirectIfLoggedIn();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -40,14 +43,16 @@ export function LoginForm() {
     setPending(true);
     try {
       setSession(await login(id.trim(), password));
-      router.replace(nextPath());
+      router.replace(nextPathFromLocation());
     } catch (error) {
       setStatus({ kind: "error", message: errorMessage(error) });
       setPending(false);
     }
   };
 
-  const handleKakao = () => startKakaoLogin(nextPath());
+  const handleKakao = () => startKakaoLogin(nextPathFromLocation());
+
+  if (redirecting) return <p className="py-20 text-center text-[14px] text-ink-muted">이미 로그인되어 있습니다. 이동 중…</p>;
 
   return (
     <form
@@ -123,11 +128,3 @@ export function LoginForm() {
   );
 }
 
-/**
- * 로그인 후 이동할 경로. `?next=` 는 같은 사이트 경로(`/...`)만 받아 외부 주소로 튕겨 나가지 않게 한다.
- * `useSearchParams` 대신 제출 시점에 직접 읽어 정적 export 에서 Suspense 경계가 필요 없게 했다.
- */
-function nextPath(): string {
-  const next = new URLSearchParams(window.location.search).get("next");
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/mypage";
-}

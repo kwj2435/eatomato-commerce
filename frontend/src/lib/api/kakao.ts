@@ -1,5 +1,7 @@
 import type { AuthSession } from "@/types/auth";
 
+import { safeNextPath } from "@/lib/utils/next-path";
+
 import { apiFetch, apiUrl } from "./client";
 
 /**
@@ -25,7 +27,16 @@ export function startKakaoLogin(nextPath: string): void {
   sessionStorage.setItem(STATE_KEY, state);
   sessionStorage.setItem(NEXT_KEY, nextPath);
   const qs = new URLSearchParams({ redirectUri: kakaoRedirectUri(), state });
-  window.location.href = apiUrl(`/api/auth/kakao/authorize?${qs}`);
+  // replace: 로그인 화면을 방문 기록에 남기지 않는다. 로그인 후 뒤로가기로 로그인 화면이 다시 뜨지 않게.
+  window.location.replace(apiUrl(`/api/auth/kakao/authorize?${qs}`));
+}
+
+/** 콜백 처리 없이 돌아갈 경로만 꺼낸다(이미 로그인된 상태로 콜백에 들어온 경우). */
+export function takeKakaoNextPath(): string {
+  const next = sessionStorage.getItem(NEXT_KEY) ?? "/mypage";
+  sessionStorage.removeItem(STATE_KEY);
+  sessionStorage.removeItem(NEXT_KEY);
+  return safeNextPath(next);
 }
 
 export type KakaoCallbackResult = { session: AuthSession; next: string };
@@ -53,5 +64,5 @@ export async function completeKakaoLogin(params: URLSearchParams): Promise<Kakao
     method: "POST",
     json: { code, redirectUri: kakaoRedirectUri() },
   });
-  return { session, next: next.startsWith("/") && !next.startsWith("//") ? next : "/mypage" };
+  return { session, next: safeNextPath(next) };
 }

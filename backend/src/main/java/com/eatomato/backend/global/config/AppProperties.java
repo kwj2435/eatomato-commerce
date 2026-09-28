@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(Jwt jwt, Cors cors, Upload upload, Seed seed, Admin admin, Kakao kakao) {
 
-	public record Jwt(String secret, Duration accessTokenTtl) {
+	public record Jwt(String secret, Duration accessTokenTtl, Duration refreshTokenTtl) {
 	}
 
 	public record Cors(List<String> allowedOrigins) {

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eatomato.backend.auth.dto.LoginRequest;
+import com.eatomato.backend.auth.dto.RefreshRequest;
 import com.eatomato.backend.auth.dto.SignupRequest;
 import com.eatomato.backend.auth.dto.TokenResponse;
 import com.eatomato.backend.auth.kakao.KakaoLoginRequest;
@@ -47,6 +48,19 @@ public class AuthController {
 	@PostMapping("/login")
 	public TokenResponse login(@Valid @RequestBody LoginRequest request) {
 		return authService.login(request);
+	}
+
+	/** 액세스 토큰 갱신. 리프레시 토큰도 새로 바뀐다. */
+	@PostMapping("/refresh")
+	public TokenResponse refresh(@Valid @RequestBody RefreshRequest request) {
+		return authService.refresh(request.refreshToken());
+	}
+
+	/** 로그아웃: 리프레시 토큰 폐기. 토큰이 없거나 이미 폐기됐어도 204. */
+	@PostMapping("/logout")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void logout(@Valid @RequestBody RefreshRequest request) {
+		authService.logout(request.refreshToken());
 	}
 
 	/**

@@ -8,6 +8,7 @@ import { signup } from "@/lib/api/auth";
 import { errorMessage } from "@/lib/api/client";
 import { startKakaoLogin } from "@/lib/api/kakao";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { useRedirectIfLoggedIn } from "@/lib/store/use-redirect-if-logged-in";
 
 import { AuthField } from "./AuthField";
 import { KakaoLoginButton } from "./KakaoLoginButton";
@@ -31,6 +32,7 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const redirecting = useRedirectIfLoggedIn();
 
   const validate = (): string | null => {
     if (!EMAIL_PATTERN.test(email.trim())) return "이메일 형식을 확인해 주세요.";
@@ -59,6 +61,8 @@ export function SignupForm() {
       setPending(false);
     }
   };
+
+  if (redirecting) return <p className="py-20 text-center text-[14px] text-ink-muted">이미 로그인되어 있습니다. 이동 중…</p>;
 
   return (
     <form

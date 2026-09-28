@@ -12,6 +12,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.eatomato.backend.admin.AdminAccessInterceptor;
 import com.eatomato.backend.global.security.CurrentMemberIdArgumentResolver;
+import com.eatomato.backend.member.MemberRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,10 +24,11 @@ public class WebConfig implements WebMvcConfigurer {
 
 	private final AppProperties properties;
 	private final AdminAccessInterceptor adminAccessInterceptor;
+	private final MemberRepository memberRepository;
 
 	@Override
 	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-		resolvers.add(new CurrentMemberIdArgumentResolver());
+		resolvers.add(new CurrentMemberIdArgumentResolver(memberRepository));
 	}
 
 	@Override

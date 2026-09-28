@@ -3,8 +3,9 @@ import Link from "next/link";
 import { Container } from "@/components/layout/Container";
 import { HeaderAdminLink } from "@/components/layout/HeaderAdminLink";
 import { HeaderCartLink } from "@/components/layout/HeaderCartLink";
+import { HeaderUserLink } from "@/components/layout/HeaderUserLink";
 import { MobileMenu } from "@/components/layout/MobileMenu";
-import { SearchIcon, UserIcon } from "@/components/ui/icons";
+import { SearchIcon } from "@/components/ui/icons";
 import {
   CATEGORY_LIST,
   categoryHref,
@@ -93,9 +94,8 @@ export function Header() {
             <UtilLink href="/search" label="검색">
               <SearchIcon />
             </UtilLink>
-            <UtilLink href="/mypage" label="마이페이지">
-              <UserIcon />
-            </UtilLink>
+            {/* 로그인 상태에 따라 링크·표시가 바뀌어 client 컴포넌트로 분리 */}
+            <HeaderUserLink />
             {/* 카트는 스토어 구독이 필요해 client 컴포넌트로 분리 */}
             <HeaderCartLink />
           </div>

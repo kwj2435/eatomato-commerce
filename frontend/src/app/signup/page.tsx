@@ -11,9 +11,9 @@ export const metadata: Metadata = {
 export default function SignupPage() {
   return (
     <SiteFrame>
-      <main className="pb-[112px] pt-[27px]">
+      <div className="pb-[112px] pt-[27px]">
         <SignupForm />
-      </main>
+      </div>
     </SiteFrame>
   );
 }

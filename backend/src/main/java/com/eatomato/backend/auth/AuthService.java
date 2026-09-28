@@ -20,6 +20,7 @@ import com.eatomato.backend.auth.dto.LoginRequest;
 import com.eatomato.backend.auth.dto.SignupRequest;
 import com.eatomato.backend.auth.dto.TokenResponse;
 import com.eatomato.backend.auth.kakao.KakaoUser;
+import com.eatomato.backend.auth.token.RefreshTokenService;
 import com.eatomato.backend.global.config.AppProperties;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
@@ -41,6 +42,7 @@ public class AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final JwtEncoder jwtEncoder;
 	private final AppProperties properties;
+	private final RefreshTokenService refreshTokenService;
 
 	@Transactional
 	public TokenResponse signup(SignupRequest request) {
@@ -125,6 +127,25 @@ public class AuthService {
 		return issueToken(member);
 	}
 
+	/** 리프레시 토큰으로 새 액세스·리프레시 토큰을 받는다. 쓴 리프레시 토큰은 폐기된다. */
+	@Transactional
+	public TokenResponse refresh(String refreshToken) {
+		Long memberId = refreshTokenService.consume(refreshToken);
+		Member member = memberRepository.findById(memberId)
+			.orElseThrow(() -> new ApiException(ErrorCode.INVALID_REFRESH_TOKEN));
+		if (!member.isEnabled()) {
+			refreshTokenService.revokeAll(memberId);
+			throw new ApiException(ErrorCode.MEMBER_DISABLED);
+		}
+		return issueToken(member);
+	}
+
+	/** 로그아웃. 그 리프레시 토큰을 폐기한다(액세스 토큰은 짧게 두어 곧 만료된다). */
+	@Transactional
+	public void logout(String refreshToken) {
+		refreshTokenService.revoke(refreshToken);
+	}
+
 	private TokenResponse issueToken(Member member) {
 		Duration ttl = properties.jwt().accessTokenTtl();
 		Instant now = Instant.now();
@@ -139,6 +160,7 @@ public class AuthService {
 			.build();
 		JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
 		String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
-		return TokenResponse.bearer(token, ttl.toSeconds(), MemberResponse.from(member));
+		return new TokenResponse(token, "Bearer", ttl.toSeconds(), refreshTokenService.issue(member.getId()),
+			refreshTokenService.ttl().toSeconds(), MemberResponse.from(member));
 	}
 }

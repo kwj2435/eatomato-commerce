@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { errorMessage } from "@/lib/api/client";
 import { getMyMember } from "@/lib/api/member";
-import { useAuthStore } from "@/lib/store/auth-store";
+import { logout as endSession, useAuthStore } from "@/lib/store/auth-store";
 import { useRequireAuth } from "@/lib/store/use-require-auth";
 import { cn } from "@/lib/utils/cn";
 
@@ -32,7 +32,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const setMember = useAuthStore((s) => s.setMember);
-  const clearSession = useAuthStore((s) => s.clear);
   const memberName = useAuthStore((s) => s.member?.name);
   const [access, setAccess] = useState<Access>({ kind: "checking" });
 
@@ -58,7 +57,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, [ready, setMember]);
 
   const logout = () => {
-    clearSession();
+    endSession();
     router.push("/login?next=/admin");
   };
 

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.eatomato.backend.admin.common.Keywords;
 import com.eatomato.backend.admin.common.PageResponse;
 import com.eatomato.backend.admin.order.AdminOrderResponse;
+import com.eatomato.backend.auth.token.RefreshTokenService;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.member.Member;
@@ -29,6 +30,7 @@ public class AdminMemberService {
 
 	private final MemberRepository memberRepository;
 	private final OrderRepository orderRepository;
+	private final RefreshTokenService refreshTokenService;
 
 	public PageResponse<AdminMemberSummary> list(String keyword, String role, Pageable pageable) {
 		Page<Member> page = memberRepository.searchForAdmin(
@@ -67,6 +69,10 @@ public class AdminMemberService {
 		}
 		if (request.enabled() != null) {
 			member.changeEnabled(request.enabled());
+			if (!request.enabled()) {
+				// 정지하면 자동 로그인(리프레시)도 바로 끊는다.
+				refreshTokenService.revokeAll(id);
+			}
 		}
 		return get(id);
 	}

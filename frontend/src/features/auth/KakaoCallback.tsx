@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { ApiError, errorMessage } from "@/lib/api/client";
-import { completeKakaoLogin } from "@/lib/api/kakao";
-import { useAuthStore } from "@/lib/store/auth-store";
+import { completeKakaoLogin, takeKakaoNextPath } from "@/lib/api/kakao";
+import { hasSession, useAuthStore } from "@/lib/store/auth-store";
 
 /**
  * 카카오 인가 후 돌아오는 화면(/login/kakao/). 인가 코드를 백엔드에 넘겨 로그인을 마친다.
  * 인가 코드는 한 번만 쓸 수 있어, 개발 모드의 이중 effect 실행에도 요청이 한 번만 가도록 막는다.
+ *
+ * 이미 로그인된 상태로 들어오면(로그인 후 뒤로가기로 카카오 인가 주소를 다시 거친 경우 등)
+ * 코드를 쓰지 않고 원래 가려던 화면으로 보낸다. 예전에는 여기서 오류 화면이 떠 로그아웃된 것처럼 보였다.
  */
 export function KakaoCallback() {
   const router = useRouter();
@@ -21,6 +24,10 @@ export function KakaoCallback() {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
+    if (hasSession()) {
+      router.replace(takeKakaoNextPath());
+      return;
+    }
     completeKakaoLogin(new URLSearchParams(window.location.search))
       .then(({ session, next }) => {
         setSession(session);
