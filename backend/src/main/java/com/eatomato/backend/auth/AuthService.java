@@ -82,6 +82,8 @@ public class AuthService {
 		return candidate;
 	}
 
+	/** 쓰기 트랜잭션이어야 한다: 로그인할 때 리프레시 토큰을 저장한다. */
+	@Transactional
 	public TokenResponse login(LoginRequest request) {
 		String identifier = request.loginId().trim();
 		Member member = (identifier.contains("@")
