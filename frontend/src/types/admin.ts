@@ -125,9 +125,8 @@ export type AdminOrder = Order & {
 
 export type AdminBanner = {
   id: string;
-  captionLines: string[];
   href: string;
-  imageUrl: string | null;
+  imageUrl: string;
   alt: string;
   sortOrder: number;
   active: boolean;

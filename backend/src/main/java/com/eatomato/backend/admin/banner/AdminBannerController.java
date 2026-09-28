@@ -40,10 +40,8 @@ public class AdminBannerController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@Transactional
 	public AdminBannerResponse create(@Valid @RequestBody AdminBannerRequest request) {
-		Banner banner = new Banner(trimmed(request.captionLines()), request.href().trim(), blankToNull(request.imageUrl()),
-			request.alt().trim(), request.sortOrder());
-		banner.update(trimmed(request.captionLines()), request.href().trim(), blankToNull(request.imageUrl()),
-			request.alt().trim(), request.sortOrder(), request.active());
+		Banner banner = new Banner(request.href().trim(), request.imageUrl().trim(), request.alt().trim(),
+			request.sortOrder(), request.active());
 		return AdminBannerResponse.from(bannerRepository.save(banner));
 	}
 
@@ -51,8 +49,8 @@ public class AdminBannerController {
 	@Transactional
 	public AdminBannerResponse update(@PathVariable Long id, @Valid @RequestBody AdminBannerRequest request) {
 		Banner banner = find(id);
-		banner.update(trimmed(request.captionLines()), request.href().trim(), blankToNull(request.imageUrl()),
-			request.alt().trim(), request.sortOrder(), request.active());
+		banner.update(request.href().trim(), request.imageUrl().trim(), request.alt().trim(), request.sortOrder(),
+			request.active());
 		return AdminBannerResponse.from(banner);
 	}
 
@@ -65,13 +63,5 @@ public class AdminBannerController {
 
 	private Banner find(Long id) {
 		return bannerRepository.findById(id).orElseThrow(() -> new ApiException(ErrorCode.BANNER_NOT_FOUND));
-	}
-
-	private static List<String> trimmed(List<String> lines) {
-		return lines.stream().map(String::trim).toList();
-	}
-
-	private static String blankToNull(String value) {
-		return value == null || value.isBlank() ? null : value.trim();
 	}
 }

@@ -229,7 +229,7 @@ class AdminApiIntegrationTest {
 		String banner = mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
-					{"captionLines":["가을 신상","지금 만나보세요"],"href":"/products/set","alt":"가을 배너",
+					{"href":"/products/set","imageUrl":"https://example.com/fall.jpg","alt":"가을 신상 지금 만나보세요",
 					 "sortOrder":0,"active":false}
 					"""))
 			.andExpect(status().isCreated())
@@ -242,12 +242,19 @@ class AdminApiIntegrationTest {
 		mockMvc.perform(put("/api/admin/banners/" + bannerId).header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
-					{"captionLines":["가을 신상"],"href":"/products/set","alt":"가을 배너","sortOrder":0,"active":true}
+					{"href":"/products/set","imageUrl":"https://example.com/fall.jpg","alt":"가을 신상","sortOrder":0,"active":true}
 					"""))
 			.andExpect(status().isOk());
 		mockMvc.perform(get("/api/banners"))
 			.andExpect(jsonPath("$", hasSize(8)))
-			.andExpect(jsonPath("$[0].captionLines[0]").value("가을 신상"));
+			.andExpect(jsonPath("$[0].alt").value("가을 신상"))
+			.andExpect(jsonPath("$[0].captionLines").doesNotExist());
+
+		// 이미지 없는 배너는 받지 않는다(문구를 이미지에 넣으므로)
+		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"href\":\"/\",\"alt\":\"이미지 없음\",\"sortOrder\":1,\"active\":true}"))
+			.andExpect(status().isBadRequest());
 		mockMvc.perform(delete("/api/admin/banners/" + bannerId).header(HttpHeaders.AUTHORIZATION, admin))
 			.andExpect(status().isNoContent());
 

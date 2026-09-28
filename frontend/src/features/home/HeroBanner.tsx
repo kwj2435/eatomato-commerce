@@ -22,7 +22,10 @@ const DEFAULT_INTERVAL = 5000;
  * 외부 라이브러리를 쓰지 않고, 상태 하나(currentIndex)로 관리한다.
  * 사용자가 dot 을 누르면 타이머를 리셋해 UX 를 자연스럽게 만든다.
  *
+ * 문구는 배너 이미지에 직접 넣는다(화면에 따로 캡션을 그리지 않는다).
+ *
  * 접근성:
+ * - 이미지 속 문구는 alt 로 스크린리더에 전달한다.
  * - dot 버튼은 aria-label 로 몇 번째 슬라이드인지 알린다.
  * - 슬라이드 배너 자체는 링크(<Link/>)로 감싸 키보드 접근을 보장한다.
  */
@@ -85,17 +88,6 @@ export function HeroBanner({
                 className="object-cover"
               />
             ) : null}
-
-            <div className="relative z-[1] flex w-full max-w-[980px] flex-col items-center gap-1 bg-surface-hero-caption px-6 py-10 md:px-10 md:py-[60px]">
-              {banner.captionLines.map((line) => (
-                <p
-                  key={line}
-                  className="text-center text-[28px] font-medium leading-[36px] tracking-[-0.6px] text-ink-primary md:text-[40px] md:leading-[48px] lg:text-[50px] lg:leading-[60px]"
-                >
-                  {line}
-                </p>
-              ))}
-            </div>
           </Link>
         );
       })}

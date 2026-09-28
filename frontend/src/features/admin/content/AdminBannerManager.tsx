@@ -9,10 +9,11 @@ import type { AdminBanner, AdminBannerInput } from "@/types/admin";
 import { ImageInput } from "../ImageInput";
 import { Button, Card, Chip, Empty, Field, Notice, PageHeader, inputClass } from "../ui";
 
-const EMPTY: AdminBannerInput = { captionLines: ["", ""], href: "/", imageUrl: "", alt: "", sortOrder: 0, active: true };
+const EMPTY: AdminBannerInput = { href: "/", imageUrl: "", alt: "", sortOrder: 0, active: true };
 
 /**
  * 메인 히어로 배너 관리. 노출 순서는 "순서" 숫자가 작은 것부터, 비활성 배너는 메인에서 빠진다.
+ * 문구는 이미지에 직접 넣으므로 이미지가 필수이고, 이미지 속 문구는 대체 텍스트(alt)에 적는다.
  * 권장 이미지 비율은 1440 × 814 (가로형).
  */
 export function AdminBannerManager() {
@@ -36,9 +37,14 @@ export function AdminBannerManager() {
 
   const save = async () => {
     if (!editing) return;
-    const form = { ...editing.form, captionLines: editing.form.captionLines.map((l) => l.trim()).filter(Boolean) };
-    if (form.captionLines.length === 0 || !form.alt.trim() || !form.href.trim()) {
-      setMessage({ kind: "error", text: "캡션 한 줄 이상, 링크, 대체 텍스트를 입력해 주세요." });
+    const form = {
+      ...editing.form,
+      imageUrl: editing.form.imageUrl.trim(),
+      href: editing.form.href.trim(),
+      alt: editing.form.alt.trim(),
+    };
+    if (!form.imageUrl || !form.href || !form.alt) {
+      setMessage({ kind: "error", text: "이미지, 링크, 대체 텍스트를 모두 입력해 주세요." });
       return;
     }
     try {
@@ -99,13 +105,21 @@ export function AdminBannerManager() {
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1 text-[13px]">
-                    <p className="truncate font-medium text-ink-primary">{b.captionLines.join(" / ")}</p>
+                    <p className="truncate font-medium text-ink-primary">{b.alt}</p>
                     <p className="truncate text-ink-subtle">
                       순서 {b.sortOrder} · {b.href}
                     </p>
                   </div>
                   <Chip tone={b.active ? "brand" : "muted"}>{b.active ? "노출" : "비활성"}</Chip>
-                  <Button size="sm" onClick={() => setEditing({ id: b.id, form: { ...b, imageUrl: b.imageUrl ?? "" } })}>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      setEditing({
+                        id: b.id,
+                        form: { href: b.href, imageUrl: b.imageUrl, alt: b.alt, sortOrder: b.sortOrder, active: b.active },
+                      })
+                    }
+                  >
                     수정
                   </Button>
                   <Button size="sm" variant="danger" onClick={() => remove(b)}>
@@ -120,27 +134,13 @@ export function AdminBannerManager() {
         {editing ? (
           <Card title={editing.id ? "배너 수정" : "새 배너"}>
             <div className="space-y-4">
-              <Field label="이미지 (권장 1440 × 814)">
-                <ImageInput category="banners" value={editing.form.imageUrl ?? ""} onChange={(url) => setForm({ imageUrl: url })} />
+              <Field label="이미지 (권장 1440 × 814)" hint="문구가 필요하면 이미지에 직접 넣어 주세요.">
+                <ImageInput category="banners" value={editing.form.imageUrl} onChange={(url) => setForm({ imageUrl: url })} />
               </Field>
-              {[0, 1].map((i) => (
-                <Field key={i} label={`캡션 ${i + 1}줄`} htmlFor={`b-cap-${i}`}>
-                  <input
-                    id={`b-cap-${i}`}
-                    value={editing.form.captionLines[i] ?? ""}
-                    onChange={(e) => {
-                      const lines = [...editing.form.captionLines];
-                      lines[i] = e.target.value;
-                      setForm({ captionLines: lines });
-                    }}
-                    className={inputClass}
-                  />
-                </Field>
-              ))}
               <Field label="클릭 시 이동할 주소" htmlFor="b-href" hint="예: /products/phone-case">
                 <input id="b-href" value={editing.form.href} onChange={(e) => setForm({ href: e.target.value })} className={inputClass} />
               </Field>
-              <Field label="대체 텍스트 (스크린리더용)" htmlFor="b-alt">
+              <Field label="대체 텍스트 (스크린리더용)" htmlFor="b-alt" hint="이미지에 넣은 문구를 그대로 적어 주세요. 예: 시즌 컬렉션 — 감각적인 톤 온 톤">
                 <input id="b-alt" value={editing.form.alt} onChange={(e) => setForm({ alt: e.target.value })} className={inputClass} />
               </Field>
               <div className="grid grid-cols-2 gap-4">

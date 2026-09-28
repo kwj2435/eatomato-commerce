@@ -91,7 +91,8 @@ class ApiIntegrationTest {
 	void 배너_공지_대표리뷰_조회() throws Exception {
 		mockMvc.perform(get("/api/banners"))
 			.andExpect(jsonPath("$", hasSize(7)))
-			.andExpect(jsonPath("$[0].captionLines", hasSize(2)));
+			.andExpect(jsonPath("$[0].imageUrl").exists())
+			.andExpect(jsonPath("$[0].captionLines").doesNotExist());
 
 		mockMvc.perform(get("/api/notices"))
 			.andExpect(jsonPath("$", hasSize(19)))

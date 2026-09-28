@@ -244,22 +244,21 @@ public class DemoDataSeeder implements ApplicationRunner {
 	}
 
 	private void seedBanners() {
-		record Seed(String line1, String line2, String href, String alt) {
+		record Seed(String href, String alt) {
 		}
 		List<Seed> seeds = List.of(
-			new Seed("메인화면 이미지 클릭하면", "이미지 관련한 제품으로 넘어갈 수 있게", "/products/phone-case", "메인 배너 1 — 핸드폰 케이스 신제품"),
-			new Seed("시즌 컬렉션", "감각적인 톤 온 톤을 만나보세요", "/products/phone-acc", "메인 배너 2 — 시즌 컬렉션"),
-			new Seed("에어팟 케이스", "새로운 스타일이 추가되었어요", "/products/phone-acc/airpods-case", "메인 배너 3 — 에어팟 케이스"),
-			new Seed("세트 상품", "함께 사면 더 예뻐요", "/products/set", "메인 배너 4 — 세트 상품"),
-			new Seed("신규 회원 혜택", "지금 가입하고 2,000원 쿠폰 받기", "/register", "메인 배너 5 — 신규 회원 혜택"),
-			new Seed("MD's Pick", "이번 주 큐레이션을 확인하세요", "/products/phone-case", "메인 배너 6 — MD 픽"),
-			new Seed("카드 지갑 리뉴얼", "슬림해진 데일리 아이템", "/products/phone-acc/card-wallet", "메인 배너 7 — 카드 지갑"));
+			new Seed("/products/phone-case", "메인 배너 1 — 핸드폰 케이스 신제품"),
+			new Seed("/products/phone-acc", "메인 배너 2 — 시즌 컬렉션"),
+			new Seed("/products/phone-acc/airpods-case", "메인 배너 3 — 에어팟 케이스"),
+			new Seed("/products/set", "메인 배너 4 — 세트 상품"),
+			new Seed("/signup", "메인 배너 5 — 신규 회원 혜택"),
+			new Seed("/products/phone-case", "메인 배너 6 — MD 픽"),
+			new Seed("/products/phone-acc/card-wallet", "메인 배너 7 — 카드 지갑"));
 
 		List<Banner> banners = new ArrayList<>();
 		for (int i = 0; i < seeds.size(); i++) {
 			Seed seed = seeds.get(i);
-			banners.add(new Banner(List.of(seed.line1(), seed.line2()), seed.href(),
-				TomatoImages.url(i, 1440, 814, 75), seed.alt(), i + 1));
+			banners.add(new Banner(seed.href(), TomatoImages.url(i, 1440, 814, 75), seed.alt(), i + 1, true));
 		}
 		bannerRepository.saveAll(banners);
 	}
