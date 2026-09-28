@@ -2,7 +2,7 @@
 # VM 배포 스크립트. VM 에서 저장소 루트(~/eatomato-commerce)에서 실행한다.
 #
 #   ./deploy/deploy.sh            # 백엔드 + 프론트
-#   ./deploy/deploy.sh frontend   # 프론트만 (상품·공지 변경을 정적 페이지에 반영할 때)
+#   ./deploy/deploy.sh frontend   # 프론트만
 #
 # 프론트는 빌드 시점에 백엔드 API 에서 데이터를 받으므로 백엔드를 먼저 띄운다.
 set -euo pipefail

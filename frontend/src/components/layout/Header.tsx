@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
+import { HeaderAdminLink } from "@/components/layout/HeaderAdminLink";
 import { HeaderCartLink } from "@/components/layout/HeaderCartLink";
 import { MobileMenu } from "@/components/layout/MobileMenu";
 import { SearchIcon, UserIcon } from "@/components/ui/icons";
@@ -88,6 +89,7 @@ export function Header() {
            * GNB 와 시각적 무게를 맞췄다.
            */}
           <div className="flex items-center gap-3 text-ink-icon">
+            <HeaderAdminLink />
             <UtilLink href="/search" label="검색">
               <SearchIcon />
             </UtilLink>

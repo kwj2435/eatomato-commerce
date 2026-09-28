@@ -13,6 +13,9 @@ public enum ErrorCode {
 	UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
 	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."),
 	INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
+	FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+	MEMBER_DISABLED(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다. 고객센터로 문의해 주세요."),
+	CANNOT_CHANGE_SELF(HttpStatus.BAD_REQUEST, "본인 계정의 권한·이용 상태는 바꿀 수 없습니다."),
 
 	MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."),
 	DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
@@ -21,6 +24,10 @@ public enum ErrorCode {
 	PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."),
 	INVALID_CATEGORY(HttpStatus.NOT_FOUND, "존재하지 않는 카테고리입니다."),
 	INVALID_OPTION(HttpStatus.BAD_REQUEST, "상품 옵션을 모두 올바르게 선택해 주세요."),
+	PRODUCT_UNAVAILABLE(HttpStatus.BAD_REQUEST, "판매가 중지된 상품이 포함되어 있습니다. 장바구니에서 삭제해 주세요."),
+	DUPLICATE_SLUG(HttpStatus.CONFLICT, "이미 사용 중인 상품 URL(slug)입니다."),
+	INVALID_PRODUCT(HttpStatus.BAD_REQUEST, "상품 정보를 확인해 주세요."),
+	BANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "배너를 찾을 수 없습니다."),
 	NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다."),
 
 	CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "장바구니 항목을 찾을 수 없습니다."),

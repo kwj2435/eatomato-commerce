@@ -49,6 +49,16 @@ public class Notice {
 		this.body = String.join("\n", paragraphs);
 	}
 
+	public void update(Integer number, String title, String author, LocalDateTime publishedAt, boolean pinned,
+		List<String> paragraphs) {
+		this.number = number;
+		this.title = title;
+		this.author = author;
+		this.publishedAt = publishedAt;
+		this.pinned = pinned;
+		this.body = String.join("\n", paragraphs);
+	}
+
 	public List<String> paragraphs() {
 		return Arrays.asList(body.split("\n"));
 	}

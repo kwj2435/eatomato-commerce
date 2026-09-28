@@ -21,8 +21,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 | `API_BASE_URL` | 빌드(서버 컴포넌트)가 상품·공지 등을 받아 정적 HTML 을 만들 때 | `http://localhost:8080` |
 | `NEXT_PUBLIC_API_BASE_URL` | 브라우저가 로그인·장바구니·검색 등을 호출할 때 (빌드 시점에 번들에 박힌다) | 개발: `http://localhost:8080`, 빌드: 같은 출처(`/api`) |
 
-상품·공지·배너는 빌드 시점 데이터로 정적 페이지가 만들어지므로, 백엔드 데이터가 바뀌면 프론트를 다시 빌드해야 반영된다.
-(상세 페이지 리뷰, 검색, 장바구니, 마이페이지는 브라우저가 매번 API 를 불러 항상 최신이다.)
+운영(standalone 서버)에서는 상품·공지·배너를 60초마다 백엔드에서 다시 받아 페이지를 갱신한다(ISR).
+GitHub Pages(`GITHUB_PAGES=true`, 정적 export)는 빌드 시점 데이터로 굳은 사본이다.
+상세 페이지 리뷰, 검색, 장바구니, 마이페이지, 관리자 화면(`/admin`)은 브라우저가 매번 API 를 부른다.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

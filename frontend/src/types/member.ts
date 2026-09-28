@@ -20,7 +20,11 @@ export type Member = {
   gender: MemberGender | null;
   /** 수신 동의한 마케팅 채널. 미동의는 빈 배열. */
   marketingChannels: MarketingChannel[];
+  /** 권한. ADMIN 이면 관리자 화면(/admin)에 들어갈 수 있다. */
+  role: MemberRole;
 };
+
+export type MemberRole = "USER" | "ADMIN";
 
 /** 휴대폰 번호 3분할(시안의 `010 - 0000 - 0000` 입력). */
 export type MemberPhone = {

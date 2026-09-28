@@ -52,7 +52,10 @@ public record ProductDetailResponse(
 			product.getRewardRate(),
 			product.shippingLines(),
 			OptionGroupResponse.listOf(product.getOptionGroups()),
-			product.getRelatedProducts().stream().map(BetterTogetherResponse::from).toList(),
+			product.getRelatedProducts().stream()
+				.filter(Product::isOnSale)
+				.map(BetterTogetherResponse::from)
+				.toList(),
 			List.copyOf(product.getDetailImages()),
 			reviews,
 			reviewCount);

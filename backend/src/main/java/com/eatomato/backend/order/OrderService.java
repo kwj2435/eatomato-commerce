@@ -42,6 +42,9 @@ public class OrderService {
 		if (cartItems.isEmpty()) {
 			throw new ApiException(ErrorCode.EMPTY_ORDER);
 		}
+		if (cartItems.stream().anyMatch(item -> !item.getProduct().isOnSale())) {
+			throw new ApiException(ErrorCode.PRODUCT_UNAVAILABLE);
+		}
 
 		Order order = new Order(newOrderNumber(), memberId);
 		for (CartItem cartItem : cartItems) {

@@ -2,6 +2,7 @@ package com.eatomato.backend.auth;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -59,6 +60,9 @@ public class AuthService {
 			: memberRepository.findByLoginId(identifier))
 			.filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
 			.orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
+		if (!member.isEnabled()) {
+			throw new ApiException(ErrorCode.MEMBER_DISABLED);
+		}
 		return issueToken(member);
 	}
 
@@ -71,6 +75,8 @@ public class AuthService {
 			.issuedAt(now)
 			.expiresAt(now.plus(ttl))
 			.claim("loginId", member.getLoginId())
+			// SecurityConfig 가 ROLE_ 접두사를 붙여 권한으로 쓴다. 관리자 API 는 요청마다 DB 권한도 다시 확인한다.
+			.claim("roles", List.of(member.getRole().name()))
 			.build();
 		JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
 		String token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

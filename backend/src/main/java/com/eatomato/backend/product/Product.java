@@ -73,7 +73,15 @@ public class Product {
 
 	private String shippingText;
 
+	/** false 면 스토어프론트에서 숨긴다(관리자 화면에서는 보인다). */
+	private boolean visible;
+
+	/** 소프트 삭제 시각. 주문 내역이 상품을 참조하므로 행을 지우지 않는다. */
+	private LocalDateTime deletedAt;
+
 	private LocalDateTime createdAt;
+
+	private LocalDateTime updatedAt;
 
 	@ElementCollection
 	@CollectionTable(name = "product_badge", joinColumns = @JoinColumn(name = "product_id"))
@@ -120,13 +128,65 @@ public class Product {
 		this.rewardRate = rewardRate;
 		this.noticeText = noticeText;
 		this.shippingText = shippingText;
+		this.visible = true;
 		this.createdAt = Times.now();
+		this.updatedAt = this.createdAt;
 		if (badges != null) {
 			this.badges.addAll(badges);
 		}
 		if (detailImages != null) {
 			this.detailImages.addAll(detailImages);
 		}
+	}
+
+	/** 스토어프론트에 노출·판매 중인지. */
+	public boolean isOnSale() {
+		return visible && deletedAt == null;
+	}
+
+	/** 관리자 수정. 옵션 그룹·함께 구매 상품은 별도 메서드로 바꾼다. */
+	public void update(String slug, String name, String optionSummary, int price, Integer salePrice,
+		String imageUrl, String hoverImageUrl, String categoryCode, String subcategoryCode, int rewardRate,
+		String noticeText, String shippingText, boolean visible, List<ProductBadge> badges, List<String> detailImages) {
+		this.slug = slug;
+		this.name = name;
+		this.optionSummary = optionSummary;
+		this.price = price;
+		this.salePrice = salePrice;
+		this.imageUrl = imageUrl;
+		this.hoverImageUrl = hoverImageUrl;
+		this.categoryCode = categoryCode;
+		this.subcategoryCode = subcategoryCode;
+		this.rewardRate = rewardRate;
+		this.noticeText = noticeText;
+		this.shippingText = shippingText;
+		this.visible = visible;
+		this.badges.clear();
+		this.badges.addAll(badges);
+		this.detailImages.clear();
+		this.detailImages.addAll(detailImages);
+		this.updatedAt = Times.now();
+	}
+
+	public void changeVisible(boolean visible) {
+		this.visible = visible;
+		this.updatedAt = Times.now();
+	}
+
+	public void replaceRelatedProducts(List<Product> products) {
+		relatedProducts.clear();
+		relatedProducts.addAll(products);
+	}
+
+	/**
+	 * 소프트 삭제. 같은 slug 로 새 상품을 만들 수 있도록 slug 를 비켜 둔다.
+	 */
+	public void softDelete() {
+		this.deletedAt = Times.now();
+		this.visible = false;
+		this.slug = slug + "--deleted-" + id;
+		this.relatedProducts.clear();
+		this.updatedAt = this.deletedAt;
 	}
 
 	/** 실제 판매가. 할인가가 있으면 할인가. */

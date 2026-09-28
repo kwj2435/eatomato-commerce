@@ -60,6 +60,10 @@ public class Order {
 		this.orderedAt = Times.now();
 	}
 
+	public void changeStatus(OrderStatus status) {
+		this.status = status;
+	}
+
 	public void addItem(OrderItem item) {
 		items.add(item);
 		item.assignTo(this);

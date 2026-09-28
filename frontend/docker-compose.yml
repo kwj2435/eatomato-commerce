@@ -11,8 +11,12 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ""
     image: eatomato-frontend
     container_name: eatomato-frontend
-    ports:
-      # 외부 80/443 은 호스트 nginx 가 받아 이 포트로 넘긴다(저장소 루트 deploy/host-nginx/eatomato.kr.conf).
-      - "127.0.0.1:3000:80"
+    # 런타임에도 127.0.0.1:8080 으로 백엔드를 부르므로 host 네트워크에서 돈다.
+    # 외부 80/443 은 호스트 nginx 가 받아 127.0.0.1:3000 으로 넘긴다(저장소 루트 deploy/host-nginx/eatomato.kr.conf).
+    network_mode: host
+    environment:
+      HOSTNAME: 127.0.0.1
+      PORT: "3000"
+      API_BASE_URL: http://127.0.0.1:8080
     restart: unless-stopped
-    mem_limit: 128m
+    mem_limit: 256m

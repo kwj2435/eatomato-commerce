@@ -18,7 +18,9 @@ public record MemberResponse(
 	Address address,
 	BirthDate birthDate,
 	String gender,
-	List<String> marketingChannels
+	List<String> marketingChannels,
+	/** "USER" | "ADMIN". 프론트가 관리자 메뉴 노출 여부를 판단한다. */
+	String role
 ) {
 
 	public record Phone(String first, String middle, String last) {
@@ -50,7 +52,8 @@ public record MemberResponse(
 			member.getBirthDate() == null ? null : new BirthDate(member.getBirthDate().getYear(),
 				member.getBirthDate().getMonthValue(), member.getBirthDate().getDayOfMonth()),
 			member.getGender() == null ? null : member.getGender().value(),
-			channels);
+			channels,
+			member.getRole().name());
 	}
 
 	private static String orEmpty(String value) {

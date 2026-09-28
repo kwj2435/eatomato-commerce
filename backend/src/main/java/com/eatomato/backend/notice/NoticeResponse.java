@@ -16,7 +16,7 @@ public record NoticeResponse(
 	List<String> body
 ) {
 
-	static NoticeResponse from(Notice notice) {
+	public static NoticeResponse from(Notice notice) {
 		return new NoticeResponse(
 			String.valueOf(notice.getId()),
 			notice.getNumber(),

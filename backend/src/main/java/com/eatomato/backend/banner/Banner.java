@@ -45,6 +45,16 @@ public class Banner {
 		this.active = true;
 	}
 
+	public void update(List<String> captionLines, String href, String imageUrl, String alt, int sortOrder,
+		boolean active) {
+		this.caption = String.join("\n", captionLines);
+		this.href = href;
+		this.imageUrl = imageUrl;
+		this.alt = alt;
+		this.sortOrder = sortOrder;
+		this.active = active;
+	}
+
 	public List<String> captionLines() {
 		return Arrays.asList(caption.split("\n"));
 	}

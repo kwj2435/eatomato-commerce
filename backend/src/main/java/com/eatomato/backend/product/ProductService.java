@@ -82,7 +82,8 @@ public class ProductService {
 	}
 
 	private Product findBySlug(String slug) {
-		return productRepository.findBySlug(slug).orElseThrow(() -> new ApiException(ErrorCode.PRODUCT_NOT_FOUND));
+		return productRepository.findOnSaleBySlug(slug)
+			.orElseThrow(() -> new ApiException(ErrorCode.PRODUCT_NOT_FOUND));
 	}
 
 	private static String escapeLike(String keyword) {

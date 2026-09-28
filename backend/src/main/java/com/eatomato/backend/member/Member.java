@@ -61,6 +61,12 @@ public class Member {
 
 	private boolean marketingSms;
 
+	@Enumerated(EnumType.STRING)
+	private MemberRole role;
+
+	/** false 면 이용 정지. 로그인과 API 이용이 막힌다. */
+	private boolean enabled;
+
 	private LocalDateTime createdAt;
 
 	private LocalDateTime updatedAt;
@@ -71,6 +77,8 @@ public class Member {
 		this.email = email;
 		this.name = name;
 		this.grade = DEFAULT_GRADE;
+		this.role = MemberRole.USER;
+		this.enabled = true;
 		this.createdAt = Times.now();
 		this.updatedAt = this.createdAt;
 	}
@@ -115,5 +123,21 @@ public class Member {
 
 	public void changePasswordHash(String passwordHash) {
 		this.passwordHash = passwordHash;
+	}
+
+	public void changeGrade(String grade) {
+		this.grade = grade;
+	}
+
+	public void changeRole(MemberRole role) {
+		this.role = role;
+	}
+
+	public void changeEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public boolean isAdmin() {
+		return role == MemberRole.ADMIN;
 	}
 }

@@ -34,6 +34,7 @@ public class CartService {
 	@Transactional
 	public CartResponse add(Long memberId, AddCartItemRequest request) {
 		Product product = productRepository.findById(request.productId())
+			.filter(Product::isOnSale)
 			.orElseThrow(() -> new ApiException(ErrorCode.PRODUCT_NOT_FOUND));
 		SelectedOptions options = resolveOptions(product, request.options() == null ? Map.of() : request.options());
 
