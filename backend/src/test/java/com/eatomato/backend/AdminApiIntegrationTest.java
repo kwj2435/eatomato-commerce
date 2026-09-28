@@ -63,6 +63,33 @@ class AdminApiIntegrationTest {
 	}
 
 	@Test
+	void 권한을_주거나_빼면_기존_토큰에도_바로_반영된다() throws Exception {
+		String user = signup("promoteme");
+		mockMvc.perform(get("/api/admin/dashboard").header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(status().isForbidden());
+
+		String admin = login("admin", "admin1234");
+		String list = mockMvc.perform(get("/api/admin/members").param("q", "promoteme")
+				.header(HttpHeaders.AUTHORIZATION, admin))
+			.andReturn().getResponse().getContentAsString();
+		String memberId = JsonPath.read(list, "$.content[0].id");
+
+		mockMvc.perform(patch("/api/admin/members/" + memberId).header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"ADMIN\"}"))
+			.andExpect(status().isOk());
+		// 권한을 받기 전에 발급된 토큰(roles=USER) 그대로
+		mockMvc.perform(get("/api/admin/dashboard").header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(status().isOk());
+
+		mockMvc.perform(patch("/api/admin/members/" + memberId).header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"USER\"}"))
+			.andExpect(status().isOk());
+		mockMvc.perform(get("/api/admin/dashboard").header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"));
+	}
+
+	@Test
 	void 관리자_로그인과_대시보드() throws Exception {
 		String admin = login("admin", "admin1234");
 		mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, admin))

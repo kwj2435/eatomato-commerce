@@ -15,8 +15,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 관리자 API 요청마다 DB 의 권한·이용 상태를 다시 확인한다.
- * 토큰의 roles 클레임만 믿으면 권한을 뺏거나 정지한 관리자가 토큰 만료(최대 2시간)까지 계속 쓸 수 있어서다.
+ * 관리자 API 권한 판단은 여기서만 한다: 요청마다 DB 의 권한·이용 상태를 확인한다.
+ * 토큰의 roles 클레임은 발급 시점 값이라, 그걸로 판단하면 권한을 주거나 뺀 뒤 토큰이 바뀔 때까지 어긋난다.
  */
 @Component
 @RequiredArgsConstructor
