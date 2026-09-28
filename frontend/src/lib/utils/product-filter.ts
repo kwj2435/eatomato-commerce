@@ -1,15 +1,13 @@
 import type { Product } from "@/types/product";
 
 /**
- * 상품 정렬·검색의 순수 로직.
+ * 상품 정렬의 순수 로직.
  *
  * `lib/api/products.ts` 에서 분리한 이유:
- * 그 파일은 mock 데이터 전체를 import 하므로, 클라이언트 컴포넌트가 정렬 함수 하나를 쓰려고
- * import 하면 상품·상세 mock 이 통째로 클라이언트 번들에 딸려 들어갈 수 있다.
- * 데이터 의존이 없는 이 파일로 떼어 두면 서버·클라이언트 양쪽에서 안전하게 재사용된다.
+ * 데이터 의존이 없는 순수 함수라 서버·클라이언트 양쪽에서 안전하게 재사용된다.
  *
- * (정적 배포에서는 정렬·검색을 클라이언트가 수행한다. 실 API 를 붙이면 서버가 다시
- *  이 로직을 대신하게 되므로, 그때는 이 파일의 사용처가 서버로 돌아간다.)
+ * 상품 리스트는 빌드 시점에 받은 목록을 브라우저에서 URL 쿼리(`?sort=`)대로 다시 정렬하므로
+ * 서버(ProductSort)와 같은 규칙을 여기에도 둔다. 검색은 서버가 정렬까지 해서 돌려준다.
  */
 
 /**
@@ -55,14 +53,4 @@ export function sortProducts(products: Product[], sort: SortValue): Product[] {
 
 function currentPrice(product: Product): number {
   return product.salePrice ?? product.price;
-}
-
-/**
- * 검색어 일치 판정. 상품명과 옵션 라벨을 대상으로 한다.
- * 카테고리명까지 넣으면 "케이스" 검색에 액세서리가 딸려 오는 등 오탐이 늘어 제외했다.
- */
-export function matchesQuery(product: Product, keyword: string): boolean {
-  return `${product.name} ${product.option ?? ""}`
-    .toLowerCase()
-    .includes(keyword);
 }

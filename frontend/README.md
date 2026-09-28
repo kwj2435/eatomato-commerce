@@ -2,19 +2,27 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+데이터는 백엔드(`../backend`) API 에서 받는다. 먼저 백엔드를 띄운다(H2 인메모리 + 데모 데이터).
+
+```bash
+cd ../backend && ./gradlew bootRun --args='--spring.profiles.active=local'
+```
+
+그다음 프론트 개발 서버를 띄운다. 별도 설정이 없으면 `http://localhost:8080` 을 API 로 쓴다.
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+| 환경 변수 | 쓰는 곳 | 기본값 |
+|---|---|---|
+| `API_BASE_URL` | 빌드(서버 컴포넌트)가 상품·공지 등을 받아 정적 HTML 을 만들 때 | `http://localhost:8080` |
+| `NEXT_PUBLIC_API_BASE_URL` | 브라우저가 로그인·장바구니·검색 등을 호출할 때 (빌드 시점에 번들에 박힌다) | 개발: `http://localhost:8080`, 빌드: 같은 출처(`/api`) |
+
+상품·공지·배너는 빌드 시점 데이터로 정적 페이지가 만들어지므로, 백엔드 데이터가 바뀌면 프론트를 다시 빌드해야 반영된다.
+(상세 페이지 리뷰, 검색, 장바구니, 마이페이지는 브라우저가 매번 API 를 불러 항상 최신이다.)
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

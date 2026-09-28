@@ -1,16 +1,16 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { QuantityStepper } from "@/features/cart/QuantityStepper";
+import type { AddCartItemInput } from "@/lib/api/cart";
+import { errorMessage } from "@/lib/api/client";
+import { currentToken } from "@/lib/store/auth-store";
 import { useCartStore } from "@/lib/store/cart-store";
 import { formatKRW } from "@/lib/utils/format";
-import type { CartItem } from "@/types/cart";
-import type {
-  BetterTogetherItem,
-  OptionGroup,
-  ProductDetail,
-} from "@/types/product-detail";
+import type { OptionGroup, ProductDetail } from "@/types/product-detail";
 
 import { BetterTogether } from "./BetterTogether";
 import { OptionSelect } from "./OptionSelect";
@@ -25,6 +25,7 @@ type SelectionMap = Record<string, string>;
 type Status =
   | { kind: "idle" }
   | { kind: "warn"; message: string }
+  | { kind: "login" }
   | { kind: "success"; message: string };
 
 /**
@@ -40,6 +41,7 @@ type Status =
  * - 카트 담기 대상 목록(메인 + 옵션 완성된 BT)
  *
  * 이 컴포넌트 하나가 "구매 로직" 전부를 알고 있어, 정책 변경(예: 옵션 없는 상품 처리)을 한 곳에서 손볼 수 있다.
+ * 화면의 금액은 미리보기이고, 실제 단가는 장바구니에 담을 때 서버가 다시 계산한다.
  */
 export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
   const [mainSelection, setMainSelection] = useState<SelectionMap>({});
@@ -48,8 +50,11 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
     Record<string, SelectionMap>
   >({});
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [pending, setPending] = useState(false);
 
   const addItem = useCartStore((s) => s.addItem);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const basePrice = product.salePrice ?? product.price;
 
@@ -92,25 +97,52 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
     }));
   };
 
-  const handleAddToCart = () => {
+  /**
+   * 메인 상품 + 옵션을 고른 BETTER TOGETHER 상품을 장바구니에 담는다.
+   * 성공하면 true. "바로 구매하기" 는 담은 뒤 장바구니 화면으로 이동한다.
+   */
+  const addToCart = async (): Promise<boolean> => {
     if (!mainReady) {
       setStatus({ kind: "warn", message: "옵션을 모두 선택해 주세요." });
-      return;
+      return false;
+    }
+    if (!currentToken()) {
+      setStatus({ kind: "login" });
+      return false;
     }
 
-    const items: CartItem[] = [
-      buildCartItem(product, mainSelection, mainUnitPrice, quantity),
-      ...readyBTItems.map(({ item, selection, unit }) =>
-        buildCartItemFromBT(item, selection, unit, 1),
-      ),
+    const inputs: AddCartItemInput[] = [
+      { productId: product.id, options: mainSelection, quantity },
+      ...readyBTItems.map(({ item, selection }) => ({
+        productId: item.id,
+        options: selection,
+        quantity: 1,
+      })),
     ];
 
-    for (const item of items) addItem(item);
+    setPending(true);
+    try {
+      // 순서대로 담는다. 같은 줄로 합쳐지는 경우가 있어 병렬 요청은 피한다.
+      for (const input of inputs) await addItem(input);
+      setStatus({
+        kind: "success",
+        message: `장바구니에 ${inputs.length}건이 담겼습니다.`,
+      });
+      return true;
+    } catch (error) {
+      setStatus({ kind: "warn", message: errorMessage(error) });
+      return false;
+    } finally {
+      setPending(false);
+    }
+  };
 
-    setStatus({
-      kind: "success",
-      message: `장바구니에 ${items.length}건이 담겼습니다.`,
-    });
+  const handleAddToCart = () => {
+    void addToCart();
+  };
+
+  const handleBuyNow = async () => {
+    if (await addToCart()) router.push("/cart");
   };
 
   return (
@@ -193,20 +225,33 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
         <div className="mt-7 flex gap-[21px]">
           <button
             type="button"
-            className="flex h-[52px] flex-1 items-center justify-center border border-[#212121] bg-brand-tint text-[15px] font-medium tracking-[-0.2px] text-[#212121] transition-colors hover:bg-black hover:text-white"
+            onClick={handleBuyNow}
+            disabled={pending}
+            className="flex h-[52px] flex-1 items-center justify-center border border-[#212121] bg-brand-tint text-[15px] font-medium tracking-[-0.2px] text-[#212121] transition-colors hover:bg-black hover:text-white disabled:opacity-50"
           >
             바로 구매하기
           </button>
           <button
             type="button"
             onClick={handleAddToCart}
-            className="flex h-[52px] flex-1 items-center justify-center border border-[#C9C9C9] bg-brand-tint text-[15px] font-medium tracking-[-0.2px] text-[#545454] transition-colors hover:border-black hover:text-black"
+            disabled={pending}
+            className="flex h-[52px] flex-1 items-center justify-center border border-[#C9C9C9] bg-brand-tint text-[15px] font-medium tracking-[-0.2px] text-[#545454] transition-colors hover:border-black hover:text-black disabled:opacity-50"
           >
             잠깐 장바구니
           </button>
         </div>
 
-        {status.kind !== "idle" ? (
+        {status.kind === "login" ? (
+          <p role="status" aria-live="polite" className="mt-4 text-[13px] text-brand-primary">
+            장바구니는 로그인 후 이용할 수 있습니다.{" "}
+            <Link
+              href={`/login?next=${encodeURIComponent(pathname)}`}
+              className="font-medium underline underline-offset-2"
+            >
+              로그인하기
+            </Link>
+          </p>
+        ) : status.kind !== "idle" ? (
           <p
             role="status"
             aria-live="polite"
@@ -227,7 +272,7 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
 }
 
 // ────────────────────────────────────────────────────────────────
-// 파생 헬퍼 · 카트 아이템 빌더
+// 파생 헬퍼
 // ────────────────────────────────────────────────────────────────
 
 function sumOptionDelta(groups: OptionGroup[], selection: SelectionMap): number {
@@ -252,54 +297,6 @@ function describeSelection(
     })
     .filter(Boolean)
     .join(" · ");
-}
-
-function buildCartItem(
-  product: ProductDetail,
-  selection: SelectionMap,
-  unitPrice: number,
-  quantity: number,
-): CartItem {
-  const optionSummary = describeSelection(product.optionGroups, selection);
-  const optionKey = Object.entries(selection)
-    .map(([g, c]) => `${g}=${c}`)
-    .sort()
-    .join(",");
-  return {
-    id: `${product.id}:${optionKey}`,
-    productId: product.id,
-    slug: product.slug,
-    name: product.name,
-    option: optionSummary,
-    unitPrice,
-    imageUrl: product.imageUrl,
-    quantity,
-    selected: true,
-  };
-}
-
-function buildCartItemFromBT(
-  item: BetterTogetherItem,
-  selection: SelectionMap,
-  unitPrice: number,
-  quantity: number,
-): CartItem {
-  const optionSummary = describeSelection(item.optionGroups, selection);
-  const optionKey = Object.entries(selection)
-    .map(([g, c]) => `${g}=${c}`)
-    .sort()
-    .join(",");
-  return {
-    id: `${item.id}:${optionKey}`,
-    productId: item.id,
-    slug: item.slug,
-    name: item.name,
-    option: optionSummary,
-    unitPrice,
-    imageUrl: item.imageUrl,
-    quantity,
-    selected: true,
-  };
 }
 
 // ────────────────────────────────────────────────────────────────

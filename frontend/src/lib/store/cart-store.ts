@@ -1,133 +1,100 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { useShallow } from "zustand/react/shallow";
 
-import { INITIAL_CART_ITEMS } from "@/lib/mock/cart";
-import type { CartItem } from "@/types/cart";
-import { SHIPPING_POLICY } from "@/types/cart";
+import { errorMessage } from "@/lib/api/client";
+import {
+  addCartItem,
+  getCart,
+  removeCartItem,
+  selectAllCartItems,
+  updateCartItem,
+  type AddCartItemInput,
+} from "@/lib/api/cart";
+import type { Cart, CartItem, CartSummary } from "@/types/cart";
+
+import { useAuthStore } from "./auth-store";
 
 /**
  * 장바구니 클라이언트 스토어.
  *
- * 선택 기준:
- * - 카트 상태는 페이지 이동에도 유지되어야 하고(전역), 헤더의 카운트 뱃지 등 여러 곳에서 구독한다.
- * - 로그인·서버 세션이 아직 없어 localStorage 로 영속화한다.
- * - React Context 로도 가능하지만 Zustand 는 provider 를 두르지 않아도 되고, 렌더 최적화가 쉽다.
+ * 장바구니는 서버(`/api/cart`)가 원본이다. 변경 API 가 변경 후의 장바구니 전체를 돌려주므로
+ * 이 스토어는 응답을 통째로 교체하기만 한다(금액·배송비 계산도 서버 값 그대로).
+ * 헤더 뱃지와 장바구니 화면이 같은 상태를 구독한다.
  *
- * SSR 대응:
- * - Next.js 는 서버에서 이 파일을 실행하지 않도록 "use client" 를 붙여 브라우저에서만 초기화한다.
- * - persist 미들웨어가 하이드레이션 완료 시점을 이벤트로 알려 준다 → hydration mismatch 방지 위해
- *   화면에서 소비할 때 `useHasHydrated()` 훅으로 마운트 이후에만 렌더한다.
+ * 로그인이 필요하다. 로그아웃되면 비운다.
  */
 
 type CartState = {
   items: CartItem[];
-  addItem: (item: CartItem) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  toggleSelected: (id: string) => void;
-  toggleAllSelected: (selected: boolean) => void;
-  clear: () => void;
+  summary: CartSummary;
+  /** 서버에서 한 번이라도 불러왔는지. 로딩 표시에 쓴다. */
+  loaded: boolean;
+  /** 장바구니 화면에서 마지막으로 실패한 요청의 안내 문구. */
+  error: string | null;
+  load: () => Promise<void>;
+  addItem: (input: AddCartItemInput) => Promise<void>;
+  removeItem: (id: string) => Promise<void>;
+  updateQuantity: (id: string, quantity: number) => Promise<void>;
+  toggleSelected: (id: string) => Promise<void>;
+  toggleAllSelected: (selected: boolean) => Promise<void>;
+  reset: () => void;
 };
 
-export const useCartStore = create<CartState>()(
-  persist(
-    (set) => ({
-      items: INITIAL_CART_ITEMS,
-
-      addItem: (item) =>
-        set((state) => {
-          const existing = state.items.find((it) => it.id === item.id);
-          if (existing) {
-            return {
-              items: state.items.map((it) =>
-                it.id === item.id
-                  ? { ...it, quantity: it.quantity + item.quantity }
-                  : it,
-              ),
-            };
-          }
-          return { items: [...state.items, item] };
-        }),
-
-      removeItem: (id) =>
-        set((state) => ({
-          items: state.items.filter((it) => it.id !== id),
-        })),
-
-      updateQuantity: (id, quantity) =>
-        set((state) => ({
-          items: state.items.map((it) =>
-            it.id === id ? { ...it, quantity: Math.max(1, quantity) } : it,
-          ),
-        })),
-
-      toggleSelected: (id) =>
-        set((state) => ({
-          items: state.items.map((it) =>
-            it.id === id ? { ...it, selected: !it.selected } : it,
-          ),
-        })),
-
-      toggleAllSelected: (selected) =>
-        set((state) => ({
-          items: state.items.map((it) => ({ ...it, selected })),
-        })),
-
-      clear: () => set({ items: [] }),
-    }),
-    {
-      name: "eatomato-cart",
-      /** 재시작 시 items 만 복원한다. 액션은 매번 새로 만든다. */
-      partialize: (state) => ({ items: state.items }),
-    },
-  ),
-);
-
-// ────────────────────────────────────────────────────────────────
-// 파생 값 selector
-//
-// 컴포넌트가 `useCartStore((s) => derive(s.items))` 로 직접 계산하면 매번 새 객체를 반환해
-// 참조 비교로 리렌더가 유발된다. `useShallow` + selector 로 얕은 비교하도록 만들어
-// 불필요한 리렌더를 막는다.
-// ────────────────────────────────────────────────────────────────
-
-export type CartSummary = {
-  itemCount: number;
-  selectedCount: number;
-  subtotal: number;
-  shippingFee: number;
-  total: number;
-  freeShippingRemainder: number;
+const EMPTY_SUMMARY: CartSummary = {
+  itemCount: 0,
+  selectedCount: 0,
+  subtotal: 0,
+  shippingFee: 0,
+  total: 0,
+  freeShippingRemainder: 0,
 };
 
-function computeSummary(items: CartItem[]): CartSummary {
-  const selectedItems = items.filter((it) => it.selected);
-  const subtotal = selectedItems.reduce(
-    (sum, it) => sum + it.unitPrice * it.quantity,
-    0,
-  );
-  const shippingFee =
-    subtotal === 0 || subtotal >= SHIPPING_POLICY.freeThreshold
-      ? 0
-      : SHIPPING_POLICY.standardFee;
-  const freeShippingRemainder = Math.max(
-    0,
-    SHIPPING_POLICY.freeThreshold - subtotal,
-  );
+export const useCartStore = create<CartState>()((set, get) => {
+  const apply = (cart: Cart) =>
+    set({ items: cart.items, summary: cart.summary, loaded: true, error: null });
+
   return {
-    itemCount: items.length,
-    selectedCount: selectedItems.length,
-    subtotal,
-    shippingFee,
-    total: subtotal + shippingFee,
-    freeShippingRemainder,
+    items: [],
+    summary: EMPTY_SUMMARY,
+    loaded: false,
+    error: null,
+
+    load: async () => apply(await getCart()),
+
+    addItem: async (input) => apply(await addCartItem(input)),
+
+    removeItem: async (id) => apply(await removeCartItem(id)),
+
+    updateQuantity: async (id, quantity) =>
+      apply(await updateCartItem(id, { quantity: Math.max(1, quantity) })),
+
+    toggleSelected: async (id) => {
+      const item = get().items.find((it) => it.id === id);
+      if (!item) return;
+      apply(await updateCartItem(id, { selected: !item.selected }));
+    },
+
+    toggleAllSelected: async (selected) => apply(await selectAllCartItems(selected)),
+
+    reset: () => set({ items: [], summary: EMPTY_SUMMARY, loaded: false, error: null }),
   };
+});
+
+// 로그아웃(또는 토큰 만료)되면 다른 회원의 장바구니가 남지 않도록 비운다.
+useAuthStore.subscribe((state, prev) => {
+  if (prev.accessToken && !state.accessToken) useCartStore.getState().reset();
+});
+
+/** 카트 요약 훅. 서버가 계산한 값을 그대로 쓴다. */
+export function useCartSummary(): CartSummary {
+  return useCartStore((s) => s.summary);
 }
 
-/** 카트 요약 훅. 파생값이 바뀌지 않으면 재렌더하지 않는다. */
-export function useCartSummary(): CartSummary {
-  return useCartStore(useShallow((s) => computeSummary(s.items)));
+/**
+ * 장바구니 화면의 버튼(수량·선택·삭제)용 실행기.
+ * 실패하면 예외를 던지지 않고 `error` 에 문구를 남겨 화면이 안내하게 한다.
+ */
+export function runCartAction(action: () => Promise<void>): void {
+  action().catch((error: unknown) => useCartStore.setState({ error: errorMessage(error) }));
 }

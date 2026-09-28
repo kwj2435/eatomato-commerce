@@ -1,9 +1,15 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
+import { listProductReviews } from "@/lib/api/products";
 import type { ProductReview } from "@/types/product-detail";
 
 type ReviewsSectionProps = {
+  slug: string;
+  /** 빌드 시점의 리뷰. 정적 HTML 에 그대로 들어가고, 하이드레이션 후 최신 목록으로 바뀐다. */
   reviews: ProductReview[];
   reviewCount: number;
   /** 평균 별점(0~5). 소수점 첫째 자리까지 표기. */
@@ -13,13 +19,34 @@ type ReviewsSectionProps = {
 /**
  * REVIEWS 섹션.
  * 상단 배너 → 요약 → 리뷰 리스트.
- * "사진 후기만 보기" 필터는 필터 UI 만 표시하고 실 로직은 다음 이터레이션(별도 client 컴포넌트) 로.
+ * "사진 후기만 보기" 필터는 필터 UI 만 표시하고 실 로직은 다음 이터레이션으로.
+ *
+ * 상세 페이지는 빌드 시점에 정적으로 만들어지므로, 그 뒤에 작성된 후기가 보이도록
+ * 마운트 후 서버에서 최신 리뷰를 한 번 더 불러온다. 실패하면 빌드 시점 목록을 그대로 둔다.
  */
 export function ReviewsSection({
-  reviews,
-  reviewCount,
+  slug,
+  reviews: initialReviews,
+  reviewCount: initialCount,
   averageRating,
 }: ReviewsSectionProps) {
+  const [{ reviews, reviewCount }, setLatest] = useState({
+    reviews: initialReviews,
+    reviewCount: initialCount,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    listProductReviews(slug)
+      .then(({ reviews, total }) => {
+        if (!cancelled) setLatest({ reviews, reviewCount: total });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
+
   return (
     <Container as="section" id="reviews" className="scroll-mt-24 pt-[100px] md:pt-[205px]">
       <h2 className="text-center text-[17px] font-normal tracking-[1.2px] text-brand-secondary md:text-[20px] md:tracking-[1.4px]">

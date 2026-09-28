@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
 import { CameraIcon, ChevronDownIcon, CloseIcon } from "@/components/ui/icons";
-import type { ReviewableProduct } from "@/lib/api/reviews";
+import { errorMessage } from "@/lib/api/client";
+import {
+  createReview,
+  listReviewableProducts,
+  type ReviewableProduct,
+} from "@/lib/api/reviews";
+import { useRequireAuth } from "@/lib/store/use-require-auth";
 import { cn } from "@/lib/utils/cn";
 
 type Status =
@@ -19,30 +26,47 @@ type Photo = { id: string; file: File; url: string };
 const MAX_PHOTOS = 5;
 const RATING_OPTIONS = [5, 4, 3, 2, 1] as const;
 
-type ReviewWriteFormProps = {
-  products: ReviewableProduct[];
-};
-
 /**
  * 후기 쓰기 폼 (마이페이지 "후기 쓰러 가기" 진입).
  *
  * 구성: 상품 선택 → 본문 → 사진 첨부 → 목록으로 가기 / 평점 / 저장.
  * 색상은 마이페이지 폼과 같이 `brand-deep`(어두운 붉은색) 하나로 테두리·글씨·버튼을 통일한다.
  *
- * 저장은 실 API 가 없어 MemberInfoForm 과 동일하게 검증 후 mock 안내 문구로 처리한다.
+ * 상품 선택지는 "구매했지만 아직 후기를 쓰지 않은 주문 상품"으로, 로그인 후 브라우저에서 불러온다.
+ * 같은 상품을 여러 번 샀을 수 있어 선택 값은 slug 가 아니라 주문 상품 id(orderItemId)다.
+ * 저장(`POST /api/reviews`)에 성공하면 마이페이지로 돌아간다.
  */
-export function ReviewWriteForm({ products }: ReviewWriteFormProps) {
+export function ReviewWriteForm() {
   const fieldId = useId();
   const id = (name: string) => `${fieldId}-${name}`;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [productSlug, setProductSlug] = useState("");
+  const ready = useRequireAuth();
+  const router = useRouter();
+  const [products, setProducts] = useState<ReviewableProduct[]>([]);
+  const [pending, setPending] = useState(false);
+  const [orderItemId, setOrderItemId] = useState("");
   const [content, setContent] = useState("");
   const [rating, setRating] = useState("");
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   const hasProducts = products.length > 0;
+
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    listReviewableProducts()
+      .then((list) => {
+        if (!cancelled) setProducts(list);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setStatus({ kind: "error", message: errorMessage(e) });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
 
   // 미리보기용 object URL 은 언마운트 시 한꺼번에 해제한다(개별 삭제 시에는 removePhoto 에서 해제).
   const photosRef = useRef(photos);
@@ -79,10 +103,10 @@ export function ReviewWriteForm({ products }: ReviewWriteFormProps) {
     });
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!productSlug) {
+    if (!orderItemId) {
       setStatus({
         kind: "error",
         message: hasProducts
@@ -100,7 +124,20 @@ export function ReviewWriteForm({ products }: ReviewWriteFormProps) {
       return;
     }
 
-    setStatus({ kind: "success", message: "후기 저장은 준비 중입니다." });
+    setPending(true);
+    try {
+      await createReview({
+        orderItemId,
+        rating: Number(rating),
+        content: content.trim(),
+        photos: photos.map((photo) => photo.file),
+      });
+      setStatus({ kind: "success", message: "후기를 저장했습니다." });
+      router.push("/mypage");
+    } catch (error) {
+      setStatus({ kind: "error", message: errorMessage(error) });
+      setPending(false);
+    }
   };
 
   return (
@@ -123,8 +160,8 @@ export function ReviewWriteForm({ products }: ReviewWriteFormProps) {
         <div className="relative mt-3">
           <select
             id={id("product")}
-            value={productSlug}
-            onChange={(event) => setProductSlug(event.target.value)}
+            value={orderItemId}
+            onChange={(event) => setOrderItemId(event.target.value)}
             disabled={!hasProducts}
             className={cn(selectClass, "h-[64px] w-full pl-5 pr-12")}
           >
@@ -132,8 +169,8 @@ export function ReviewWriteForm({ products }: ReviewWriteFormProps) {
               {hasProducts ? "상품을 선택해주세요" : "구매하신 상품이 없습니다"}
             </option>
             {products.map((product) => (
-              <option key={product.slug} value={product.slug}>
-                {product.name}
+              <option key={product.orderItemId} value={product.orderItemId}>
+                {product.option ? `${product.name} (${product.option})` : product.name}
               </option>
             ))}
           </select>
@@ -224,9 +261,10 @@ export function ReviewWriteForm({ products }: ReviewWriteFormProps) {
 
             <button
               type="submit"
-              className="h-[64px] w-[138px] bg-brand-deep text-[18px] font-bold tracking-[-0.2px] text-white transition-opacity hover:opacity-90"
+              disabled={pending}
+              className="h-[64px] w-[138px] bg-brand-deep text-[18px] font-bold tracking-[-0.2px] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              저장하기
+              {pending ? "저장 중…" : "저장하기"}
             </button>
           </div>
         </div>

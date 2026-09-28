@@ -1,7 +1,14 @@
-# VM 배포용 compose. 백엔드·DB 는 이후 같은 파일에 서비스로 추가한다.
+# VM 배포용 compose. 백엔드(backend/docker-compose.yml)를 먼저 띄운 뒤 빌드해야 한다.
+name: eatomato-commerce
 services:
   frontend:
-    build: .
+    build:
+      context: .
+      # 빌드 중 127.0.0.1:8080(백엔드 컨테이너)으로 상품·공지 데이터를 받아 오려고 host 네트워크를 쓴다.
+      network: host
+      args:
+        API_BASE_URL: http://127.0.0.1:8080
+        NEXT_PUBLIC_API_BASE_URL: ""
     image: eatomato-frontend
     container_name: eatomato-frontend
     ports:

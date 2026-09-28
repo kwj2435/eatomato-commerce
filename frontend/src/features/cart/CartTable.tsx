@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import { Checkbox } from "@/components/ui/Checkbox";
 import { InfoIcon } from "@/components/ui/icons";
-import { useCartStore } from "@/lib/store/cart-store";
+import { runCartAction, useCartStore } from "@/lib/store/cart-store";
 import { formatKRW } from "@/lib/utils/format";
 import type { CartItem } from "@/types/cart";
 import { SHIPPING_POLICY } from "@/types/cart";
@@ -53,7 +53,7 @@ export function CartTable({ items }: CartTableProps) {
               <span className="mr-3 inline-flex align-middle">
                 <Checkbox
                   checked={allSelected}
-                  onCheckedChange={(next) => toggleAll(next)}
+                  onCheckedChange={(next) => runCartAction(() => toggleAll(next))}
                   label="전체 선택"
                 />
               </span>
@@ -100,7 +100,7 @@ export function CartTable({ items }: CartTableProps) {
 type CartMobileListProps = {
   items: CartItem[];
   allSelected: boolean;
-  onToggleAll: (next: boolean) => void;
+  onToggleAll: (next: boolean) => Promise<void>;
 };
 
 /**
@@ -118,7 +118,7 @@ function CartMobileList({ items, allSelected, onToggleAll }: CartMobileListProps
       <div className="flex h-12 items-center gap-3 border-b-[1.5px] border-black text-[15px] tracking-[-0.2px]">
         <Checkbox
           checked={allSelected}
-          onCheckedChange={(next) => onToggleAll(next)}
+          onCheckedChange={(next) => runCartAction(() => onToggleAll(next))}
           label="전체 선택"
         />
         상품 정보
@@ -133,7 +133,7 @@ function CartMobileList({ items, allSelected, onToggleAll }: CartMobileListProps
             <span className="pt-0.5">
               <Checkbox
                 checked={item.selected}
-                onCheckedChange={() => toggleSelected(item.id)}
+                onCheckedChange={() => runCartAction(() => toggleSelected(item.id))}
                 label={`${item.name} 선택`}
               />
             </span>
@@ -168,7 +168,7 @@ function CartMobileList({ items, allSelected, onToggleAll }: CartMobileListProps
                 <div>
                   <QuantityStepper
                     value={item.quantity}
-                    onChange={(next) => updateQuantity(item.id, next)}
+                    onChange={(next) => runCartAction(() => updateQuantity(item.id, next))}
                     label={`${item.name} 수량`}
                   />
                 </div>
@@ -179,7 +179,7 @@ function CartMobileList({ items, allSelected, onToggleAll }: CartMobileListProps
 
               <button
                 type="button"
-                onClick={() => removeItem(item.id)}
+                onClick={() => runCartAction(() => removeItem(item.id))}
                 className="mt-3 self-start text-[13px] tracking-[-0.2px] underline-offset-2 hover:underline"
               >
                 삭제하기
@@ -226,7 +226,7 @@ function CartItemRow({ item, isLast, showShipCell, shipRowSpan }: CartItemRowPro
           <span className="mr-[11px]">
             <Checkbox
               checked={item.selected}
-              onCheckedChange={() => toggleSelected(item.id)}
+              onCheckedChange={() => runCartAction(() => toggleSelected(item.id))}
               label={`${item.name} 선택`}
             />
           </span>
@@ -256,7 +256,7 @@ function CartItemRow({ item, isLast, showShipCell, shipRowSpan }: CartItemRowPro
             ) : null}
             <button
               type="button"
-              onClick={() => removeItem(item.id)}
+              onClick={() => runCartAction(() => removeItem(item.id))}
               className="mt-[18px] text-[14px] font-normal leading-[13px] tracking-[-0.2px] underline-offset-2 hover:underline"
             >
               삭제하기
@@ -268,7 +268,7 @@ function CartItemRow({ item, isLast, showShipCell, shipRowSpan }: CartItemRowPro
       <td className={`${cellBase} text-center ${cellBorder}`}>
         <QuantityStepper
           value={item.quantity}
-          onChange={(next) => updateQuantity(item.id, next)}
+          onChange={(next) => runCartAction(() => updateQuantity(item.id, next))}
           label={`${item.name} 수량`}
         />
       </td>

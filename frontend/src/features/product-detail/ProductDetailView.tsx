@@ -31,6 +31,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
       <DetailsSection images={product.detailImages} />
       <ShippingSection lines={product.shippingLines} />
       <ReviewsSection
+        slug={product.slug}
         reviews={product.reviews}
         reviewCount={product.reviewCount}
         averageRating={product.rating}

@@ -38,7 +38,7 @@ app:
     secret: ${JWT_SECRET}
     access-token-ttl: 2h
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://40.82.137.98}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,https://eatomato.kr}
   upload:
     dir: ${UPLOAD_DIR:./uploads}
     # 업로드 파일 URL 의 앞부분. 프론트와 출처가 달라 절대 URL 로 내려준다.

@@ -1,27 +1,14 @@
-import {
-  findMockProductDetail,
-  listMockProductSlugs,
-} from "@/lib/mock/product-details";
-import { MOCK_PRODUCTS } from "@/lib/mock/products";
-import type {
-  CategoryKey,
-  Product,
-  SubcategoryKey,
-} from "@/types/product";
-import type { ProductDetail } from "@/types/product-detail";
-import {
-  DEFAULT_SORT,
-  sortProducts,
-  type SortValue,
-} from "@/lib/utils/product-filter";
+import type { CategoryKey, Product, SubcategoryKey } from "@/types/product";
+import type { ProductDetail, ProductReview } from "@/types/product-detail";
+import { DEFAULT_SORT, type SortValue } from "@/lib/utils/product-filter";
+
+import { apiFetch, apiFetchOrNull } from "./client";
 
 /**
  * 상품 API.
  *
- * 현재는 mock 데이터를 그대로 반환하지만, 시그니처는 실제 API 호출과 동일하게 유지한다.
- * 실서버 연동 시 이 파일 내부만 fetch(...) 호출로 교체하면 UI 코드는 무변경.
- *
- * 서버 컴포넌트에서만 호출한다고 가정. 클라이언트에서 필요할 경우 별도 client SDK 를 둔다.
+ * `listNewProducts` · `listProducts` · `getProductDetail` · `listAllProductSlugs` 는 빌드 시점(서버 컴포넌트)에,
+ * `searchProducts` · `listProductReviews` 는 브라우저에서 호출한다.
  */
 
 export type ListNewProductsParams = {
@@ -32,14 +19,8 @@ export async function listNewProducts(
   params: ListNewProductsParams = {},
 ): Promise<Product[]> {
   const { limit = 4 } = params;
-  // 실제 서비스에서는:
-  //   const res = await fetch(`${API_BASE}/products/new?limit=${limit}`, { next: { revalidate: 60 } });
-  //   if (!res.ok) throw new Error("Failed to fetch new products");
-  //   return res.json();
-  return MOCK_PRODUCTS.filter((p) => p.badges?.includes("NEW")).slice(0, limit);
+  return apiFetch<Product[]>(`/api/products/new?limit=${limit}`);
 }
-
-// ────────────────────────────────────────────────────────────────
 
 export type ListProductsParams = {
   category: CategoryKey;
@@ -48,53 +29,41 @@ export type ListProductsParams = {
   sort?: SortValue;
 };
 
-export async function listProducts(
-  params: ListProductsParams,
-): Promise<Product[]> {
+export async function listProducts(params: ListProductsParams): Promise<Product[]> {
   const { category, subcategory, sort = DEFAULT_SORT } = params;
-
-  // 실제 서비스에서는:
-  //   const qs = new URLSearchParams({ category, sort, ...(subcategory && { subcategory }) });
-  //   const res = await fetch(`${API_BASE}/products?${qs}`, { next: { revalidate: 60 } });
-  //   if (!res.ok) throw new Error("Failed to fetch products");
-  //   return res.json();
-
-  const filtered = MOCK_PRODUCTS.filter((product) => {
-    if (product.category !== category) return false;
-    if (subcategory && product.subcategory !== subcategory) return false;
-    return true;
-  });
-
-  return sortProducts(filtered, sort);
+  const qs = new URLSearchParams({ category, sort });
+  if (subcategory) qs.set("subcategory", subcategory);
+  return apiFetch<Product[]>(`/api/products?${qs}`);
 }
 
-// ────────────────────────────────────────────────────────────────
-
-/**
- * 검색 대상 상품 목록.
- *
- * 정적 배포에서는 서버가 `searchParams` 를 읽을 수 없어, 서버는 후보 목록만 넘기고
- * 실제 필터·정렬은 클라이언트(SearchResults)가 `lib/utils/product-filter` 로 수행한다.
- *
- * 실 API 를 붙이면 이 함수 자리에 `searchProducts({ query, sort })` 가 들어와
- * 서버가 형태소 분석·동의어까지 처리한 결과를 그대로 반환하게 된다.
- */
-export async function listSearchableProducts(): Promise<Product[]> {
-  return MOCK_PRODUCTS;
+/** 상품명·옵션 검색. 서버가 검색·정렬까지 해서 돌려준다. */
+export async function searchProducts(query: string, sort: SortValue): Promise<Product[]> {
+  const qs = new URLSearchParams({ q: query, sort });
+  return apiFetch<Product[]>(`/api/products/search?${qs}`);
 }
 
-// ────────────────────────────────────────────────────────────────
-
-/**
- * 슬러그로 상품 상세를 조회한다.
- * 서버 컴포넌트에서 이 값을 await 로 받아 `notFound()` 처리에 사용한다.
- * 실서비스에서는 `fetch(`${API_BASE}/products/${slug}`)` 로 교체.
- */
+/** 슬러그로 상품 상세를 조회한다. 없으면 `null` → 호출부가 `notFound()` 로 처리한다. */
 export async function getProductDetail(slug: string): Promise<ProductDetail | null> {
-  return findMockProductDetail(slug);
+  return apiFetchOrNull<ProductDetail>(`/api/products/${encodeURIComponent(slug)}`);
 }
 
 /** 정적 파라미터 생성용 슬러그 목록. */
 export async function listAllProductSlugs(): Promise<string[]> {
-  return listMockProductSlugs();
+  return apiFetch<string[]>("/api/products/slugs");
+}
+
+type ReviewPage = {
+  content: ProductReview[];
+  page: { size: number; number: number; totalElements: number; totalPages: number };
+};
+
+/** 상세 페이지 리뷰. 새 후기가 바로 보이도록 브라우저에서 다시 불러올 때 쓴다. */
+export async function listProductReviews(
+  slug: string,
+  size = 10,
+): Promise<{ reviews: ProductReview[]; total: number }> {
+  const res = await apiFetch<ReviewPage>(
+    `/api/products/${encodeURIComponent(slug)}/reviews?size=${size}`,
+  );
+  return { reviews: res.content, total: res.page.totalElements };
 }

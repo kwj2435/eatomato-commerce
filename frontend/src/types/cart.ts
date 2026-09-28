@@ -1,10 +1,9 @@
 /**
- * 장바구니 항목.
- * 상품이 카트에 담기는 시점의 가격(unitPrice)을 함께 저장해 이후 가격 변동이 있어도
- * 결제 흐름에서 표시가 흔들리지 않게 한다.
+ * 장바구니 항목. 서버(`GET /api/cart`)가 내려주는 형태 그대로다.
+ * 단가는 서버가 상품 판매가 + 옵션 추가금으로 계산한다.
  */
 export type CartItem = {
-  /** 카트 라인 고유 id (동일 상품 다른 옵션을 구분). 편의상 `${productId}:${option}` 조합. */
+  /** 장바구니 줄 id. 같은 상품·같은 옵션은 서버가 한 줄로 합친다. */
   id: string;
   productId: string;
   slug: string;
@@ -17,7 +16,23 @@ export type CartItem = {
   selected: boolean;
 };
 
-/** 배송 정책. 실서비스에서는 서버가 계산한 값을 그대로 받는다. */
+/** 선택된 항목 기준 결제 요약. 서버가 계산해 내려준다. */
+export type CartSummary = {
+  itemCount: number;
+  selectedCount: number;
+  subtotal: number;
+  shippingFee: number;
+  total: number;
+  freeShippingRemainder: number;
+};
+
+export type Cart = {
+  items: CartItem[];
+  summary: CartSummary;
+  shippingPolicy: { freeThreshold: number; standardFee: number };
+};
+
+/** 배송 정책. 서버(ShippingPolicy)와 같은 값이며 안내 문구 표시에 쓴다. */
 export const SHIPPING_POLICY = {
   freeThreshold: 80_000,
   standardFee: 3_000,

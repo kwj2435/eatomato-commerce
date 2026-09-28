@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 
 import { Container } from "@/components/layout/Container";
-import { listSearchableProducts } from "@/lib/api/products";
 
 import { SearchInput } from "./SearchInput";
 import { SearchResults } from "./SearchResults";
@@ -13,18 +12,16 @@ import { SearchResults } from "./SearchResults";
  * 상품 리스트 페이지(4p)의 구성 요소 — 정렬 셀렉트, 상품 카드 그리드, 빈 상태 —
  * 를 그대로 재사용해 시안과 이질감이 없도록 만들었다.
  *
- * 서버는 검색 대상 목록만 준비하고, 검색어·정렬은 URL 쿼리에 의존하므로
- * 정적 생성이 가능하도록 클라이언트(SearchResults)가 처리한다.
+ * 검색어·정렬은 URL 쿼리에 의존하므로, 정적 생성이 가능하도록
+ * 클라이언트(SearchResults)가 쿼리를 읽어 검색 API 를 호출한다.
  *
  * Suspense: `useSearchParams()` 를 쓰는 영역이 경계 안에 있어야 페이지가 정적으로 생성된다.
  * fallback 은 그대로 정적 HTML 이 되므로, 검색 전 기본 화면(입력 + 안내)을 그대로 렌더링한다.
  */
-export async function SearchView() {
-  const products = await listSearchableProducts();
-
+export function SearchView() {
   return (
     <Suspense fallback={<SearchIdle />}>
-      <SearchResults products={products} />
+      <SearchResults />
     </Suspense>
   );
 }

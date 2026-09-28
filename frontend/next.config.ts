@@ -32,8 +32,8 @@ const nextConfig: NextConfig = {
   },
   /**
    * next/image 는 기본적으로 외부 도메인 이미지를 차단한다.
-   * mock 단계에서 사용하는 Unsplash CDN 을 허용 목록에 명시한다.
-   * 실 API 로 전환 시 자체 CDN 도메인으로 교체하면 된다.
+   * - images.unsplash.com: 데모 상품·배너 이미지
+   * - eatomato.kr: 후기 사진 등 백엔드 업로드 파일(/uploads/**)
    *
    * unoptimized: Image Optimization 은 런타임 서버가 필요해 정적 배포에서 쓸 수 없다.
    * Unsplash URL 에 이미 width/quality 파라미터를 실어 보내므로 화질 손실은 없다.
@@ -45,6 +45,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
         pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "eatomato.kr",
+        pathname: "/uploads/**",
       },
     ],
   },

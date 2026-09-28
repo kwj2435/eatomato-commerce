@@ -43,8 +43,11 @@ jobs:
       - name: Build static export
         # GITHUB_PAGES=true 일 때만 basePath(/eatomato-commerce)가 붙는다.
         # 로컬 개발·빌드는 접두사 없이 그대로 동작한다.
+        # 상품·공지는 빌드 시점에 운영 API 에서 받고, 브라우저도 운영 API(CORS 허용)를 부른다.
         env:
           GITHUB_PAGES: "true"
+          API_BASE_URL: https://eatomato.kr
+          NEXT_PUBLIC_API_BASE_URL: https://eatomato.kr
         run: npm run build
 
       - name: Disable Jekyll

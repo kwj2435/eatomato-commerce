@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { KakaoIcon } from "@/components/ui/icons";
+import { AuthField as Field } from "./AuthField";
+import { login } from "@/lib/api/auth";
+import { errorMessage } from "@/lib/api/client";
+import { useAuthStore } from "@/lib/store/auth-store";
 
 type Status =
   | { kind: "idle" }
@@ -13,31 +18,32 @@ type Status =
 /**
  * 로그인 폼.
  *
- * 실 API 가 없으므로 mock 처리:
- * - 두 필드가 모두 채워지면 성공, 아니면 에러 메시지 표시.
+ * - 아이디 또는 이메일 + 비밀번호로 `/api/auth/login` 을 호출하고, 받은 토큰을 세션 스토어에 저장한다.
+ * - 성공하면 `?next=` 로 넘어온 화면(없으면 마이페이지)으로 이동한다.
  * - 소셜 로그인 버튼은 준비 중 문구를 노출.
- * 실 API 연동 시 `submitLogin(id, password)` 호출로 교체하고, 성공 시 라우터 push.
- *
- * 상태 관리:
- * - 폼 필드 2개는 controlled input (`useState`).
- * - 서버 액션이 붙기 전까지 페이지 이동/토큰 저장은 하지 않는다.
  */
 export function LoginForm() {
+  const router = useRouter();
+  const setSession = useAuthStore((s) => s.setSession);
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
+  const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!id.trim() || !password) {
       setStatus({ kind: "error", message: "아이디와 비밀번호를 모두 입력해 주세요." });
       return;
     }
-    // TODO: 실제 API 로 교체
-    setStatus({
-      kind: "success",
-      message: "로그인 요청을 전송했습니다. (mock 응답)",
-    });
+    setPending(true);
+    try {
+      setSession(await login(id.trim(), password));
+      router.replace(nextPath());
+    } catch (error) {
+      setStatus({ kind: "error", message: errorMessage(error) });
+      setPending(false);
+    }
   };
 
   const notifyComingSoon = (provider: "카카오" | "네이버") => {
@@ -88,9 +94,10 @@ export function LoginForm() {
 
       <button
         type="submit"
-        className="mx-auto mt-[55px] h-[59px] w-full max-w-[264px] border border-black text-[15px] font-normal tracking-[-0.2px] text-black transition-colors hover:bg-black hover:text-white"
+        disabled={pending}
+        className="mx-auto mt-[55px] disabled:opacity-50 h-[59px] w-full max-w-[264px] border border-black text-[15px] font-normal tracking-[-0.2px] text-black transition-colors hover:bg-black hover:text-white"
       >
-        로그인 하기
+        {pending ? "로그인 중…" : "로그인 하기"}
       </button>
 
       <Link
@@ -140,43 +147,11 @@ export function LoginForm() {
   );
 }
 
-// ────────────────────────────────────────────────────────────────
-
-type FieldProps = {
-  label: string;
-  id: string;
-  type: "text" | "password";
-  autoComplete: string;
-  value: string;
-  onChange: (next: string) => void;
-  className?: string;
-};
-
-function Field({
-  label,
-  id,
-  type,
-  autoComplete,
-  value,
-  onChange,
-  className = "",
-}: FieldProps) {
-  return (
-    <div className={className}>
-      <label
-        htmlFor={id}
-        className="block text-[15px] font-normal leading-[15px] tracking-[-0.2px] text-black"
-      >
-        {label}
-      </label>
-      <input
-        id={id}
-        type={type}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-[15px] block h-[49px] w-full border border-black bg-transparent px-3 text-[15px] tracking-[-0.2px] text-black outline-none focus:border-brand-primary"
-      />
-    </div>
-  );
+/**
+ * 로그인 후 이동할 경로. `?next=` 는 같은 사이트 경로(`/...`)만 받아 외부 주소로 튕겨 나가지 않게 한다.
+ * `useSearchParams` 대신 제출 시점에 직접 읽어 정적 export 에서 Suspense 경계가 필요 없게 했다.
+ */
+function nextPath(): string {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/mypage";
 }

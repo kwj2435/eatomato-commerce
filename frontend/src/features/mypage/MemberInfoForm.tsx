@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useId, useMemo, useState } from "react";
 
 import { ChevronDownIcon } from "@/components/ui/icons";
+import { errorMessage } from "@/lib/api/client";
+import { updateMyMember } from "@/lib/api/member";
+import { useAuthStore } from "@/lib/store/auth-store";
 import { cn } from "@/lib/utils/cn";
 import {
   GENDER_OPTIONS,
@@ -34,8 +38,8 @@ type MemberInfoFormProps = {
  * - 아이디/등급/우편번호/기본주소는 시안에서 readonly 이므로 상태로 들지 않고 prop 을 그대로 쓴다.
  *   (우편번호·기본주소는 주소 검색이 붙으면 그때 상태로 승격시킨다.)
  *
- * 저장/로그아웃/주소검색은 실 API 가 없어 LoginForm 과 동일하게 mock 안내 문구로 처리한다.
- * 실 API 연동 시 `updateMyMember()` 를 서버 액션으로 감싸고 `useActionState` 로 교체하면 된다.
+ * 저장은 `PATCH /api/me`, 로그아웃은 저장된 토큰을 지우고 메인으로 보낸다.
+ * 주소 검색은 아직 준비 중이라 안내 문구만 띄운다.
  */
 export function MemberInfoForm({ member }: MemberInfoFormProps) {
   const fieldId = useId();
@@ -53,6 +57,10 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
     member.marketingChannels,
   );
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [pending, setPending] = useState(false);
+  const setMember = useAuthStore((s) => s.setMember);
+  const clearSession = useAuthStore((s) => s.clear);
+  const router = useRouter();
 
   const yearOptions = useMemo(() => {
     const thisYear = new Date().getFullYear();
@@ -90,7 +98,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
     );
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!name.trim()) {
@@ -106,23 +114,40 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
       return;
     }
 
-    // TODO: 실제 API 로 교체 — updateMyMember({ email, name, phone, ... })
-    setStatus({
-      kind: "success",
-      message: "변경 사항을 저장했습니다. (mock 응답)",
-    });
+    setPending(true);
+    try {
+      const updated = await updateMyMember({
+        email: email.trim(),
+        name: name.trim(),
+        phone,
+        address: { ...member.address, detail: addressDetail },
+        // 연·월·일을 모두 골랐을 때만 보낸다. 서버는 넘기지 않은 필드를 그대로 둔다.
+        birthDate:
+          birthYear && birthMonth && birthDay
+            ? { year: birthYear, month: birthMonth, day: birthDay }
+            : undefined,
+        gender: gender ?? undefined,
+        marketingChannels: marketing,
+      });
+      setMember(updated);
+      setStatus({ kind: "success", message: "변경 사항을 저장했습니다." });
+    } catch (error) {
+      setStatus({ kind: "error", message: errorMessage(error) });
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleLogout = () => {
+    clearSession();
+    router.push("/");
   };
 
   return (
     <>
       <button
         type="button"
-        onClick={() =>
-          setStatus({
-            kind: "error",
-            message: "로그아웃은 로그인 연동 이후 동작합니다.",
-          })
-        }
+        onClick={handleLogout}
         className="mt-[35px] block w-full text-right text-[12px] leading-4 tracking-[-0.2px] text-[#BCB3B0] transition-colors hover:text-ink-muted"
       >
         로그아웃
@@ -359,9 +384,10 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
         <div className="mt-[26px] flex justify-center">
           <button
             type="submit"
-            className="h-[49px] w-[210px] bg-brand-deep text-[13px] font-bold tracking-[-0.2px] text-white transition-opacity hover:opacity-90"
+            disabled={pending}
+            className="h-[49px] w-[210px] bg-brand-deep text-[13px] font-bold tracking-[-0.2px] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            변경 사항 저장하기
+            {pending ? "저장 중…" : "변경 사항 저장하기"}
           </button>
         </div>
 
