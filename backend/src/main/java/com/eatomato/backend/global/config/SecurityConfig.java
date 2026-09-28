@@ -59,7 +59,8 @@ public class SecurityConfig {
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/kakao").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/auth/kakao/authorize").permitAll()
 				.requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
 				.requestMatchers("/error").permitAll()
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")

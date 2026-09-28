@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AuthField as Field } from "./AuthField";
-import { KakaoStartButton } from "./KakaoStartButton";
+import { KakaoLoginButton } from "./KakaoLoginButton";
 import { login } from "@/lib/api/auth";
+import { startKakaoLogin } from "@/lib/api/kakao";
 import { errorMessage } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/store/auth-store";
 
@@ -20,7 +21,7 @@ type Status =
  *
  * - 아이디 또는 이메일 + 비밀번호로 `/api/auth/login` 을 호출하고, 받은 토큰을 세션 스토어에 저장한다.
  * - 성공하면 `?next=` 로 넘어온 화면(없으면 마이페이지)으로 이동한다.
- * - 가입은 이메일 가입(/signup)과 카카오로 시작하기 두 가지만 둔다. 카카오는 연동 전이라 준비 중 문구를 노출.
+ * - 가입·로그인 수단은 이메일과 카카오 두 가지만 둔다. 카카오는 처음이면 자동 가입된다.
  */
 export function LoginForm() {
   const router = useRouter();
@@ -46,9 +47,7 @@ export function LoginForm() {
     }
   };
 
-  const notifyKakaoComingSoon = () => {
-    setStatus({ kind: "error", message: "카카오 로그인은 준비 중입니다." });
-  };
+  const handleKakao = () => startKakaoLogin(nextPath());
 
   return (
     <form
@@ -105,7 +104,7 @@ export function LoginForm() {
       </Link>
 
       {/* 소셜 로그인: 카카오만 둔다 */}
-      <KakaoStartButton onClick={notifyKakaoComingSoon} className="mt-[22px]" />
+      <KakaoLoginButton onClick={handleKakao} className="mt-[22px]" />
 
       {status.kind !== "idle" ? (
         <p

@@ -51,6 +51,8 @@ docker compose up -d --build
 | GET | `/api/notices/ids` · `/api/notices/{id}` | 공지 id 목록 / 단건 | `listNoticeIds` · `getNotice` |
 | POST | `/api/auth/signup` | 가입 `{loginId,password,email,name}` → 토큰 | |
 | POST | `/api/auth/login` | 로그인 `{loginId(아이디 또는 이메일),password}` → 토큰 | `LoginForm` |
+| GET | `/api/auth/kakao/authorize?redirectUri=&state=` | 카카오 인가 화면으로 302 | 카카오 로그인 버튼 |
+| POST | `/api/auth/kakao` | 카카오 인가 코드로 로그인·가입 `{code, redirectUri}` → 토큰 | `/login/kakao/` |
 | GET · PATCH | `/api/me` 🔒 | 회원 정보 조회 / 수정 (null 필드는 유지) | `getMyMember` · `updateMyMember` |
 | PUT | `/api/me/password` 🔒 | 비밀번호 변경 | |
 | GET | `/api/cart` 🔒 | 장바구니 + 요약(선택 항목 합산, 배송비) | `cart-store` |
@@ -93,4 +95,5 @@ docker compose up -d --build
 - 상세 `reviewCount` 는 실제 리뷰 수다(mock 은 390 고정).
 - 결제(PG) 연동 전이라 주문은 생성 즉시 `PAID` 로 기록된다. 이후 상태는 관리자가 바꾼다.
 - 상품 삭제는 소프트 삭제다(주문 내역이 참조). 스토어 조회에서 빠지고 slug 는 다시 쓸 수 있게 비켜 둔다.
-- 쿠폰·적립금·재입고 알림, 소셜 로그인은 아직 없다.
+- 카카오 로그인: 카카오 회원번호로 회원을 찾고, 없으면 카카오가 확인한 이메일과 같은 기존 회원에 자동 연결, 그것도 없으면 가입한다. 이메일 동의가 필수다.
+- 쿠폰·적립금·재입고 알림은 아직 없다.

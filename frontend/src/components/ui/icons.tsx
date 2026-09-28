@@ -137,17 +137,6 @@ export function ChevronDownIcon(props: IconProps) {
   );
 }
 
-export function KakaoIcon(props: IconProps) {
-  return (
-    <svg width={18} height={17} viewBox="0 0 18 17" {...baseSvgProps} {...props}>
-      <path
-        d="M9 0.9C4.3 0.9 0.5 3.9 0.5 7.6C0.5 10 2.1 12.1 4.5 13.3L3.6 16.4C3.5 16.7 3.8 16.9 4 16.7L7.7 14.2C8.1 14.25 8.55 14.3 9 14.3C13.7 14.3 17.5 11.3 17.5 7.6C17.5 3.9 13.7 0.9 9 0.9Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 export function MenuIcon(props: IconProps) {
   return (
     <svg width={22} height={22} viewBox="0 0 22 22" {...baseSvgProps} {...props}>

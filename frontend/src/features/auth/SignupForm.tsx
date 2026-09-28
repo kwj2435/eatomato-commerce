@@ -6,21 +6,21 @@ import { useState } from "react";
 
 import { signup } from "@/lib/api/auth";
 import { errorMessage } from "@/lib/api/client";
+import { startKakaoLogin } from "@/lib/api/kakao";
 import { useAuthStore } from "@/lib/store/auth-store";
 
 import { AuthField } from "./AuthField";
-import { KakaoStartButton } from "./KakaoStartButton";
+import { KakaoLoginButton } from "./KakaoLoginButton";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * 회원가입 폼. 이메일 가입과 "카카오로 시작하기" 두 가지만 둔다.
+ * 회원가입 폼. 이메일 가입과 카카오 로그인(처음이면 자동 가입) 두 가지만 둔다.
  *
  * 시안에 가입 화면이 없어 로그인 폼과 같은 스타일로 최소 항목(이메일·비밀번호·이름)만 받는다.
  * 로그인은 이메일로 하고, 회원 정보의 아이디는 서버가 이메일 앞부분으로 만든다.
  * 나머지 회원 정보(휴대폰·주소 등)는 마이페이지에서 채운다.
  * 가입에 성공하면 서버가 바로 로그인 토큰을 주므로 마이페이지로 이동한다.
- * 카카오 로그인은 아직 연동 전이라 준비 중 문구를 띄운다.
  */
 export function SignupForm() {
   const router = useRouter();
@@ -111,7 +111,7 @@ export function SignupForm() {
         {pending ? "가입 중…" : "이메일로 가입하기"}
       </button>
 
-      <KakaoStartButton onClick={() => setError("카카오 로그인은 준비 중입니다.")} className="mt-[22px]" />
+      <KakaoLoginButton onClick={() => startKakaoLogin("/mypage")} className="mt-[22px]" />
 
       <Link
         href="/login"

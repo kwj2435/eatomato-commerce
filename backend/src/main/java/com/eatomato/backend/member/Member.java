@@ -61,6 +61,9 @@ public class Member {
 
 	private boolean marketingSms;
 
+	/** 카카오 회원번호. 카카오로 가입·연결한 회원만 있다. */
+	private Long kakaoId;
+
 	@Enumerated(EnumType.STRING)
 	private MemberRole role;
 
@@ -135,6 +138,10 @@ public class Member {
 
 	public void changeEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	public void linkKakao(Long kakaoId) {
+		this.kakaoId = kakaoId;
 	}
 
 	public boolean isAdmin() {

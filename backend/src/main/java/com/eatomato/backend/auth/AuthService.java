@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.eatomato.backend.auth.dto.LoginRequest;
 import com.eatomato.backend.auth.dto.SignupRequest;
 import com.eatomato.backend.auth.dto.TokenResponse;
+import com.eatomato.backend.auth.kakao.KakaoUser;
 import com.eatomato.backend.global.config.AppProperties;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
@@ -85,6 +87,38 @@ public class AuthService {
 			: memberRepository.findByLoginId(identifier))
 			.filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
 			.orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
+		if (!member.isEnabled()) {
+			throw new ApiException(ErrorCode.MEMBER_DISABLED);
+		}
+		return issueToken(member);
+	}
+
+	/**
+	 * 카카오 로그인·가입.
+	 *
+	 * 1) 카카오 회원번호로 연결된 회원이 있으면 그 회원으로 로그인
+	 * 2) 없으면 카카오가 확인한 이메일과 같은 기존 회원에 카카오를 연결(자동 연결)
+	 * 3) 그것도 없으면 새로 가입. 비밀번호는 임의 값이라 이 계정은 카카오로만 로그인한다.
+	 */
+	@Transactional
+	public TokenResponse loginWithKakao(KakaoUser kakao) {
+		Member member = memberRepository.findByKakaoId(kakao.id()).orElse(null);
+		if (member == null) {
+			if (kakao.email() == null || kakao.email().isBlank() || !kakao.emailVerified()) {
+				throw new ApiException(ErrorCode.KAKAO_EMAIL_REQUIRED);
+			}
+			String email = kakao.email().trim();
+			member = memberRepository.findByEmail(email).orElse(null);
+			if (member == null) {
+				String name = email.substring(0, email.indexOf('@'));
+				member = memberRepository.save(new Member(
+					generateLoginId(email),
+					passwordEncoder.encode(UUID.randomUUID().toString()),
+					email,
+					name.length() > 50 ? name.substring(0, 50) : name));
+			}
+			member.linkKakao(kakao.id());
+		}
 		if (!member.isEnabled()) {
 			throw new ApiException(ErrorCode.MEMBER_DISABLED);
 		}

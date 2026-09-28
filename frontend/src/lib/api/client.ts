@@ -29,6 +29,11 @@ function baseUrl(): string {
   return process.env.API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || DEV_API_BASE_URL;
 }
 
+/** 브라우저에서 이동(location)에 쓸 API 절대·상대 주소. fetch 가 아닌 페이지 이동용. */
+export function apiUrl(path: string): string {
+  return `${baseUrl()}${path}`;
+}
+
 /** 백엔드 에러 응답(`{ code, message, errors }`)을 담는 예외. */
 export class ApiError extends Error {
   constructor(

@@ -14,6 +14,10 @@ public enum ErrorCode {
 	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."),
 	INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "현재 비밀번호가 일치하지 않습니다."),
 	FORBIDDEN(HttpStatus.FORBIDDEN, "접근 권한이 없습니다."),
+	KAKAO_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "카카오 로그인이 설정되지 않았습니다."),
+	KAKAO_INVALID_REDIRECT(HttpStatus.BAD_REQUEST, "허용되지 않은 카카오 로그인 주소입니다."),
+	KAKAO_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "카카오 로그인에 실패했습니다. 다시 시도해 주세요."),
+	KAKAO_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "카카오 계정의 이메일 제공에 동의해야 가입할 수 있습니다."),
 	MEMBER_DISABLED(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다. 고객센터로 문의해 주세요."),
 	CANNOT_CHANGE_SELF(HttpStatus.BAD_REQUEST, "본인 계정의 권한·이용 상태는 바꿀 수 없습니다."),
 
