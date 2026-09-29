@@ -67,8 +67,10 @@ docker compose up -d --build
 | PUT | `/api/cart/selection` 🔒 | 전체 선택/해제 `{selected}` | `toggleAllSelected` |
 | DELETE | `/api/cart/items/{id}` · `/api/cart` 🔒 | 항목 삭제 / 비우기 | `removeItem` · `clear` |
 | POST | `/api/orders` 🔒 | 주문서 제출 `{cartItemIds?, shipping{recipientName, recipientPhone, zipCode, roadAddress, detailAddress?, deliveryMemo?}}` → 결제대기 주문, 재고 선점 | 주문서 |
+| GET | `/api/payments/config` 🔒 | 결제창 설정 `{provider: TOSS\|MOCK, clientKey}` (토스 결제위젯 공개 키) | 주문서 |
 | POST | `/api/payments/confirm` 🔒 | 결제 승인 `{orderNumber, paymentKey, amount}` → 결제완료 (금액 서버 대조, 중복 요청 안전) | 결제 완료 화면 |
 | POST | `/api/payments/webhook` | PG 결과 알림 `{orderNumber, paymentKey, status: DONE\|CANCELED, amount}` (헤더 `X-Payment-Webhook-Secret`) | PG 서버 |
+| POST | `/api/payments/toss/webhook` | 토스페이먼츠 웹훅(`PAYMENT_STATUS_CHANGED`). 본문은 믿지 않고 토스 조회로 확인해 상점관리자 취소를 반영 | 토스 서버 |
 | POST | `/api/orders/{orderNumber}/cancel` 🔒 | 고객 취소(결제대기·결제완료). 환불·재고 복원 | 마이페이지 |
 | GET | `/api/orders` · `/api/orders/{orderNumber}` 🔒 | 주문 내역 | 마이페이지 주문 내역 |
 | GET | `/api/shipping-policy` | 배송비 정책 `{baseFee, freeThreshold, remoteAreaFee}` | 상세·장바구니·주문서 |
@@ -108,7 +110,8 @@ docker compose up -d --build
 - 상품·공지·배너 id 는 DB 숫자 PK 의 문자열이다(`"prod-001"` → `"1"`). 회원 `id` 는 로그인 아이디.
 - 상세 `reviewCount` 는 실제 리뷰 수다(mock 은 390 고정).
 - 주문 흐름: 주문서 제출 → `PENDING_PAYMENT`(재고 선점) → 결제 승인 → `PAID` → `SHIPPING` → `DELIVERED`. 취소는 배송 전까지(환불·재고 복원·판매량 되돌림). 허용되지 않는 전이는 400, 변경 이력은 `order_status_history`.
-- 결제: `PaymentGateway` 인터페이스로 PG 를 붙인다. 지금은 `MockPaymentGateway`(`PAYMENT_PROVIDER=mock`)가 항상 승인한다. 결제대기 30분이 지나면 자동 취소.
+- 결제: `PaymentGateway` 인터페이스로 PG 를 붙인다. `PAYMENT_PROVIDER=mock`(기본)은 `MockPaymentGateway` 가 항상 승인하고, `toss` 는 `TossPaymentGateway`(토스페이먼츠 결제위젯)가 승인·취소한다. 결제대기 30분이 지나면 자동 취소.
+  - 토스: 개발자센터 > API 키의 **결제위젯 연동 키**를 `TOSS_CLIENT_KEY`(test_gck_)·`TOSS_SECRET_KEY`(test_gsk_)에 넣는다(API 개별 연동 키 test_ck_ 는 위젯에서 안 된다). 결제위젯 어드민에서 가상계좌는 끈다(입금 대기는 결제완료로 보지 않는다).
 - 재고: 상품 단위(`stock_quantity`, null = 무제한). 조건부 UPDATE 로 차감해 동시 주문에도 음수가 되지 않는다. 옵션 조합(SKU) 단위 재고는 아직 없다.
 - 배송비: `shipping_policy` 한 줄(관리자 설정). 제주(우편번호 63…)는 추가 배송비. 도서 산간 전체 목록은 미반영.
 - 로그인 잠금: 15분 안에 계정별 5회·IP별 20회 실패하면 잠금(메모리, 서버 1대 기준). nginx 가 `/api/auth/login|signup` 을 IP당 분당 10회로 한 번 더 제한.

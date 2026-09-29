@@ -8,6 +8,7 @@ import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.order.Order;
 import com.eatomato.backend.order.OrderRepository;
+import com.eatomato.backend.order.OrderService;
 import com.eatomato.backend.order.OrderStatus;
 import com.eatomato.backend.order.OrderStatusHistory;
 import com.eatomato.backend.order.OrderStatusHistoryRepository;
@@ -33,6 +34,7 @@ public class PaymentService {
 	private final ProductRepository productRepository;
 	private final CartItemRepository cartItemRepository;
 	private final OrderStatusHistoryRepository historyRepository;
+	private final OrderService orderService;
 
 	/**
 	 * @param memberId 고객 요청이면 본인 주문인지 확인한다. 웹훅(PG 서버 호출)이면 null.
@@ -64,7 +66,7 @@ public class PaymentService {
 		} catch (PaymentGateway.PaymentGatewayException e) {
 			payment.fail(e.getMessage());
 			log.warn("결제 승인 실패: 주문 {} ({})", orderNumber, e.getMessage());
-			throw new ApiException(ErrorCode.PAYMENT_FAILED);
+			throw new ApiException(ErrorCode.PAYMENT_FAILED, e.getMessage());
 		}
 		if (approval.approvedAmount() != order.getTotal()) {
 			throw new ApiException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
@@ -84,10 +86,34 @@ public class PaymentService {
 		return OrderResponse.from(order);
 	}
 
-	/** 결제완료 주문 취소 시 PG 환불. */
+	/**
+	 * PG 쪽에서 취소된 결제(상점관리자에서 직접 취소 등)를 주문에 반영한다. 웹훅이 PG 조회로 확인한 뒤 부른다.
+	 * 이미 취소됐거나 배송이 시작된 주문은 건드리지 않는다.
+	 */
+	@Transactional
+	public void cancelByGateway(String orderNumber, String paymentKey) {
+		Order order = orderRepository.findByOrderNumber(orderNumber).orElse(null);
+		Payment payment = order == null ? null : paymentRepository.findByOrder(order).orElse(null);
+		if (payment == null || !paymentKey.equals(payment.getPaymentKey())) {
+			return;
+		}
+		if (!order.getStatus().isCancellable()) {
+			if (order.getStatus() != OrderStatus.CANCELLED) {
+				log.warn("PG 에서 취소됐지만 주문 상태가 {} 라 자동 취소하지 않음: 주문 {}", order.getStatus(), orderNumber);
+			}
+			return;
+		}
+		orderService.cancel(order, null, "PG 에서 취소됨");
+	}
+
+	/** 결제완료 주문 취소 시 PG 환불. PG 가 거절하면 예외로 트랜잭션을 되돌려 주문은 결제완료로 남는다. */
 	public static void refund(PaymentGateway gateway, Payment payment, String reason) {
 		if (payment.getStatus() == PaymentStatus.DONE) {
-			gateway.cancel(payment.getPaymentKey(), payment.getAmount(), reason);
+			try {
+				gateway.cancel(payment.getPaymentKey(), payment.getAmount(), reason);
+			} catch (PaymentGateway.PaymentGatewayException e) {
+				throw new ApiException(ErrorCode.PAYMENT_CANCEL_FAILED);
+			}
 		}
 		payment.cancel();
 	}

@@ -53,10 +53,13 @@ app:
     client-secret: ${KAKAO_CLIENT_SECRET:}
     redirect-uris: ${KAKAO_REDIRECT_URIS:https://eatomato.kr/login/kakao/,http://localhost:3000/login/kakao/}
   payment:
-    # mock: PG 연동 전, 결제가 항상 성공했다고 본다. 실제 PG 를 붙이면 그 PG 이름으로 바꾼다.
+    # mock: 결제가 항상 성공했다고 본다(개발용). toss: 토스페이먼츠 결제위젯.
     provider: ${PAYMENT_PROVIDER:mock}
     # PG 웹훅 공유 비밀. 비어 있으면 /api/payments/webhook 을 받지 않는다.
     webhook-secret: ${PAYMENT_WEBHOOK_SECRET:}
+    # 토스페이먼츠 결제위젯 연동 키(개발자센터 > API 키 > 결제위젯 연동 키). provider=toss 면 둘 다 필요하다.
+    toss-client-key: ${TOSS_CLIENT_KEY:}
+    toss-secret-key: ${TOSS_SECRET_KEY:}
   login-limit:
     # 15분 안에 같은 계정으로 5번, 같은 IP 에서 20번 틀리면 남은 시간 동안 로그인을 막는다.
     max-per-account: 5

@@ -14,6 +14,13 @@ export async function createOrder(shipping: OrderShipping, cartItemIds?: string[
   });
 }
 
+/** 주문서가 띄울 결제창. TOSS 면 결제위젯 클라이언트 키(공개 키)가 함께 온다. MOCK 은 결제창 없이 승인된다. */
+export type PaymentConfig = { provider: "TOSS" | "MOCK"; clientKey: string | null };
+
+export async function getPaymentConfig(): Promise<PaymentConfig> {
+  return apiFetch<PaymentConfig>("/api/payments/config", { auth: true });
+}
+
 /** 결제 승인. PG 결제창이 돌려준 값(paymentKey·주문번호·금액)을 그대로 보낸다. */
 export async function confirmPayment(orderNumber: string, paymentKey: string, amount: number): Promise<Order> {
   return apiFetch<Order>("/api/payments/confirm", {

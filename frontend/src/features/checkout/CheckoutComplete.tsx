@@ -13,7 +13,7 @@ import { formatKRW, formatPhone } from "@/lib/utils/format";
 import type { Order } from "@/types/order";
 
 /**
- * 결제 완료 화면(= PG 의 successUrl). 넘어온 paymentKey·주문번호·금액으로 서버에 결제 승인을 요청한다.
+ * 결제 완료 화면(= 토스 successUrl). 넘어온 paymentKey·orderId(주문번호)·amount 로 서버에 결제 승인을 요청한다.
  * 금액은 서버가 주문 금액과 대조하고, 같은 요청이 두 번 와도 한 번만 처리된다(새로고침 안전).
  */
 export function CheckoutComplete() {
@@ -23,7 +23,7 @@ export function CheckoutComplete() {
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
-  const orderNumber = params.get("orderNumber");
+  const orderNumber = params.get("orderId");
   const paymentKey = params.get("paymentKey");
   const amount = Number(params.get("amount"));
   const invalid = !orderNumber || !paymentKey || !Number.isFinite(amount);

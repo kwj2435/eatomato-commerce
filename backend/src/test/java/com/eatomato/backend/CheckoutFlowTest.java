@@ -208,6 +208,15 @@ class CheckoutFlowTest {
 	}
 
 	@Test
+	void 결제_설정은_MOCK_이면_클라이언트_키가_없다() throws Exception {
+		String user = signup("checkout6");
+		mockMvc.perform(get("/api/payments/config").header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.provider").value("MOCK"))
+			.andExpect(jsonPath("$.clientKey").doesNotExist());
+	}
+
+	@Test
 	void 웹훅은_비밀값이_맞을_때만_받는다() throws Exception {
 		String user = signup("checkout5");
 		addToCart(user, 9, 1);

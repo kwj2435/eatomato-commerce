@@ -3,6 +3,7 @@ package com.eatomato.backend.payment;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -34,6 +35,14 @@ public class PaymentController {
 	private final OrderService orderService;
 	private final OrderRepository orderRepository;
 	private final AppProperties properties;
+	private final PaymentGateway paymentGateway;
+
+	/** 주문서가 어떤 결제창을 띄울지. provider=TOSS 면 결제위젯 클라이언트 키(공개 키)를 함께 준다. */
+	@GetMapping("/config")
+	public PaymentConfig config() {
+		String clientKey = "TOSS".equals(paymentGateway.provider()) ? properties.payment().tossClientKey() : null;
+		return new PaymentConfig(paymentGateway.provider(), clientKey);
+	}
 
 	/** 결제 승인. PG 결제창이 successUrl 로 넘겨준 값을 그대로 보낸다. */
 	@PostMapping("/confirm")
@@ -65,6 +74,9 @@ public class PaymentController {
 			|| !MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), secret.getBytes(StandardCharsets.UTF_8))) {
 			throw new ApiException(ErrorCode.INVALID_WEBHOOK);
 		}
+	}
+
+	public record PaymentConfig(String provider, String clientKey) {
 	}
 
 	public record ConfirmRequest(

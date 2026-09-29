@@ -33,10 +33,11 @@ public record AppProperties(Jwt jwt, Cors cors, Upload upload, Seed seed, Admin 
 	}
 
 	/**
-	 * 결제. provider=mock 이면 결제가 항상 성공했다고 본다(PG 연동 전).
-	 * webhookSecret 이 비어 있으면 PG 웹훅을 받지 않는다.
+	 * 결제. provider=mock 이면 결제가 항상 성공했다고 본다, toss 면 토스페이먼츠 결제위젯을 쓴다.
+	 * webhookSecret 이 비어 있으면 공유 비밀 웹훅(/api/payments/webhook)을 받지 않는다.
+	 * tossClientKey 는 브라우저에 내려가는 공개 키(test_gck_/live_gck_), tossSecretKey 는 서버 전용(test_gsk_/live_gsk_).
 	 */
-	public record Payment(String provider, String webhookSecret) {
+	public record Payment(String provider, String webhookSecret, String tossClientKey, String tossSecretKey) {
 	}
 
 	/** 로그인 시도 제한. window 안에 계정별 maxPerAccount 회, IP별 maxPerIp 회 실패하면 잠근다. */

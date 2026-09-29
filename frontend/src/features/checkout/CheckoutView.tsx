@@ -7,34 +7,42 @@ import { useEffect, useMemo, useState } from "react";
 import { Container } from "@/components/layout/Container";
 import { searchPostcode } from "@/components/address/postcode";
 import { errorMessage } from "@/lib/api/client";
-import { createOrder } from "@/lib/api/orders";
+import { cancelMyOrder, createOrder, getPaymentConfig, type PaymentConfig } from "@/lib/api/orders";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useCartStore } from "@/lib/store/cart-store";
 import { useRequireAuth } from "@/lib/store/use-require-auth";
 import { cn } from "@/lib/utils/cn";
 import { formatKRW } from "@/lib/utils/format";
 import type { Member } from "@/types/member";
+import type { Order } from "@/types/order";
 import { isRemoteArea, shippingFeeFor } from "@/types/shipping";
+
+import { TOSS_AGREEMENT_ID, TOSS_METHODS_ID, tossErrorMessage, useTossWidgets } from "./useTossWidgets";
 
 const MEMO_PRESETS = ["", "문 앞에 놓아 주세요", "경비실에 맡겨 주세요", "배송 전에 연락 주세요"];
 
 /**
  * 주문서. 장바구니에서 선택한 상품의 배송지·연락처를 받고 결제로 넘어간다.
  *
- * 결제 흐름(PG 연동 준비):
- *   주문서 제출(POST /api/orders, 결제대기) → [PG 결제창] → 결제 완료 화면(/checkout/complete)에서 승인(confirm)
- * PG 를 붙이기 전이라 결제창 단계 없이 바로 완료 화면으로 넘어가고, 서버의 MOCK PG 가 승인을 가정한다.
- * PG 를 붙이면 handleSubmit 의 router.push 자리에 PG SDK 의 결제 요청(successUrl=/checkout/complete)을 넣는다.
+ * 결제 흐름:
+ *   주문서 제출(POST /api/orders, 결제대기) → 토스 결제위젯 결제창 → 결제 완료 화면(/checkout/complete)에서 승인(confirm)
+ *   결제창에서 실패·취소하면 /checkout/fail 로 오거나 여기서 오류를 받고, 결제대기 주문은 바로 취소한다(재고 복원).
+ * 서버가 MOCK 결제(PAYMENT_PROVIDER=mock)면 결제창 없이 바로 완료 화면으로 넘어가고 서버가 승인을 가정한다.
  */
 export function CheckoutView() {
   const ready = useRequireAuth();
   const member = useAuthStore((s) => s.member);
   const loaded = useCartStore((s) => s.loaded);
   const load = useCartStore((s) => s.load);
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ready) load().catch((e: unknown) => setLoadError(errorMessage(e)));
+    if (!ready) return;
+    load().catch((e: unknown) => setLoadError(errorMessage(e)));
+    getPaymentConfig()
+      .then(setPaymentConfig)
+      .catch((e: unknown) => setLoadError(errorMessage(e)));
   }, [ready, load]);
 
   if (loadError) {
@@ -44,7 +52,7 @@ export function CheckoutView() {
       </Container>
     );
   }
-  if (!ready || !loaded || !member) {
+  if (!ready || !loaded || !member || !paymentConfig) {
     return (
       <Container className="py-14">
         <div className="h-[420px] animate-pulse bg-black/[0.04]" />
@@ -52,10 +60,10 @@ export function CheckoutView() {
     );
   }
   // 회원 정보가 준비된 뒤에 폼을 그려, 회원 주소·연락처를 배송지 초기값으로 쓴다.
-  return <CheckoutForm member={member} />;
+  return <CheckoutForm member={member} paymentConfig={paymentConfig} />;
 }
 
-function CheckoutForm({ member }: { member: Member }) {
+function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig: PaymentConfig }) {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const policy = useCartStore((s) => s.policy);
@@ -80,6 +88,8 @@ function CheckoutForm({ member }: { member: Member }) {
     : 0;
   const total = subtotal + shippingFee;
   const blocked = selected.some((it) => !it.available);
+  const toss = paymentConfig.provider === "TOSS";
+  const { widgets, error: widgetError } = useTossWidgets(toss ? paymentConfig.clientKey : null, total);
 
   const findAddress = async () => {
     try {
@@ -113,15 +123,41 @@ function CheckoutForm({ member }: { member: Member }) {
         detailAddress: detailAddress.trim(),
         deliveryMemo: (memoPreset === "직접 입력" ? memoCustom : memoPreset).trim(),
       });
-      // PG 연동 전: 결제창 없이 결제가 성공했다고 보고 완료 화면으로 넘어간다(PG 의 successUrl 과 같은 형태).
+      if (toss) {
+        await requestTossPayment(order, phone);
+        return;
+      }
+      // MOCK 결제: 결제창 없이 결제가 성공했다고 보고 완료 화면으로 넘어간다(토스 successUrl 과 같은 형태).
       const qs = new URLSearchParams({
-        orderNumber: order.orderNumber,
+        orderId: order.orderNumber,
         paymentKey: `mock-${order.orderNumber}`,
         amount: String(order.total),
       });
       router.replace(`/checkout/complete?${qs}`);
     } catch (e) {
       setError(errorMessage(e));
+      setPending(false);
+    }
+  };
+
+  /** 결제창을 띄운다. 성공·실패하면 successUrl·failUrl 로 이동하고, 창을 닫는 등으로 끝나면 주문을 취소한다. */
+  const requestTossPayment = async (order: Order, phone: string) => {
+    if (!widgets) return;
+    try {
+      // 금액은 서버가 계산한 주문 금액을 쓴다(화면 금액과 다르면 서버 기준).
+      await widgets.setAmount({ currency: "KRW", value: order.total });
+      await widgets.requestPayment({
+        orderId: order.orderNumber,
+        orderName: orderName(order),
+        customerName: recipientName.trim(),
+        customerEmail: member.email || null,
+        customerMobilePhone: phone,
+        successUrl: `${window.location.origin}/checkout/complete/`,
+        failUrl: `${window.location.origin}/checkout/fail/`,
+      });
+    } catch (e) {
+      cancelMyOrder(order.orderNumber).catch(() => {});
+      setError(tossErrorMessage(e));
       setPending(false);
     }
   };
@@ -195,6 +231,16 @@ function CheckoutForm({ member }: { member: Member }) {
                 ))}
               </ul>
             </Panel>
+
+            {toss ? (
+              <div className="border-[1.5px] border-black bg-white">
+                <h2 className="px-6 pt-6 text-[16px] font-medium">결제 수단</h2>
+                {widgetError ? <p role="alert" className="px-6 pt-3 text-[13px] text-brand-primary">{widgetError}</p> : null}
+                {/* 토스 결제위젯이 자체 여백을 가지고 있어 패딩 없이 그린다. */}
+                <div id={TOSS_METHODS_ID} className="min-h-[200px]" />
+                <div id={TOSS_AGREEMENT_ID} />
+              </div>
+            ) : null}
           </div>
 
           <aside className="h-fit space-y-4 border-[1.5px] border-black bg-white p-6 lg:sticky lg:top-6">
@@ -210,19 +256,28 @@ function CheckoutForm({ member }: { member: Member }) {
             {error ? <p role="alert" className="text-[13px] text-brand-primary">{error}</p> : null}
             <button
               type="submit"
-              disabled={pending}
+              disabled={pending || (toss && !widgets)}
               className="h-[56px] w-full bg-black text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {pending ? "처리 중…" : `${formatKRW(total)} 결제하기`}
             </button>
-            <p className="text-[12px] leading-[18px] text-ink-subtle">
-              결제 수단 연동 전이라 결제는 완료된 것으로 처리됩니다. 결제대기 상태로 30분이 지나면 주문이 자동 취소됩니다.
-            </p>
+            {toss ? null : (
+              <p className="text-[12px] leading-[18px] text-ink-subtle">
+                테스트 결제 모드라 결제는 완료된 것으로 처리됩니다. 결제대기 상태로 30분이 지나면 주문이 자동 취소됩니다.
+              </p>
+            )}
           </aside>
         </form>
       </Container>
     </section>
   );
+}
+
+/** 결제창에 보일 주문명. 예: "토마토 키링 외 2건" (토스 최대 100자) */
+function orderName(order: Order): string {
+  const first = order.items[0]?.name ?? "주문 상품";
+  const name = order.items.length > 1 ? `${first} 외 ${order.items.length - 1}건` : first;
+  return name.slice(0, 100);
 }
 
 /** 폭을 뺀 입력칸 스타일(cn 이 클래스 충돌을 합치지 않아 폭은 따로 준다). */

@@ -64,7 +64,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/kakao",
-					"/api/auth/refresh", "/api/auth/logout", "/api/payments/webhook").permitAll()
+					"/api/auth/refresh", "/api/auth/logout", "/api/payments/webhook", "/api/payments/toss/webhook").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/kakao/authorize").permitAll()
 				.requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
 				.requestMatchers("/error").permitAll()
