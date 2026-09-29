@@ -159,6 +159,16 @@ public class Product {
 		return stockQuantity == null || stockQuantity >= quantity;
 	}
 
+	/**
+	 * 정상가에서 rate% 할인한 값을 할인가로 둔다. unit 원 단위로 버린다(예: 100원 단위 절사).
+	 * rate 가 0 이거나 계산한 할인가가 정상가 이상·0원 이하가 되면 할인을 없앤다.
+	 */
+	public void applyDiscountRate(int rate, int unit) {
+		long discounted = (long) price * (100 - rate) / 100 / unit * unit;
+		this.salePrice = rate == 0 || discounted <= 0 || discounted >= price ? null : (int) discounted;
+		this.updatedAt = Times.now();
+	}
+
 	public void changeStock(Integer stockQuantity) {
 		this.stockQuantity = stockQuantity;
 		this.updatedAt = Times.now();

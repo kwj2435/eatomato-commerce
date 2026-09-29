@@ -122,6 +122,20 @@ public class AdminProductService {
 		return AdminProductSummary.from(product);
 	}
 
+	/** 선택한 상품들의 할인율을 한 번에 바꾼다. rate=0 이면 할인 해제. 하나라도 없는 상품이면 아무것도 바꾸지 않는다. */
+	@Transactional
+	public List<AdminProductSummary> applyDiscountRate(List<Long> productIds, int rate, int roundingUnit) {
+		List<Long> ids = productIds.stream().distinct().toList();
+		List<Product> products = productRepository.findAllById(ids).stream()
+			.filter(product -> product.getDeletedAt() == null)
+			.toList();
+		if (products.size() != ids.size()) {
+			throw new ApiException(ErrorCode.PRODUCT_NOT_FOUND);
+		}
+		products.forEach(product -> product.applyDiscountRate(rate, roundingUnit));
+		return products.stream().map(AdminProductSummary::from).toList();
+	}
+
 	/**
 	 * 삭제. 주문 내역이 상품을 참조하므로 소프트 삭제하고,
 	 * 장바구니와 다른 상품의 함께 구매 목록에서는 바로 뺀다.

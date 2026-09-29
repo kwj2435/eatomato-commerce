@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { deleteAdminProduct, listAdminProducts, setAdminProductStock, setAdminProductVisible } from "@/lib/api/admin";
+import {
+  deleteAdminProduct,
+  listAdminProducts,
+  setAdminProductStock,
+  setAdminProductVisible,
+  setAdminProductsDiscount,
+} from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
 import { listCategories, type CategoryTree } from "@/lib/api/categories";
 import { formatKRW } from "@/lib/utils/format";
@@ -19,6 +25,9 @@ export function AdminProductList() {
   const [page, setPage] = useState(0);
   const [data, setData] = useState<Page<AdminProductSummary> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  // 선택은 페이지를 넘겨도 유지한다(여러 페이지 상품을 한 번에 조정).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
     listAdminProducts({ q: keyword, category, page })
@@ -50,6 +59,39 @@ export function AdminProductList() {
       const updated = await setAdminProductStock(product.id, next);
       setData((prev) => (prev ? { ...prev, content: prev.content.map((p) => (p.id === updated.id ? updated : p)) } : prev));
     } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
+  const pageIds = data?.content.map((p) => p.id) ?? [];
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+
+  const togglePage = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      pageIds.forEach((id) => (allOnPageSelected ? next.delete(id) : next.add(id)));
+      return next;
+    });
+
+  const applyDiscount = async (rate: number, roundingUnit: 1 | 10 | 100) => {
+    const ids = [...selected];
+    const what = rate === 0 ? "할인을 해제할까요?" : `정상가에서 ${rate}% 할인한 값으로 할인가를 바꿀까요?`;
+    if (!window.confirm(`선택한 상품 ${ids.length}개의 ${what}\n기존 할인가는 덮어씁니다.`)) return;
+    try {
+      await setAdminProductsDiscount(ids, rate, roundingUnit);
+      setError(null);
+      setNotice(`${ids.length}개 상품의 ${rate === 0 ? "할인을 해제했습니다" : `할인율을 ${rate}%로 바꿨습니다`}.`);
+      setSelected(new Set());
+      load();
+    } catch (e) {
+      setNotice(null);
       setError(errorMessage(e));
     }
   };
@@ -115,6 +157,10 @@ export function AdminProductList() {
         </form>
 
         {error ? <Notice kind="error">{error}</Notice> : null}
+        {notice ? <Notice kind="success">{notice}</Notice> : null}
+        {selected.size > 0 ? (
+          <BulkDiscountBar count={selected.size} onApply={applyDiscount} onClear={() => setSelected(new Set())} />
+        ) : null}
 
         {!data ? (
           <div className="h-60 animate-pulse rounded-md bg-black/[0.04]" />
@@ -125,6 +171,14 @@ export function AdminProductList() {
             <table className={tableClass}>
               <thead>
                 <tr>
+                  <th className={`${thClass} w-8`}>
+                    <input
+                      type="checkbox"
+                      checked={allOnPageSelected}
+                      onChange={togglePage}
+                      aria-label="이 페이지 상품 모두 선택"
+                    />
+                  </th>
                   <th className={thClass}>상품</th>
                   <th className={thClass}>카테고리</th>
                   <th className={`${thClass} text-right`}>판매가</th>
@@ -138,7 +192,15 @@ export function AdminProductList() {
               </thead>
               <tbody>
                 {data.content.map((p) => (
-                  <tr key={p.id}>
+                  <tr key={p.id} className={selected.has(p.id) ? "bg-brand-tint/40" : undefined}>
+                    <td className={tdClass}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(p.id)}
+                        onChange={() => toggleSelected(p.id)}
+                        aria-label={`${p.name} 선택`}
+                      />
+                    </td>
                     <td className={tdClass}>
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-10 flex-none overflow-hidden rounded bg-black/[0.04]">
@@ -165,7 +227,10 @@ export function AdminProductList() {
                     <td className={`${tdClass} whitespace-nowrap text-right tabular-nums`}>
                       {formatKRW(p.salePrice ?? p.price)}
                       {p.salePrice !== null ? (
-                        <span className="block text-[12px] text-ink-subtle line-through">{formatKRW(p.price)}</span>
+                        <span className="block text-[12px] text-ink-subtle">
+                          <span className="mr-1 font-medium text-brand-primary">{discountRate(p)}%</span>
+                          <span className="line-through">{formatKRW(p.price)}</span>
+                        </span>
                       ) : null}
                     </td>
                     <td className={`${tdClass} text-right tabular-nums`}>{p.salesCount.toLocaleString("ko-KR")}</td>
@@ -217,5 +282,77 @@ export function AdminProductList() {
         {data ? <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} /> : null}
       </Card>
     </>
+  );
+}
+
+/** 목록에 보이는 할인율(정상가 대비, 반올림). */
+function discountRate(p: AdminProductSummary): number {
+  return p.salePrice === null || p.price === 0 ? 0 : Math.round((1 - p.salePrice / p.price) * 100);
+}
+
+const ROUNDING_UNITS = [
+  { value: 1, label: "1원 단위" },
+  { value: 10, label: "10원 단위 절사" },
+  { value: 100, label: "100원 단위 절사" },
+] as const;
+
+/** 선택한 상품이 있을 때 목록 위에 뜨는 일괄 할인 바. */
+function BulkDiscountBar({
+  count,
+  onApply,
+  onClear,
+}: {
+  count: number;
+  onApply: (rate: number, roundingUnit: 1 | 10 | 100) => void;
+  onClear: () => void;
+}) {
+  const [rate, setRate] = useState("");
+  const [unit, setUnit] = useState<1 | 10 | 100>(10);
+  const value = Number(rate);
+  const valid = rate.trim() !== "" && Number.isInteger(value) && value >= 1 && value <= 95;
+
+  return (
+    <div className="my-3 flex flex-wrap items-center gap-2 rounded-md border border-brand-primary/30 bg-brand-tint/40 px-3 py-2 text-[13px]">
+      <span className="font-medium text-ink-primary">{count}개 선택</span>
+      <span className="text-ink-subtle">·</span>
+      <label className="flex items-center gap-1.5">
+        할인율
+        <input
+          type="number"
+          min={1}
+          max={95}
+          value={rate}
+          onChange={(e) => setRate(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && valid) onApply(value, unit);
+          }}
+          placeholder="1~95"
+          className="h-8 w-20 rounded-md border border-black/15 bg-white px-2 text-right tabular-nums"
+        />
+        %
+      </label>
+      <select
+        aria-label="할인가 절사 단위"
+        value={unit}
+        onChange={(e) => setUnit(Number(e.target.value) as 1 | 10 | 100)}
+        className="h-8 rounded-md border border-black/15 bg-white px-2"
+      >
+        {ROUNDING_UNITS.map((u) => (
+          <option key={u.value} value={u.value}>
+            {u.label}
+          </option>
+        ))}
+      </select>
+      <Button size="sm" variant="primary" disabled={!valid} onClick={() => onApply(value, unit)}>
+        할인 적용
+      </Button>
+      <Button size="sm" variant="danger" onClick={() => onApply(0, 1)}>
+        할인 해제
+      </Button>
+      <Button size="sm" variant="ghost" onClick={onClear} className="ml-auto">
+        선택 해제
+      </Button>
+      <p className="w-full text-[12px] text-ink-subtle">할인가 = 정상가 × (100 − 할인율)%. 옵션 추가금에는 할인이 붙지 않습니다.</p>
+    </div>
   );
 }

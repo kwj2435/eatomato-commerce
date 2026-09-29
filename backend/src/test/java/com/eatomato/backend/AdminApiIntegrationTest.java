@@ -159,6 +159,53 @@ class AdminApiIntegrationTest {
 			.andExpect(status().isCreated());
 	}
 
+	private String createProduct(String admin, String slug, int price) throws Exception {
+		String created = mockMvc.perform(post("/api/admin/products").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"slug":"%s","name":"할인 테스트","price":%d,"categoryCode":"set","rewardRate":0,"visible":true}
+					""".formatted(slug, price)))
+			.andExpect(status().isCreated())
+			.andReturn().getResponse().getContentAsString();
+		return JsonPath.read(created, "$.id");
+	}
+
+	@Test
+	void 할인율_일괄_조정() throws Exception {
+		String admin = login("admin", "admin1234");
+		String a = createProduct(admin, "discount-a", 30000);
+		String b = createProduct(admin, "discount-b", 12345);
+		String body = "{\"productIds\":[%s,%s],\"rate\":%d,\"roundingUnit\":%d}";
+
+		// 15% 할인, 100원 단위 절사: 30000 → 25500, 12345 → 10493.25 → 10400
+		mockMvc.perform(patch("/api/admin/products/discount").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content(body.formatted(a, b, 15, 100)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$", hasSize(2)))
+			.andExpect(jsonPath("$[?(@.id=='%s')].salePrice".formatted(a)).value(25500))
+			.andExpect(jsonPath("$[?(@.id=='%s')].salePrice".formatted(b)).value(10400));
+		mockMvc.perform(get("/api/products/discount-b"))
+			.andExpect(jsonPath("$.salePrice").value(10400));
+
+		// 0% 는 할인 해제
+		mockMvc.perform(patch("/api/admin/products/discount").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content(body.formatted(a, b, 0, 1)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$[0].salePrice").doesNotExist())
+			.andExpect(jsonPath("$[1].salePrice").doesNotExist());
+
+		// 허용하지 않는 절사 단위·할인율, 없는 상품
+		mockMvc.perform(patch("/api/admin/products/discount").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content(body.formatted(a, b, 10, 50)))
+			.andExpect(status().isBadRequest());
+		mockMvc.perform(patch("/api/admin/products/discount").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content(body.formatted(a, b, 96, 1)))
+			.andExpect(status().isBadRequest());
+		mockMvc.perform(patch("/api/admin/products/discount").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content(body.formatted(a, "999999", 10, 1)))
+			.andExpect(status().isNotFound());
+	}
+
 	@Test
 	void 회원_관리와_이용정지() throws Exception {
 		String admin = login("admin", "admin1234");

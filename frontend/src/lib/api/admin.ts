@@ -62,6 +62,14 @@ export const setAdminProductStock = (id: string, stockQuantity: number | null) =
     json: { stockQuantity },
   });
 
+/** 선택 상품 할인율 일괄 조정. rate=0 이면 할인 해제. 할인가는 roundingUnit 원 단위로 버린다. */
+export const setAdminProductsDiscount = (productIds: string[], rate: number, roundingUnit: 1 | 10 | 100) =>
+  apiFetch<AdminProductSummary[]>("/api/admin/products/discount", {
+    method: "PATCH",
+    auth: true,
+    json: { productIds: productIds.map(Number), rate, roundingUnit },
+  });
+
 export const deleteAdminProduct = (id: string) =>
   apiFetch<void>(`/api/admin/products/${id}`, { method: "DELETE", auth: true });
 

@@ -21,9 +21,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.eatomato.backend.admin.common.PageResponse;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 
 @Validated
@@ -79,6 +82,12 @@ public class AdminProductController {
 		return adminProductService.changeStock(id, request.stockQuantity());
 	}
 
+	/** 선택 상품 할인율 일괄 조정. 할인가 = 정상가 × (100 - rate)% 를 roundingUnit 원 단위로 버린 값. rate=0 이면 할인 해제. */
+	@PatchMapping("/discount")
+	public List<AdminProductSummary> applyDiscount(@Valid @RequestBody DiscountRequest request) {
+		return adminProductService.applyDiscountRate(request.productIds(), request.rate(), request.roundingUnit());
+	}
+
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable Long id) {
@@ -86,6 +95,18 @@ public class AdminProductController {
 	}
 
 	public record VisibleRequest(@NotNull Boolean visible) {
+	}
+
+	public record DiscountRequest(
+		@NotEmpty @Size(max = 500) List<@NotNull Long> productIds,
+		@NotNull @Min(0) @Max(95) Integer rate,
+		@NotNull Integer roundingUnit) {
+
+		/** 절사 단위는 1·10·100원만. */
+		@AssertTrue
+		public boolean isRoundingUnitAllowed() {
+			return roundingUnit == null || roundingUnit == 1 || roundingUnit == 10 || roundingUnit == 100;
+		}
 	}
 
 	public record StockRequest(@Min(0) @Max(1_000_000) Integer stockQuantity) {
