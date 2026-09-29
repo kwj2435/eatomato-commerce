@@ -29,6 +29,8 @@ export type Dashboard = {
   dailySales: Array<{ date: string; orders: number; revenue: number }>;
   topProducts: Array<{ productId: string; name: string; quantity: number; revenue: number }>;
   recentOrders: AdminOrder[];
+  /** 재고를 관리하는 상품 중 품절 수. */
+  soldOutProducts: number;
 };
 
 // ── 상품 ──────────────────────────────────────────────────
@@ -43,6 +45,9 @@ export type AdminProductSummary = {
   salePrice: number | null;
   imageUrl: string | null;
   visible: boolean;
+  /** 재고. null 이면 재고 관리 안 함(무제한). */
+  stockQuantity: number | null;
+  soldOut: boolean;
   badges: ProductBadge[];
   salesCount: number;
   rating: number;
@@ -67,6 +72,8 @@ export type AdminProductInput = {
   categoryCode: string;
   subcategoryCode: string;
   rewardRate: number;
+  /** 재고. null 이면 재고 관리 안 함(무제한). */
+  stockQuantity: number | null;
   noticeText: string;
   shippingText: string;
   visible: boolean;
@@ -113,12 +120,23 @@ export type AdminMemberDetail = {
   summary: AdminMemberSummary;
   profile: Member;
   recentOrders: AdminOrder[];
+  /** 재고를 관리하는 상품 중 품절 수. */
+  soldOutProducts: number;
 };
 
 // ── 주문 ──────────────────────────────────────────────────
 
 export type AdminOrder = Order & {
   member: { id: string; loginId: string; name: string } | null;
+  /** 관리자가 지금 바꿀 수 있는 다음 상태. 비어 있으면 더 바꿀 수 없다. */
+  nextStatuses: OrderStatus[];
+  payment?: {
+    provider: string;
+    status: "READY" | "DONE" | "CANCELED" | "FAILED";
+    paymentKey?: string;
+    amount: number;
+    approvedAt?: string;
+  };
 };
 
 // ── 배너·공지 ─────────────────────────────────────────────

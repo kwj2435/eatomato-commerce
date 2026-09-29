@@ -12,6 +12,7 @@ import {
   getProductDetail,
   listAllProductSlugs,
 } from "@/lib/api/products";
+import { getShippingPolicy } from "@/lib/api/shipping";
 
 /**
  * `/products/[slug]` — 카테고리 전체 리스트 OR 개별 상품 상세.
@@ -69,11 +70,11 @@ export default async function ProductRoute({ params }: PageProps) {
   }
 
   // 2) 상품 슬러그면 → 상세 뷰
-  const product = await getProductDetail(slug);
+  const [product, shippingPolicy] = await Promise.all([getProductDetail(slug), getShippingPolicy()]);
   if (product) {
     return (
       <SiteFrame>
-        <ProductDetailView product={product} />
+        <ProductDetailView product={product} shippingPolicy={shippingPolicy} />
       </SiteFrame>
     );
   }

@@ -52,6 +52,16 @@ app:
     rest-api-key: ${KAKAO_REST_API_KEY:}
     client-secret: ${KAKAO_CLIENT_SECRET:}
     redirect-uris: ${KAKAO_REDIRECT_URIS:https://eatomato.kr/login/kakao/,http://localhost:3000/login/kakao/}
+  payment:
+    # mock: PG 연동 전, 결제가 항상 성공했다고 본다. 실제 PG 를 붙이면 그 PG 이름으로 바꾼다.
+    provider: ${PAYMENT_PROVIDER:mock}
+    # PG 웹훅 공유 비밀. 비어 있으면 /api/payments/webhook 을 받지 않는다.
+    webhook-secret: ${PAYMENT_WEBHOOK_SECRET:}
+  login-limit:
+    # 15분 안에 같은 계정으로 5번, 같은 IP 에서 20번 틀리면 남은 시간 동안 로그인을 막는다.
+    max-per-account: 5
+    max-per-ip: 20
+    window: 15m
   admin:
     # 기동 시 이 계정을 관리자로 만든다(없으면 생성, 있으면 권한만 부여 — 비밀번호는 바꾸지 않는다).
     login-id: ${ADMIN_LOGIN_ID:}

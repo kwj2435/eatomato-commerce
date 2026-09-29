@@ -2,21 +2,24 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { QuantityStepper } from "@/features/cart/QuantityStepper";
 import type { AddCartItemInput } from "@/lib/api/cart";
 import { errorMessage } from "@/lib/api/client";
+import { getProductDetail } from "@/lib/api/products";
 import { hasSession } from "@/lib/store/auth-store";
 import { useCartStore } from "@/lib/store/cart-store";
 import { formatKRW } from "@/lib/utils/format";
 import type { OptionGroup, ProductDetail } from "@/types/product-detail";
+import type { ShippingPolicy } from "@/types/shipping";
 
 import { BetterTogether } from "./BetterTogether";
 import { OptionSelect } from "./OptionSelect";
 
 type ProductBuyPanelProps = {
   product: ProductDetail;
+  shippingPolicy: ShippingPolicy;
 };
 
 /** 옵션 그룹 id → 선택된 choice id */
@@ -43,7 +46,21 @@ type Status =
  * 이 컴포넌트 하나가 "구매 로직" 전부를 알고 있어, 정책 변경(예: 옵션 없는 상품 처리)을 한 곳에서 손볼 수 있다.
  * 화면의 금액은 미리보기이고, 실제 단가는 장바구니에 담을 때 서버가 다시 계산한다.
  */
-export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
+export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuyPanelProps) {
+  // 상세 페이지는 최대 1분 캐시되므로, 재고·품절은 열릴 때 최신 값으로 한 번 더 맞춘다.
+  const [stock, setStock] = useState({ stock: initial.stock, soldOut: initial.soldOut });
+  useEffect(() => {
+    let cancelled = false;
+    getProductDetail(initial.slug)
+      .then((fresh) => {
+        if (!cancelled && fresh) setStock({ stock: fresh.stock, soldOut: fresh.soldOut });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [initial.slug]);
+  const product = { ...initial, ...stock };
   const [mainSelection, setMainSelection] = useState<SelectionMap>({});
   const [quantity, setQuantity] = useState(1);
   const [btSelections, setBtSelections] = useState<
@@ -70,6 +87,7 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
   const readyBTItems = useMemo(
     () =>
       product.betterTogether
+        .filter((item) => !item.soldOut)
         .map((item) => {
           const selection = btSelections[item.id] ?? {};
           if (!allGroupsChosen(item.optionGroups, selection)) return null;
@@ -175,10 +193,22 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
         <SpecRow label="적립금">
           <span>{product.rewardRate}%</span>
         </SpecRow>
+        {/* 관리자 > 배송비 설정값으로 만든다(예전엔 70,000원 고정 문구였다). */}
         <SpecRow label="배송비">
-          <span>3,000원 (70,000원 이상 구매 시 무료)</span>
-          <span>제주 및 도서 산간 3,000원 추가</span>
+          {shippingPolicy.freeThreshold <= 0 ? (
+            <span>무료배송</span>
+          ) : (
+            <span>
+              {formatKRW(shippingPolicy.baseFee)} ({formatKRW(shippingPolicy.freeThreshold)} 이상 구매 시 무료)
+            </span>
+          )}
+          {shippingPolicy.remoteAreaFee > 0 ? <span>제주 지역 {formatKRW(shippingPolicy.remoteAreaFee)} 추가</span> : null}
         </SpecRow>
+        {product.stock !== undefined && product.stock > 0 && product.stock <= 5 ? (
+          <SpecRow label="재고">
+            <span className="text-brand-primary">{product.stock}개 남음</span>
+          </SpecRow>
+        ) : null}
       </dl>
 
       <div className="mt-[22px] flex flex-col gap-5">
@@ -226,18 +256,18 @@ export function ProductBuyPanel({ product }: ProductBuyPanelProps) {
           <button
             type="button"
             onClick={handleBuyNow}
-            disabled={pending}
+            disabled={pending || product.soldOut}
             className="flex h-[52px] flex-1 items-center justify-center border border-[#212121] bg-brand-tint text-[15px] font-medium tracking-[-0.2px] text-[#212121] transition-colors hover:bg-black hover:text-white disabled:opacity-50"
           >
-            바로 구매하기
+            {product.soldOut ? "품절" : "바로 구매하기"}
           </button>
           <button
             type="button"
             onClick={handleAddToCart}
-            disabled={pending}
+            disabled={pending || product.soldOut}
             className="flex h-[52px] flex-1 items-center justify-center border border-[#C9C9C9] bg-brand-tint text-[15px] font-medium tracking-[-0.2px] text-[#545454] transition-colors hover:border-black hover:text-black disabled:opacity-50"
           >
-            잠깐 장바구니
+            {product.soldOut ? "품절" : "잠깐 장바구니"}
           </button>
         </div>
 

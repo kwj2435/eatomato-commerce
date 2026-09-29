@@ -35,6 +35,7 @@ const EMPTY: AdminProductInput = {
   categoryCode: "phone-case",
   subcategoryCode: "",
   rewardRate: 3,
+  stockQuantity: null,
   noticeText: DEFAULT_NOTICE,
   shippingText: DEFAULT_NOTICE,
   visible: true,
@@ -57,6 +58,7 @@ function toInput(p: AdminProduct): AdminProductInput {
     categoryCode: p.categoryCode,
     subcategoryCode: p.subcategoryCode ?? "",
     rewardRate: p.rewardRate,
+    stockQuantity: p.stockQuantity,
     noticeText: p.noticeText ?? "",
     shippingText: p.shippingText ?? "",
     visible: p.visible,
@@ -228,6 +230,20 @@ export function AdminProductForm({ productId }: { productId?: string }) {
                   onChange={(e) => set("rewardRate", Number(e.target.value))}
                   className={inputClass}
                 />
+              </Field>
+              <Field label="재고" htmlFor="p-stock" hint="비워 두면 재고를 관리하지 않습니다(무제한). 0 이면 품절로 표시되고 구매가 막힙니다.">
+                <div className="flex items-center gap-3">
+                  <input
+                    id="p-stock"
+                    type="number"
+                    min={0}
+                    placeholder="무제한"
+                    value={form.stockQuantity ?? ""}
+                    onChange={(e) => set("stockQuantity", e.target.value === "" ? null : Math.max(0, Number(e.target.value)))}
+                    className={inputClass}
+                  />
+                  {form.stockQuantity === 0 ? <span className="flex-none text-[13px] font-bold text-brand-primary">품절</span> : null}
+                </div>
               </Field>
               <Field label="배지·노출">
                 <div className="flex h-10 flex-wrap items-center gap-4 text-[14px]">

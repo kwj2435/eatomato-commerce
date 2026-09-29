@@ -55,6 +55,13 @@ export const updateAdminProduct = (id: string, input: AdminProductInput) =>
 export const setAdminProductVisible = (id: string, visible: boolean) =>
   apiFetch<void>(`/api/admin/products/${id}/visible`, { method: "PATCH", auth: true, json: { visible } });
 
+export const setAdminProductStock = (id: string, stockQuantity: number | null) =>
+  apiFetch<AdminProductSummary>(`/api/admin/products/${id}/stock`, {
+    method: "PATCH",
+    auth: true,
+    json: { stockQuantity },
+  });
+
 export const deleteAdminProduct = (id: string) =>
   apiFetch<void>(`/api/admin/products/${id}`, { method: "DELETE", auth: true });
 

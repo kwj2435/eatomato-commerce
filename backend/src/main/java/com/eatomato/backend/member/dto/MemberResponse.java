@@ -13,6 +13,10 @@ public record MemberResponse(
 	String id,
 	String email,
 	String name,
+	/** 닉네임. 추가 정보 입력 전이면 null. */
+	String nickname,
+	/** 가입 후 추가 정보(닉네임·주소)를 다 넣었는지. false 면 추가 정보 입력 화면으로 보낸다. */
+	boolean profileComplete,
 	String grade,
 	Phone phone,
 	Address address,
@@ -44,6 +48,8 @@ public record MemberResponse(
 			member.getLoginId(),
 			member.getEmail(),
 			member.getName(),
+			member.getNickname(),
+			member.isProfileComplete(),
 			member.getGrade(),
 			new Phone(orEmpty(member.getPhoneFirst()), orEmpty(member.getPhoneMiddle()),
 				orEmpty(member.getPhoneLast())),

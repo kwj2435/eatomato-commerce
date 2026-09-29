@@ -6,6 +6,7 @@ import java.util.List;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -19,8 +20,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import com.eatomato.backend.cart.ShippingPolicy;
+import com.eatomato.backend.global.error.ApiException;
+import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.global.time.Times;
+import com.eatomato.backend.shipping.ShippingPolicy;
 
 /** JPQL 예약어(ORDER)와 겹치지 않도록 엔티티 이름을 ShopOrder 로 둔다. */
 @Entity(name = "ShopOrder")
@@ -47,32 +50,60 @@ public class Order {
 	@Column(name = "total_amount")
 	private int total;
 
+	/** 배송지. 배송지 입력 기능 이전에 만들어진 주문은 비어 있다. */
+	@Embedded
+	private ShippingAddress shippingAddress;
+
 	private LocalDateTime orderedAt;
+
+	private LocalDateTime paidAt;
+
+	private LocalDateTime cancelledAt;
 
 	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("id")
 	private List<OrderItem> items = new ArrayList<>();
 
-	public Order(String orderNumber, Long memberId) {
+	/** 결제대기 주문. 결제 승인(PaymentService.confirm)에서 결제완료로 바뀐다. */
+	public Order(String orderNumber, Long memberId, ShippingAddress shippingAddress) {
 		this.orderNumber = orderNumber;
 		this.memberId = memberId;
-		this.status = OrderStatus.PAID;
+		this.shippingAddress = shippingAddress;
+		this.status = OrderStatus.PENDING_PAYMENT;
 		this.orderedAt = Times.now();
-	}
-
-	public void changeStatus(OrderStatus status) {
-		this.status = status;
 	}
 
 	public void addItem(OrderItem item) {
 		items.add(item);
 		item.assignTo(this);
-		recalculate();
 	}
 
-	private void recalculate() {
+	/** 금액 확정. 배송지 우편번호로 제주 추가 배송비까지 계산한다. */
+	public void calculate(ShippingPolicy policy) {
 		this.subtotal = items.stream().mapToInt(OrderItem::lineTotal).sum();
-		this.shippingFee = ShippingPolicy.feeFor(subtotal);
+		this.shippingFee = policy.feeFor(subtotal, shippingAddress == null ? null : shippingAddress.getZipCode());
 		this.total = subtotal + shippingFee;
+	}
+
+	public void markPaid() {
+		transitionTo(OrderStatus.PAID);
+		this.paidAt = Times.now();
+	}
+
+	public void cancel() {
+		transitionTo(OrderStatus.CANCELLED);
+		this.cancelledAt = Times.now();
+	}
+
+	/** 허용된 방향으로만 바꾼다(OrderStatus.next). */
+	public void transitionTo(OrderStatus next) {
+		if (!status.next().contains(next)) {
+			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
+		}
+		this.status = next;
+	}
+
+	public int totalQuantity() {
+		return items.stream().mapToInt(OrderItem::getQuantity).sum();
 	}
 }

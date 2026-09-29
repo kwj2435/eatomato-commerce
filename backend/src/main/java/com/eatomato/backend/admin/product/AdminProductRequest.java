@@ -23,6 +23,8 @@ public record AdminProductRequest(
 	@NotBlank String categoryCode,
 	String subcategoryCode,
 	@Min(0) @Max(100) int rewardRate,
+	/** 재고 수량. 비우면(null) 재고를 관리하지 않는다. */
+	@Min(0) @Max(1_000_000) Integer stockQuantity,
 	String noticeText,
 	String shippingText,
 	boolean visible,

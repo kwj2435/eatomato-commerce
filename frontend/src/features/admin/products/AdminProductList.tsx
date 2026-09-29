@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { deleteAdminProduct, listAdminProducts, setAdminProductVisible } from "@/lib/api/admin";
+import { deleteAdminProduct, listAdminProducts, setAdminProductStock, setAdminProductVisible } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
 import { listCategories, type CategoryTree } from "@/lib/api/categories";
 import { formatKRW } from "@/lib/utils/format";
@@ -37,6 +37,18 @@ export function AdminProductList() {
     try {
       await setAdminProductVisible(product.id, !product.visible);
       load();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
+  const saveStock = async (product: AdminProductSummary, raw: string) => {
+    const next = raw.trim() === "" ? null : Math.max(0, Math.floor(Number(raw)));
+    if (next !== null && !Number.isFinite(next)) return;
+    if (next === product.stockQuantity) return;
+    try {
+      const updated = await setAdminProductStock(product.id, next);
+      setData((prev) => (prev ? { ...prev, content: prev.content.map((p) => (p.id === updated.id ? updated : p)) } : prev));
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -117,6 +129,7 @@ export function AdminProductList() {
                   <th className={thClass}>카테고리</th>
                   <th className={`${thClass} text-right`}>판매가</th>
                   <th className={`${thClass} text-right`}>판매량</th>
+                  <th className={thClass}>재고</th>
                   <th className={thClass}>노출</th>
                   <th className={thClass}>
                     <span className="sr-only">관리</span>
@@ -156,6 +169,25 @@ export function AdminProductList() {
                       ) : null}
                     </td>
                     <td className={`${tdClass} text-right tabular-nums`}>{p.salesCount.toLocaleString("ko-KR")}</td>
+                    <td className={tdClass}>
+                      <div className="flex items-center gap-1.5">
+                        {/* 칸을 벗어나거나 Enter 를 누르면 저장. 비우면 재고 관리 안 함(무제한). */}
+                        <input
+                          key={`${p.id}-${p.stockQuantity}`}
+                          type="number"
+                          min={0}
+                          defaultValue={p.stockQuantity ?? ""}
+                          placeholder="무제한"
+                          aria-label={`${p.name} 재고`}
+                          onBlur={(e) => saveStock(p, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                          }}
+                          className="h-8 w-20 rounded-md border border-black/15 px-2 text-right text-[13px] tabular-nums"
+                        />
+                        {p.soldOut ? <Chip tone="brand">품절</Chip> : null}
+                      </div>
+                    </td>
                     <td className={tdClass}>
                       <button type="button" onClick={() => toggleVisible(p)} title="클릭해서 노출/숨김 전환">
                         <Chip tone={p.visible ? "brand" : "muted"}>{p.visible ? "노출" : "숨김"}</Chip>

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eatomato.backend.admin.common.PageResponse;
+import com.eatomato.backend.global.security.CurrentMemberId;
 import com.eatomato.backend.order.OrderStatus;
 
 import jakarta.validation.Valid;
@@ -32,7 +33,7 @@ public class AdminOrderController {
 	/** 결제·주문 현황. q 는 주문번호 또는 주문자 아이디. */
 	@GetMapping
 	public PageResponse<AdminOrderResponse> list(
-		@RequestParam(required = false) @Pattern(regexp = "PAID|SHIPPING|DELIVERED|CANCELLED") String status,
+		@RequestParam(required = false) @Pattern(regexp = "PENDING_PAYMENT|PAID|SHIPPING|DELIVERED|CANCELLED") String status,
 		@RequestParam(required = false) String q,
 		@RequestParam(defaultValue = "0") @Min(0) int page,
 		@RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
@@ -41,9 +42,9 @@ public class AdminOrderController {
 	}
 
 	@PatchMapping("/{orderNumber}/status")
-	public AdminOrderResponse changeStatus(@PathVariable String orderNumber,
+	public AdminOrderResponse changeStatus(@CurrentMemberId Long adminId, @PathVariable String orderNumber,
 		@Valid @RequestBody StatusRequest request) {
-		return adminOrderService.changeStatus(orderNumber, request.status());
+		return adminOrderService.changeStatus(adminId, orderNumber, request.status());
 	}
 
 	public record StatusRequest(@NotNull OrderStatus status) {

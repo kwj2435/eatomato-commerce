@@ -15,6 +15,7 @@ import com.eatomato.backend.global.security.CurrentMemberId;
 import com.eatomato.backend.order.dto.CreateOrderRequest;
 import com.eatomato.backend.order.dto.OrderResponse;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -24,10 +25,17 @@ public class OrderController {
 
 	private final OrderService orderService;
 
+	/** 주문서 제출 → 결제대기 주문. 이어서 결제 승인(/api/payments/confirm)을 부른다. */
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public OrderResponse create(@CurrentMemberId Long memberId, @RequestBody(required = false) CreateOrderRequest request) {
-		return orderService.create(memberId, request == null ? new CreateOrderRequest(null) : request);
+	public OrderResponse create(@CurrentMemberId Long memberId, @Valid @RequestBody CreateOrderRequest request) {
+		return orderService.create(memberId, request);
+	}
+
+	/** 고객 취소(결제대기·결제완료만). */
+	@PostMapping("/{orderNumber}/cancel")
+	public OrderResponse cancel(@CurrentMemberId Long memberId, @PathVariable String orderNumber) {
+		return orderService.cancelMine(memberId, orderNumber);
 	}
 
 	/** 마이페이지 주문 내역. */

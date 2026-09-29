@@ -71,6 +71,7 @@ public class AdminProductService {
 			.detailImages(listOrEmpty(request.detailImages()))
 			.build());
 		product.changeVisible(request.visible());
+		product.changeStock(request.stockQuantity());
 		addOptionGroups(product, request);
 		product.replaceRelatedProducts(relatedProducts(request, product.getId()));
 		return AdminProductResponse.from(product);
@@ -96,6 +97,7 @@ public class AdminProductService {
 			request.visible(),
 			badges(request),
 			listOrEmpty(request.detailImages()));
+		product.changeStock(request.stockQuantity());
 
 		// 옵션 그룹은 통째로 교체한다. (product_id, code) 유니크 제약 때문에
 		// 기존 행 삭제를 먼저 DB 에 반영(flush)한 뒤 새 그룹을 넣는다.
@@ -110,6 +112,14 @@ public class AdminProductService {
 	@Transactional
 	public void changeVisible(Long id, boolean visible) {
 		find(id).changeVisible(visible);
+	}
+
+	/** 목록 화면에서 재고만 바꾼다. null 이면 재고 관리 해제. */
+	@Transactional
+	public AdminProductSummary changeStock(Long id, Integer stockQuantity) {
+		Product product = find(id);
+		product.changeStock(stockQuantity);
+		return AdminProductSummary.from(product);
 	}
 
 	/**

@@ -53,10 +53,9 @@ export function SignupForm() {
     setPending(true);
     setError(null);
     try {
-      setSession(
-        await signup({ password, name: name.trim(), email: email.trim() }),
-      );
-      router.replace(AFTER_LOGIN_PATH);
+      setSession(await signup({ password, name: name.trim(), email: email.trim() }));
+      // 가입 직후에는 닉네임·주소가 없으므로 추가 정보 입력으로 간다.
+      router.replace(`/signup/profile?next=${encodeURIComponent(AFTER_LOGIN_PATH)}`);
     } catch (e) {
       setError(errorMessage(e));
       setPending(false);

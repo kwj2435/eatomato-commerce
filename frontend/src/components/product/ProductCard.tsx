@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { SoldOutOverlay } from "@/components/product/SoldOutOverlay";
 import { cn } from "@/lib/utils/cn";
 import { formatKRW } from "@/lib/utils/format";
 import type { Product, ProductBadge } from "@/types/product";
@@ -30,6 +31,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
       >
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-surface-elevated">
           {product.badges?.length ? <BadgeGroup badges={product.badges} /> : null}
+          {product.soldOut ? <SoldOutOverlay /> : null}
 
           {product.imageUrl ? (
             <Image

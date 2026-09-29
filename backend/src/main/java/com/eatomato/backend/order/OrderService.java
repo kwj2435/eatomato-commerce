@@ -1,9 +1,13 @@
 package com.eatomato.backend.order;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +18,24 @@ import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.global.time.Times;
 import com.eatomato.backend.order.dto.CreateOrderRequest;
 import com.eatomato.backend.order.dto.OrderResponse;
+import com.eatomato.backend.payment.Payment;
+import com.eatomato.backend.payment.PaymentGateway;
+import com.eatomato.backend.payment.PaymentRepository;
+import com.eatomato.backend.payment.PaymentService;
+import com.eatomato.backend.product.Product;
+import com.eatomato.backend.product.ProductRepository;
+import com.eatomato.backend.shipping.ShippingPolicyService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * 주문 생성·조회·취소.
+ *
+ * 흐름: 주문서 제출 → 결제대기 주문 + 재고 차감(선점) → 결제 승인(PaymentService.confirm) → 결제완료.
+ * 결제대기로 30분이 지나면 자동 취소하고 재고를 돌려놓는다.
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -24,16 +43,16 @@ public class OrderService {
 
 	private static final DateTimeFormatter ORDER_NUMBER_DATE = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 	private static final SecureRandom RANDOM = new SecureRandom();
+	static final Duration PAYMENT_TIMEOUT = Duration.ofMinutes(30);
 
 	private final OrderRepository orderRepository;
 	private final CartItemRepository cartItemRepository;
+	private final ProductRepository productRepository;
+	private final PaymentRepository paymentRepository;
+	private final PaymentGateway paymentGateway;
+	private final OrderStatusHistoryRepository historyRepository;
+	private final ShippingPolicyService shippingPolicyService;
 
-	/**
-	 * 장바구니 항목으로 주문을 만든다.
-	 *
-	 * 결제(PG) 연동 전이라 주문은 생성 즉시 결제 완료(PAID)로 기록한다.
-	 * 네이버페이·토스페이 등을 붙이면 여기서 결제 대기 주문을 만들고, 승인 콜백에서 PAID 로 바꾸는 흐름이 된다.
-	 */
 	@Transactional
 	public OrderResponse create(Long memberId, CreateOrderRequest request) {
 		List<CartItem> cartItems = request.cartItemIds() == null || request.cartItemIds().isEmpty()
@@ -46,13 +65,17 @@ public class OrderService {
 			throw new ApiException(ErrorCode.PRODUCT_UNAVAILABLE);
 		}
 
-		Order order = new Order(newOrderNumber(), memberId);
-		for (CartItem cartItem : cartItems) {
-			order.addItem(OrderItem.snapshotOf(cartItem));
-			cartItem.getProduct().increaseSalesCount(cartItem.getQuantity());
-		}
+		reserveStock(cartItems);
+
+		CreateOrderRequest.Shipping s = request.shipping();
+		Order order = new Order(newOrderNumber(), memberId, new ShippingAddress(
+			s.recipientName().trim(), s.recipientPhone().replace("-", ""), s.zipCode(), s.roadAddress().trim(),
+			blankToNull(s.detailAddress()), blankToNull(s.deliveryMemo())));
+		cartItems.forEach(cartItem -> order.addItem(OrderItem.snapshotOf(cartItem)));
+		order.calculate(shippingPolicyService.current());
 		orderRepository.save(order);
-		cartItemRepository.deleteAll(cartItems);
+		paymentRepository.save(new Payment(order, paymentGateway.provider(), order.getTotal()));
+		historyRepository.save(new OrderStatusHistory(order.getId(), null, order.getStatus(), memberId, "주문서 제출"));
 		return OrderResponse.from(order);
 	}
 
@@ -63,8 +86,97 @@ public class OrderService {
 	}
 
 	public OrderResponse getMine(Long memberId, String orderNumber) {
+		return OrderResponse.from(findMine(memberId, orderNumber));
+	}
+
+	/** 고객 취소(결제대기·결제완료만). 결제완료였다면 PG 결제를 취소한다. */
+	@Transactional
+	public OrderResponse cancelMine(Long memberId, String orderNumber) {
+		Order order = findMine(memberId, orderNumber);
+		cancel(order, memberId, "고객 취소");
+		return OrderResponse.from(order);
+	}
+
+	/**
+	 * 취소 공통 처리: 결제 취소(환불) → 재고 복원 → 판매량 되돌림 → 상태 이력.
+	 * 배송이 시작된 주문은 취소할 수 없다(OrderStatus 전이 규칙).
+	 */
+	@Transactional
+	public void cancel(Order order, Long changedBy, String reason) {
+		OrderStatus before = order.getStatus();
+		if (!before.isCancellable()) {
+			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
+		}
+		if (before == OrderStatus.PAID) {
+			paymentRepository.findByOrder(order).ifPresent(payment -> PaymentService.refund(paymentGateway, payment, reason));
+			order.getItems().forEach(item ->
+				productRepository.findById(item.getProductId()).ifPresent(p -> p.decreaseSalesCount(item.getQuantity())));
+		} else {
+			paymentRepository.findByOrder(order).ifPresent(PaymentService::markCanceled);
+		}
+		quantitiesByProduct(order).forEach(productRepository::increaseStock);
+		order.cancel();
+		historyRepository.save(new OrderStatusHistory(order.getId(), before, OrderStatus.CANCELLED, changedBy, reason));
+	}
+
+	/** 관리자 상태 변경(배송중·배송완료·취소). 결제완료는 결제 승인으로만 바뀐다. */
+	@Transactional
+	public void changeStatusByAdmin(Order order, OrderStatus next, Long adminId) {
+		if (!order.getStatus().nextByAdmin().contains(next)) {
+			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
+		}
+		if (next == OrderStatus.CANCELLED) {
+			cancel(order, adminId, "관리자 취소");
+			return;
+		}
+		OrderStatus before = order.getStatus();
+		order.transitionTo(next);
+		historyRepository.save(new OrderStatusHistory(order.getId(), before, next, adminId, null));
+	}
+
+	/** 결제대기로 30분이 지난 주문을 취소하고 재고를 돌려놓는다. 5분마다 돈다. */
+	@Scheduled(fixedDelay = 5 * 60 * 1000, initialDelay = 60 * 1000)
+	@Transactional
+	public void expireUnpaidOrders() {
+		List<Order> expired = orderRepository.findByStatusAndOrderedAtBefore(OrderStatus.PENDING_PAYMENT,
+			Times.now().minus(PAYMENT_TIMEOUT));
+		expired.forEach(order -> cancel(order, null, "결제 시간 초과"));
+		if (!expired.isEmpty()) {
+			log.info("결제대기 만료 취소: {}건", expired.size());
+		}
+	}
+
+	/**
+	 * 재고 선점. 상품별로 합친 수량을 조건부 UPDATE 로 한 번에 차감한다.
+	 * 하나라도 모자라면 예외로 트랜잭션 전체(앞서 차감한 것 포함)가 되돌아간다.
+	 */
+	private void reserveStock(List<CartItem> cartItems) {
+		Map<Long, Integer> quantities = new LinkedHashMap<>();
+		Map<Long, Product> products = new LinkedHashMap<>();
+		for (CartItem item : cartItems) {
+			quantities.merge(item.getProduct().getId(), item.getQuantity(), Integer::sum);
+			products.put(item.getProduct().getId(), item.getProduct());
+		}
+		quantities.forEach((productId, quantity) -> {
+			Product product = products.get(productId);
+			if (product.getStockQuantity() == null) {
+				return;
+			}
+			if (productRepository.decreaseStock(productId, quantity) == 0) {
+				throw new ApiException(ErrorCode.INSUFFICIENT_STOCK,
+					"'" + product.getName() + "' 재고가 부족합니다. 장바구니에서 수량을 줄여 주세요.");
+			}
+		});
+	}
+
+	private static Map<Long, Integer> quantitiesByProduct(Order order) {
+		Map<Long, Integer> quantities = new LinkedHashMap<>();
+		order.getItems().forEach(item -> quantities.merge(item.getProductId(), item.getQuantity(), Integer::sum));
+		return quantities;
+	}
+
+	private Order findMine(Long memberId, String orderNumber) {
 		return orderRepository.findByOrderNumberAndMemberId(orderNumber, memberId)
-			.map(OrderResponse::from)
 			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_NOT_FOUND));
 	}
 
@@ -75,5 +187,9 @@ public class OrderService {
 			candidate = Times.now().format(ORDER_NUMBER_DATE) + String.format("%04d", RANDOM.nextInt(10_000));
 		} while (orderRepository.existsByOrderNumber(candidate));
 		return candidate;
+	}
+
+	private static String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value.trim();
 	}
 }

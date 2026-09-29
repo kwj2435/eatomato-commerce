@@ -16,6 +16,7 @@ import com.eatomato.backend.product.Product;
 import com.eatomato.backend.product.ProductOptionChoice;
 import com.eatomato.backend.product.ProductOptionGroup;
 import com.eatomato.backend.product.ProductRepository;
+import com.eatomato.backend.shipping.ShippingPolicyService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,9 +27,11 @@ public class CartService {
 
 	private final CartItemRepository cartItemRepository;
 	private final ProductRepository productRepository;
+	private final ShippingPolicyService shippingPolicyService;
 
 	public CartResponse get(Long memberId) {
-		return CartResponse.from(cartItemRepository.findByMemberIdOrderByCreatedAtAscIdAsc(memberId));
+		return CartResponse.from(cartItemRepository.findByMemberIdOrderByCreatedAtAscIdAsc(memberId),
+			shippingPolicyService.current());
 	}
 
 	@Transactional
@@ -37,12 +40,20 @@ public class CartService {
 			.filter(Product::isOnSale)
 			.orElseThrow(() -> new ApiException(ErrorCode.PRODUCT_NOT_FOUND));
 		SelectedOptions options = resolveOptions(product, request.options() == null ? Map.of() : request.options());
+		if (product.isSoldOut()) {
+			throw new ApiException(ErrorCode.SOLD_OUT);
+		}
 
-		cartItemRepository.findByMemberIdAndProductAndOptionKey(memberId, product, options.key())
-			.ifPresentOrElse(
-				existing -> existing.increaseQuantity(request.quantity()),
-				() -> cartItemRepository.save(new CartItem(memberId, product, options.key(), options.label(),
-					options.priceDelta(), request.quantity())));
+		CartItem existing = cartItemRepository.findByMemberIdAndProductAndOptionKey(memberId, product, options.key())
+			.orElse(null);
+		int wanted = request.quantity() + (existing == null ? 0 : existing.getQuantity());
+		requireStock(product, wanted);
+		if (existing != null) {
+			existing.increaseQuantity(request.quantity());
+		} else {
+			cartItemRepository.save(new CartItem(memberId, product, options.key(), options.label(),
+				options.priceDelta(), request.quantity()));
+		}
 		return get(memberId);
 	}
 
@@ -51,6 +62,9 @@ public class CartService {
 		CartItem item = cartItemRepository.findByIdAndMemberId(cartItemId, memberId)
 			.orElseThrow(() -> new ApiException(ErrorCode.CART_ITEM_NOT_FOUND));
 		if (request.quantity() != null) {
+			if (request.quantity() > item.getQuantity()) {
+				requireStock(item.getProduct(), request.quantity());
+			}
 			item.changeQuantity(request.quantity());
 		}
 		if (request.selected() != null) {
@@ -77,7 +91,15 @@ public class CartService {
 	@Transactional
 	public CartResponse clear(Long memberId) {
 		cartItemRepository.deleteByMemberId(memberId);
-		return CartResponse.from(List.of());
+		return CartResponse.from(List.of(), shippingPolicyService.current());
+	}
+
+	/** 담으려는 총수량만큼 재고가 있는지. 부족하면 남은 수량을 알려 준다. */
+	private static void requireStock(Product product, int quantity) {
+		if (!product.hasStockFor(quantity)) {
+			throw new ApiException(ErrorCode.INSUFFICIENT_STOCK,
+				"재고가 부족합니다. 지금 살 수 있는 수량은 " + product.getStockQuantity() + "개입니다.");
+		}
 	}
 
 	/**

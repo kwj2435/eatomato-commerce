@@ -64,6 +64,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
 	long countByVisibleFalseAndDeletedAtIsNull();
 
+	/**
+	 * 재고 차감. 재고가 충분할 때만 줄이고 바뀐 행 수(0 또는 1)를 돌려준다.
+	 * 한 번의 UPDATE 로 확인과 차감을 같이 해 동시 주문에도 음수가 되지 않는다.
+	 */
+	@Modifying(flushAutomatically = true)
+	@Query("update Product p set p.stockQuantity = p.stockQuantity - :quantity"
+		+ " where p.id = :id and p.stockQuantity is not null and p.stockQuantity >= :quantity")
+	int decreaseStock(@Param("id") Long id, @Param("quantity") int quantity);
+
+	/** 재고 복원(주문 취소). 재고를 관리하지 않는 상품은 그대로 둔다. */
+	@Modifying(flushAutomatically = true)
+	@Query("update Product p set p.stockQuantity = p.stockQuantity + :quantity"
+		+ " where p.id = :id and p.stockQuantity is not null")
+	int increaseStock(@Param("id") Long id, @Param("quantity") int quantity);
+
+	long countByStockQuantityLessThanEqualAndDeletedAtIsNull(int stock);
+
 	/** 다른 상품의 함께 구매 목록에서 이 상품을 뺀다(삭제 시). */
 	@Modifying
 	@Query(value = "delete from product_related where related_product_id = :productId", nativeQuery = true)

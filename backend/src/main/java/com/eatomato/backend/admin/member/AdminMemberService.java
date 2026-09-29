@@ -48,7 +48,7 @@ public class AdminMemberService {
 		Member member = find(id);
 		long[] stat = orderStats(List.of(id)).getOrDefault(id, new long[] {0, 0});
 		List<AdminOrderResponse> orders = orderRepository.findTop10ByMemberIdOrderByOrderedAtDescIdDesc(id).stream()
-			.map(order -> AdminOrderResponse.of(order, member))
+			.map(order -> AdminOrderResponse.of(order, member, null))
 			.toList();
 		return new AdminMemberDetail(AdminMemberSummary.of(member, stat[0], stat[1]), MemberResponse.from(member), orders);
 	}

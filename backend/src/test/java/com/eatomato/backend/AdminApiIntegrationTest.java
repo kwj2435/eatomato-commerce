@@ -200,10 +200,16 @@ class AdminApiIntegrationTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"productId\":7,\"options\":{\"color\":\"cream\",\"type\":\"basic\"},\"quantity\":1}"))
 			.andExpect(status().isOk());
-		String order = mockMvc.perform(post("/api/orders").header(HttpHeaders.AUTHORIZATION, user))
+		String order = mockMvc.perform(post("/api/orders").header(HttpHeaders.AUTHORIZATION, user)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"shipping\":{\"recipientName\":\"김토마\",\"recipientPhone\":\"010-1234-5678\",\"zipCode\":\"21986\",\"roadAddress\":\"인천 연수구 송도문화로 28\"}}"))
 			.andExpect(status().isCreated())
 			.andReturn().getResponse().getContentAsString();
 		String orderNumber = JsonPath.read(order, "$.orderNumber");
+		int total = JsonPath.read(order, "$.total");
+		mockMvc.perform(post("/api/payments/confirm").header(HttpHeaders.AUTHORIZATION, user)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"orderNumber\":\"%s\",\"paymentKey\":\"mock-admin\",\"amount\":%d}".formatted(orderNumber, total)))
+			.andExpect(status().isOk());
 
 		mockMvc.perform(get("/api/admin/orders").param("q", "orderuser").header(HttpHeaders.AUTHORIZATION, admin))
 			.andExpect(jsonPath("$.content", hasSize(1)))

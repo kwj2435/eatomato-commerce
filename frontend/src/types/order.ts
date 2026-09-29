@@ -1,7 +1,12 @@
-export type OrderStatus = "PAID" | "SHIPPING" | "DELIVERED" | "CANCELLED";
+/**
+ * 주문 상태. 결제대기 → 결제완료 → 배송중 → 배송완료, 결제완료 전까지는 취소 가능.
+ * 결제완료로는 결제 승인(PG 콜백)으로만 바뀐다.
+ */
+export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "SHIPPING" | "DELIVERED" | "CANCELLED";
 
 /** 주문 상태 표시 문구. 목록·필터·상태 변경 셀렉트가 이 순서를 공유한다. */
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  PENDING_PAYMENT: "결제대기",
   PAID: "결제완료",
   SHIPPING: "배송중",
   DELIVERED: "배송완료",
@@ -20,13 +25,28 @@ export type OrderItem = {
   reviewed: boolean;
 };
 
+/** 주문 시점 배송지. 배송지 입력 이전에 만든 주문에는 없다. */
+export type OrderShipping = {
+  recipientName: string;
+  recipientPhone: string;
+  zipCode: string;
+  roadAddress: string;
+  detailAddress?: string;
+  deliveryMemo?: string;
+};
+
 export type Order = {
   orderNumber: string;
   status: OrderStatus;
   /** ISO 8601 (+09:00) */
   orderedAt: string;
+  paidAt?: string;
+  cancelledAt?: string;
   subtotal: number;
   shippingFee: number;
   total: number;
+  /** 고객이 직접 취소할 수 있는지(결제대기·결제완료). */
+  cancellable: boolean;
+  shipping?: OrderShipping;
   items: OrderItem[];
 };

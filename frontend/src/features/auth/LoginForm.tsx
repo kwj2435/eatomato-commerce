@@ -8,7 +8,7 @@ import { AuthField as Field } from "./AuthField";
 import { KakaoLoginButton } from "./KakaoLoginButton";
 import { login } from "@/lib/api/auth";
 import { useRedirectIfLoggedIn } from "@/lib/store/use-redirect-if-logged-in";
-import { nextPathFromLocation } from "@/lib/utils/next-path";
+import { afterLoginPath, nextPathFromLocation } from "@/lib/utils/next-path";
 import { startKakaoLogin } from "@/lib/api/kakao";
 import { errorMessage } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/store/auth-store";
@@ -42,8 +42,9 @@ export function LoginForm() {
     }
     setPending(true);
     try {
-      setSession(await login(id.trim(), password));
-      router.replace(nextPathFromLocation());
+      const session = await login(id.trim(), password);
+      setSession(session);
+      router.replace(afterLoginPath(session.member.profileComplete));
     } catch (error) {
       setStatus({ kind: "error", message: errorMessage(error) });
       setPending(false);

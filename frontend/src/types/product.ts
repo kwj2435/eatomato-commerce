@@ -34,7 +34,11 @@ export type Product = {
   category: CategoryKey;
   /** 서브카테고리. 없으면 카테고리 최상위. */
   subcategory?: SubcategoryKey;
-  /** 정렬용 지표(목업 전용). 실제 API 는 서버에서 정렬해 반환한다. */
+  /** 판매량(정렬용). */
   salesCount: number;
   rating: number;
+  /** 남은 재고. 재고를 관리하지 않는 상품은 없다(무제한). */
+  stock?: number;
+  /** 품절(재고 0). 담기·구매를 막는다. */
+  soldOut: boolean;
 };

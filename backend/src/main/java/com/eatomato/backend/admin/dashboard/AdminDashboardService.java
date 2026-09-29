@@ -75,7 +75,7 @@ public class AdminDashboardService {
 		for (Object[] row : orderRepository.countByStatus()) {
 			long count = ((Number) row[1]).longValue();
 			byStatus.put(((OrderStatus) row[0]).name(), count);
-			if (row[0] != OrderStatus.CANCELLED) {
+			if (((OrderStatus) row[0]).isPaid()) {
 				allOrders += count;
 			}
 		}
@@ -97,7 +97,8 @@ public class AdminDashboardService {
 			byStatus,
 			daily,
 			topProducts,
-			adminOrderService.withMembers(orderRepository.findTop5ByOrderByOrderedAtDescIdDesc()));
+			adminOrderService.withDetails(orderRepository.findTop5ByOrderByOrderedAtDescIdDesc()),
+			productRepository.countByStockQuantityLessThanEqualAndDeletedAtIsNull(0));
 	}
 
 	private long allTimeRevenue() {

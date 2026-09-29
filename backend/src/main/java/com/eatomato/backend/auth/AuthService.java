@@ -20,6 +20,7 @@ import com.eatomato.backend.auth.dto.LoginRequest;
 import com.eatomato.backend.auth.dto.SignupRequest;
 import com.eatomato.backend.auth.dto.TokenResponse;
 import com.eatomato.backend.auth.kakao.KakaoUser;
+import com.eatomato.backend.auth.limit.LoginAttemptLimiter;
 import com.eatomato.backend.auth.token.RefreshTokenService;
 import com.eatomato.backend.global.config.AppProperties;
 import com.eatomato.backend.global.error.ApiException;
@@ -43,6 +44,7 @@ public class AuthService {
 	private final JwtEncoder jwtEncoder;
 	private final AppProperties properties;
 	private final RefreshTokenService refreshTokenService;
+	private final LoginAttemptLimiter loginAttemptLimiter;
 
 	@Transactional
 	public TokenResponse signup(SignupRequest request) {
@@ -82,15 +84,24 @@ public class AuthService {
 		return candidate;
 	}
 
-	/** 쓰기 트랜잭션이어야 한다: 로그인할 때 리프레시 토큰을 저장한다. */
+	/**
+	 * 쓰기 트랜잭션이어야 한다: 로그인할 때 리프레시 토큰을 저장한다.
+	 * 실패가 쌓이면 LoginAttemptLimiter 가 계정·IP 단위로 잠근다(없는 계정도 똑같이 센다).
+	 */
 	@Transactional
-	public TokenResponse login(LoginRequest request) {
+	public TokenResponse login(LoginRequest request, String clientIp) {
 		String identifier = request.loginId().trim();
+		loginAttemptLimiter.check(identifier, clientIp);
 		Member member = (identifier.contains("@")
 			? memberRepository.findByEmail(identifier)
 			: memberRepository.findByLoginId(identifier))
 			.filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
-			.orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
+			.orElse(null);
+		if (member == null) {
+			loginAttemptLimiter.recordFailure(identifier, clientIp);
+			throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
+		}
+		loginAttemptLimiter.recordSuccess(identifier);
 		if (!member.isEnabled()) {
 			throw new ApiException(ErrorCode.MEMBER_DISABLED);
 		}

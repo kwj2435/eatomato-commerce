@@ -20,7 +20,10 @@ public record ProductResponse(
 	String category,
 	String subcategory,
 	int salesCount,
-	double rating
+	double rating,
+	/** 남은 재고. 재고를 관리하지 않는 상품은 null(응답에서 빠진다). */
+	Integer stock,
+	boolean soldOut
 ) {
 
 	public static ProductResponse from(Product product) {
@@ -37,6 +40,8 @@ public record ProductResponse(
 			product.getCategoryCode(),
 			product.getSubcategoryCode(),
 			product.getSalesCount(),
-			product.getRating().doubleValue());
+			product.getRating().doubleValue(),
+			product.getStockQuantity(),
+			product.isSoldOut());
 	}
 }

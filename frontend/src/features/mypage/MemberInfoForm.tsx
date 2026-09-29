@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useMemo, useState } from "react";
 
 import { ChevronDownIcon } from "@/components/ui/icons";
+import { searchPostcode } from "@/components/address/postcode";
 import { errorMessage } from "@/lib/api/client";
 import { updateMyMember } from "@/lib/api/member";
 import { logout, useAuthStore } from "@/lib/store/auth-store";
@@ -39,7 +40,7 @@ type MemberInfoFormProps = {
  *   (우편번호·기본주소는 주소 검색이 붙으면 그때 상태로 승격시킨다.)
  *
  * 저장은 `PATCH /api/me`, 로그아웃은 서버에서 리프레시 토큰을 폐기하고 메인으로 보낸다.
- * 주소 검색은 아직 준비 중이라 안내 문구만 띄운다.
+ * 주소는 우편번호 검색(카카오 우편번호 서비스)으로 채운다.
  */
 export function MemberInfoForm({ member }: MemberInfoFormProps) {
   const fieldId = useId();
@@ -48,6 +49,9 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
   const [email, setEmail] = useState(member.email);
   const [name, setName] = useState(member.name);
   const [phone, setPhone] = useState(member.phone);
+  const [nickname, setNickname] = useState(member.nickname ?? "");
+  const [zipCode, setZipCode] = useState(member.address.zipCode);
+  const [roadAddress, setRoadAddress] = useState(member.address.road);
   const [addressDetail, setAddressDetail] = useState(member.address.detail);
   const [birthYear, setBirthYear] = useState(member.birthDate?.year ?? null);
   const [birthMonth, setBirthMonth] = useState(member.birthDate?.month ?? null);
@@ -119,7 +123,8 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
         email: email.trim(),
         name: name.trim(),
         phone,
-        address: { ...member.address, detail: addressDetail },
+        nickname: nickname.trim() || undefined,
+        address: { zipCode, road: roadAddress, detail: addressDetail },
         // 연·월·일을 모두 골랐을 때만 보낸다. 서버는 넘기지 않은 필드를 그대로 둔다.
         birthDate:
           birthYear && birthMonth && birthDay
@@ -185,6 +190,17 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
           />
         </Field>
 
+        <Field label="닉네임" htmlFor={id("nickname")}>
+          <input
+            id={id("nickname")}
+            type="text"
+            maxLength={12}
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            className={inputClass}
+          />
+        </Field>
+
         <Field label="등급" htmlFor={id("grade")}>
           <input
             id={id("grade")}
@@ -236,18 +252,23 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
           <input
             id={id("zip")}
             type="text"
-            value={member.address.zipCode}
+            value={zipCode}
             readOnly
             className={cn(inputClass, readonlyClass, "flex-1")}
           />
           <button
             type="button"
-            onClick={() =>
-              setStatus({
-                kind: "error",
-                message: "주소 검색은 준비 중입니다.",
-              })
-            }
+            onClick={async () => {
+              try {
+                const found = await searchPostcode();
+                if (found) {
+                  setZipCode(found.zipCode);
+                  setRoadAddress(found.roadAddress);
+                }
+              } catch (e) {
+                setStatus({ kind: "error", message: errorMessage(e) });
+              }
+            }}
             className="h-[42px] w-[131px] flex-none border border-brand-deep text-[12px] font-bold tracking-[-0.2px] text-black transition-colors hover:bg-brand-deep hover:text-white"
           >
             검색하기
@@ -263,7 +284,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
             <input
               id={id("addr")}
               type="text"
-              value={member.address.road}
+              value={roadAddress}
               readOnly
               className={cn(inputClass, readonlyClass)}
             />

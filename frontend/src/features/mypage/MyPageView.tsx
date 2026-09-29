@@ -6,13 +6,13 @@ import { useEffect, useState } from "react";
 import { Container } from "@/components/layout/Container";
 import { errorMessage } from "@/lib/api/client";
 import { getMyMember } from "@/lib/api/member";
-import { listMyOrders } from "@/lib/api/orders";
+import { cancelMyOrder, listMyOrders } from "@/lib/api/orders";
 import { listMyReviews } from "@/lib/api/reviews";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useRequireAuth } from "@/lib/store/use-require-auth";
 import { formatKRW, formatNoticeDate } from "@/lib/utils/format";
 import type { Member } from "@/types/member";
-import type { Order } from "@/types/order";
+import { ORDER_STATUS_LABELS, type Order } from "@/types/order";
 import type { MyReview } from "@/types/review";
 
 import { HistorySection } from "./HistorySection";
@@ -140,16 +140,41 @@ function OrderUtility() {
   );
 }
 
-function OrderList({ orders }: { orders: Order[] }) {
+function OrderList({ orders: initial }: { orders: Order[] }) {
+  const [orders, setOrders] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
+
+  const cancel = async (order: Order) => {
+    const paid = order.status === "PAID";
+    if (!window.confirm(paid ? "주문을 취소할까요? 결제가 취소(환불)됩니다." : "주문을 취소할까요?")) return;
+    try {
+      const updated = await cancelMyOrder(order.orderNumber);
+      setOrders((prev) => prev.map((o) => (o.orderNumber === updated.orderNumber ? updated : o)));
+      setError(null);
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
   return (
     <ul className="border-t border-black">
+      {error ? (
+        <li role="alert" className="py-2 text-[13px] text-brand-primary">
+          {error}
+        </li>
+      ) : null}
       {orders.map((order) => (
         <li key={order.orderNumber} className="border-b border-black/20 py-4">
-          <div className="flex items-baseline justify-between text-[13px] tracking-[-0.2px]">
+          <div className="flex items-baseline justify-between gap-3 text-[13px] tracking-[-0.2px]">
             <span className="text-[#777]">
               {formatNoticeDate(order.orderedAt)} · 주문번호 {order.orderNumber}
             </span>
-            <span className="font-bold text-black">{formatKRW(order.total)}</span>
+            <span className="flex-none">
+              <span className={order.status === "CANCELLED" ? "mr-2 text-[#999]" : "mr-2 font-medium text-brand-primary"}>
+                {ORDER_STATUS_LABELS[order.status]}
+              </span>
+              <span className="font-bold text-black">{formatKRW(order.total)}</span>
+            </span>
           </div>
           <ul className="mt-2 space-y-1">
             {order.items.map((item) => (
@@ -164,6 +189,17 @@ function OrderList({ orders }: { orders: Order[] }) {
               </li>
             ))}
           </ul>
+          {order.cancellable ? (
+            <div className="mt-2 text-right">
+              <button
+                type="button"
+                onClick={() => cancel(order)}
+                className="text-[12px] text-[#777] underline-offset-2 hover:text-black hover:underline"
+              >
+                주문 취소
+              </button>
+            </div>
+          ) : null}
         </li>
       ))}
     </ul>

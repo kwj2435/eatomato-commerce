@@ -28,6 +28,8 @@ import { useAuthStore } from "./auth-store";
 type CartState = {
   items: CartItem[];
   summary: CartSummary;
+  /** 배송비 정책(관리자 설정). 서버 응답에 함께 온다. */
+  policy: Cart["shippingPolicy"] | null;
   /** 서버에서 한 번이라도 불러왔는지. 로딩 표시에 쓴다. */
   loaded: boolean;
   /** 장바구니 화면에서 마지막으로 실패한 요청의 안내 문구. */
@@ -52,11 +54,12 @@ const EMPTY_SUMMARY: CartSummary = {
 
 export const useCartStore = create<CartState>()((set, get) => {
   const apply = (cart: Cart) =>
-    set({ items: cart.items, summary: cart.summary, loaded: true, error: null });
+    set({ items: cart.items, summary: cart.summary, policy: cart.shippingPolicy, loaded: true, error: null });
 
   return {
     items: [],
     summary: EMPTY_SUMMARY,
+    policy: null,
     loaded: false,
     error: null,
 
@@ -77,7 +80,7 @@ export const useCartStore = create<CartState>()((set, get) => {
 
     toggleAllSelected: async (selected) => apply(await selectAllCartItems(selected)),
 
-    reset: () => set({ items: [], summary: EMPTY_SUMMARY, loaded: false, error: null }),
+    reset: () => set({ items: [], summary: EMPTY_SUMMARY, policy: null, loaded: false, error: null }),
   };
 });
 

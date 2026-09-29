@@ -104,6 +104,7 @@ function BetterTogetherRow({
           >
             {item.name}
           </Link>
+          {item.soldOut ? <span className="text-[12px] font-bold text-brand-primary">품절 — 함께 담을 수 없어요</span> : null}
           <p className="flex items-baseline gap-1.5 text-[14px] tracking-[-0.2px]">
             <span className="text-[#545454]">{formatKRW(currentPrice)}</span>
             {hasSale ? (

@@ -23,6 +23,7 @@ import com.eatomato.backend.global.config.AppProperties;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -45,9 +46,10 @@ public class AuthController {
 		return authService.signup(request);
 	}
 
+	/** 클라이언트 IP 는 nginx 가 넘긴 X-Forwarded-For 를 ForwardedHeaderFilter 가 반영한 값이다. */
 	@PostMapping("/login")
-	public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-		return authService.login(request);
+	public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+		return authService.login(request, servletRequest.getRemoteAddr());
 	}
 
 	/** 액세스 토큰 갱신. 리프레시 토큰도 새로 바뀐다. */

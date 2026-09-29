@@ -14,6 +14,10 @@ export type CartItem = {
   quantity: number;
   /** 개별 선택 체크박스 상태. 결제 요약은 선택된 항목만 합산한다. */
   selected: boolean;
+  /** 지금 주문할 수 있는지(판매 중 + 재고 충분). false 면 주문서로 넘길 수 없다. */
+  available: boolean;
+  /** 남은 재고. 재고를 관리하지 않는 상품은 없다. */
+  stock?: number;
 };
 
 /** 선택된 항목 기준 결제 요약. 서버가 계산해 내려준다. */
@@ -29,11 +33,6 @@ export type CartSummary = {
 export type Cart = {
   items: CartItem[];
   summary: CartSummary;
-  shippingPolicy: { freeThreshold: number; standardFee: number };
+  /** 배송비 정책(관리자 설정). 안내 문구를 이 값으로 만든다. 제주 추가 배송비는 주문서에서 더한다. */
+  shippingPolicy: { freeThreshold: number; standardFee: number; remoteAreaFee: number };
 };
-
-/** 배송 정책. 서버(ShippingPolicy)와 같은 값이며 안내 문구 표시에 쓴다. */
-export const SHIPPING_POLICY = {
-  freeThreshold: 80_000,
-  standardFee: 3_000,
-} as const;

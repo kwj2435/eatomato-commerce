@@ -23,6 +23,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
+
+import org.hibernate.annotations.DynamicUpdate;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,6 +32,11 @@ import lombok.NoArgsConstructor;
 
 import com.eatomato.backend.global.time.Times;
 
+/**
+ * DynamicUpdate: 바뀐 컬럼만 UPDATE 한다. 재고는 조건부 UPDATE 쿼리로 차감·복원하므로,
+ * 같은 트랜잭션에서 판매량 등을 바꿀 때 메모리에 남은 예전 재고값이 덮어써지지 않게 한다.
+ */
+@DynamicUpdate
 @Entity
 @Table(name = "product")
 @Getter
@@ -72,6 +79,9 @@ public class Product {
 	private String noticeText;
 
 	private String shippingText;
+
+	/** 재고 수량. null 이면 재고를 관리하지 않는다(무제한). 주문 때 차감, 취소 때 복원한다. */
+	private Integer stockQuantity;
 
 	/** false 면 스토어프론트에서 숨긴다(관리자 화면에서는 보인다). */
 	private boolean visible;
@@ -137,6 +147,25 @@ public class Product {
 		if (detailImages != null) {
 			this.detailImages.addAll(detailImages);
 		}
+	}
+
+	/** 재고를 관리하는 상품이고 남은 수량이 0 이하인지. */
+	public boolean isSoldOut() {
+		return stockQuantity != null && stockQuantity <= 0;
+	}
+
+	/** 요청 수량만큼 살 수 있는지(재고 미관리 상품은 항상 가능). */
+	public boolean hasStockFor(int quantity) {
+		return stockQuantity == null || stockQuantity >= quantity;
+	}
+
+	public void changeStock(Integer stockQuantity) {
+		this.stockQuantity = stockQuantity;
+		this.updatedAt = Times.now();
+	}
+
+	public void decreaseSalesCount(int quantity) {
+		this.salesCount = Math.max(0, this.salesCount - quantity);
 	}
 
 	/** 스토어프론트에 노출·판매 중인지. */

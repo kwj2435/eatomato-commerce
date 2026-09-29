@@ -11,6 +11,10 @@ export type Member = {
   id: string;
   email: string;
   name: string;
+  /** 공개 표시용 닉네임. 가입 후 추가 정보 입력 전이면 null. */
+  nickname: string | null;
+  /** 가입 후 추가 정보(닉네임·주소)를 다 넣었는지. false 면 추가 정보 입력 화면으로 보낸다(관리자는 항상 true). */
+  profileComplete: boolean;
   /** 회원 등급 라벨. 서버 산출값이라 변경 불가. */
   grade: string;
   phone: MemberPhone;

@@ -18,7 +18,10 @@ import com.eatomato.backend.member.Member;
 import com.eatomato.backend.member.MemberRepository;
 import com.eatomato.backend.order.Order;
 import com.eatomato.backend.order.OrderRepository;
+import com.eatomato.backend.order.OrderService;
 import com.eatomato.backend.order.OrderStatus;
+import com.eatomato.backend.payment.Payment;
+import com.eatomato.backend.payment.PaymentRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +32,8 @@ public class AdminOrderService {
 
 	private final OrderRepository orderRepository;
 	private final MemberRepository memberRepository;
+	private final PaymentRepository paymentRepository;
+	private final OrderService orderService;
 
 	public PageResponse<AdminOrderResponse> list(String status, String keyword, Pageable pageable) {
 		String normalized = Keywords.normalize(keyword);
@@ -39,22 +44,27 @@ public class AdminOrderService {
 			normalized,
 			memberIds.isEmpty() ? List.of(-1L) : memberIds,
 			pageable);
-		return PageResponse.of(page, withMembers(page.getContent()));
+		return PageResponse.of(page, withDetails(page.getContent()));
 	}
 
+	/** 허용된 다음 상태로만 바꾼다. 취소면 환불·재고 복원까지 한다. */
 	@Transactional
-	public AdminOrderResponse changeStatus(String orderNumber, OrderStatus status) {
+	public AdminOrderResponse changeStatus(Long adminId, String orderNumber, OrderStatus status) {
 		Order order = orderRepository.findByOrderNumber(orderNumber)
 			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_NOT_FOUND));
-		order.changeStatus(status);
-		return withMembers(List.of(order)).getFirst();
+		orderService.changeStatusByAdmin(order, status, adminId);
+		return withDetails(List.of(order)).getFirst();
 	}
 
-	/** 주문 목록에 주문자 정보를 붙인다(회원 조회는 한 번에). */
-	public List<AdminOrderResponse> withMembers(List<Order> orders) {
+	/** 주문 목록에 주문자·결제 정보를 붙인다(회원·결제 조회는 한 번에). */
+	public List<AdminOrderResponse> withDetails(List<Order> orders) {
 		Map<Long, Member> members = memberRepository.findByIdIn(orders.stream().map(Order::getMemberId).toList())
 			.stream()
 			.collect(Collectors.toMap(Member::getId, Function.identity()));
-		return orders.stream().map(order -> AdminOrderResponse.of(order, members.get(order.getMemberId()))).toList();
+		Map<Long, Payment> payments = paymentRepository.findByOrderIn(orders).stream()
+			.collect(Collectors.toMap(payment -> payment.getOrder().getId(), Function.identity()));
+		return orders.stream()
+			.map(order -> AdminOrderResponse.of(order, members.get(order.getMemberId()), payments.get(order.getId())))
+			.toList();
 	}
 }

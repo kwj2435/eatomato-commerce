@@ -7,7 +7,6 @@ import { InfoIcon } from "@/components/ui/icons";
 import { runCartAction, useCartStore } from "@/lib/store/cart-store";
 import { formatKRW } from "@/lib/utils/format";
 import type { CartItem } from "@/types/cart";
-import { SHIPPING_POLICY } from "@/types/cart";
 
 import { QuantityStepper } from "./QuantityStepper";
 
@@ -27,6 +26,7 @@ type CartTableProps = {
  * md(768) 미만에선 4열 표가 들어갈 폭이 없어 카드형 목록(`CartMobileList`)으로 바꿔 보여준다.
  */
 export function CartTable({ items }: CartTableProps) {
+  const policy = useCartStore((s) => s.policy);
   const allSelected = items.length > 0 && items.every((it) => it.selected);
   const toggleAll = useCartStore((s) => s.toggleAllSelected);
 
@@ -36,6 +36,7 @@ export function CartTable({ items }: CartTableProps) {
         items={items}
         allSelected={allSelected}
         onToggleAll={toggleAll}
+        policyText={policyText(policy)}
       />
       <table className="mt-[46px] hidden w-full table-fixed border-collapse md:table">
         <colgroup>
@@ -87,6 +88,7 @@ export function CartTable({ items }: CartTableProps) {
               isLast={index === items.length - 1}
               showShipCell={index === 0}
               shipRowSpan={items.length}
+              policy={policy}
             />
           ))}
         </tbody>
@@ -101,14 +103,36 @@ type CartMobileListProps = {
   items: CartItem[];
   allSelected: boolean;
   onToggleAll: (next: boolean) => Promise<void>;
+  policyText: string;
 };
+
+type Policy = ReturnType<typeof useCartStore.getState>["policy"];
+
+/** 배송비 안내 문구. 관리자가 정한 배송비 정책으로 만든다. */
+function policyText(policy: Policy): string {
+  if (!policy) return "";
+  if (policy.freeThreshold <= 0) return "전 상품 무료배송";
+  return `배송비 ${formatKRW(policy.standardFee)} · ${formatKRW(policy.freeThreshold)} 이상 구매 시 무료`;
+}
+
+/** 품절·재고 부족 안내. 이런 항목이 선택돼 있으면 주문서로 넘어갈 수 없다. */
+function UnavailableNote({ item }: { item: CartItem }) {
+  if (item.available) return null;
+  const text =
+    item.stock === 0
+      ? "품절된 상품입니다"
+      : item.stock !== undefined
+        ? `재고 부족 (남은 수량 ${item.stock}개)`
+        : "판매가 중지된 상품입니다";
+  return <span className="mt-1.5 block text-[12.5px] font-medium text-brand-primary">{text}</span>;
+}
 
 /**
  * 모바일 장바구니 목록.
  * 표의 열(상품 정보 / 수량 / 가격)을 한 카드 안에 세로로 쌓고,
  * 표에서 rowspan 으로 한 번만 보이던 배송비 안내는 목록 하단에 한 번만 둔다.
  */
-function CartMobileList({ items, allSelected, onToggleAll }: CartMobileListProps) {
+function CartMobileList({ items, allSelected, onToggleAll, policyText }: CartMobileListProps) {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
   const toggleSelected = useCartStore((s) => s.toggleSelected);
@@ -162,6 +186,7 @@ function CartMobileList({ items, allSelected, onToggleAll }: CartMobileListProps
                   {item.option}
                 </p>
               ) : null}
+              <UnavailableNote item={item} />
 
               <div className="mt-3 flex items-center justify-between gap-2">
                 {/* 스테퍼 자체의 mx-auto 가 가격 쪽 여백을 먹지 않도록 콘텐츠 폭 래퍼로 감싼다. */}
@@ -191,8 +216,7 @@ function CartMobileList({ items, allSelected, onToggleAll }: CartMobileListProps
 
       <p className="mt-4 flex items-center gap-1 text-[13px] leading-[19px] tracking-[-0.2px]">
         <InfoIcon className="flex-none text-black" />
-        배송비 {formatKRW(SHIPPING_POLICY.standardFee)} ·{" "}
-        {formatKRW(SHIPPING_POLICY.freeThreshold)} 이상 구매 시 무료
+        {policyText}
       </p>
     </div>
   );
@@ -205,9 +229,11 @@ type CartItemRowProps = {
   isLast: boolean;
   showShipCell: boolean;
   shipRowSpan: number;
+  policy: Policy;
 };
 
-function CartItemRow({ item, isLast, showShipCell, shipRowSpan }: CartItemRowProps) {
+function CartItemRow({ item, isLast, showShipCell, shipRowSpan, policy }: CartItemRowProps) {
+  const shippingFee = useCartStore((s) => s.summary.shippingFee);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
   const toggleSelected = useCartStore((s) => s.toggleSelected);
@@ -254,6 +280,7 @@ function CartItemRow({ item, isLast, showShipCell, shipRowSpan }: CartItemRowPro
                 {item.option}
               </span>
             ) : null}
+            <UnavailableNote item={item} />
             <button
               type="button"
               onClick={() => runCartAction(() => removeItem(item.id))}
@@ -283,15 +310,18 @@ function CartItemRow({ item, isLast, showShipCell, shipRowSpan }: CartItemRowPro
        */}
       {showShipCell ? (
         <td className={`${cellBase} text-center align-middle`} rowSpan={shipRowSpan}>
+          {/* 선택한 상품 기준 실제 배송비. 예전에는 항상 "무료"로 보였다. */}
           <span className="flex items-center justify-center gap-1 text-[15px] font-normal">
-            무료
+            {shippingFee === 0 ? "무료" : formatKRW(shippingFee)}
             <InfoIcon className="text-black" />
           </span>
-          <p className="mt-2 text-[15px] font-normal leading-[19px] tracking-[-0.2px]">
-            {formatKRW(SHIPPING_POLICY.freeThreshold)} 이상 구매 시 무료
-            <br />
-            (배송비 {formatKRW(SHIPPING_POLICY.standardFee)})
-          </p>
+          {policy && policy.freeThreshold > 0 ? (
+            <p className="mt-2 text-[15px] font-normal leading-[19px] tracking-[-0.2px]">
+              {formatKRW(policy.freeThreshold)} 이상 구매 시 무료
+              <br />
+              (배송비 {formatKRW(policy.standardFee)})
+            </p>
+          ) : null}
         </td>
       ) : null}
     </tr>

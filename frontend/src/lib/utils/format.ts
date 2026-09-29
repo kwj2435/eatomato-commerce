@@ -35,3 +35,10 @@ export function formatNoticeDate(isoString: string): string {
     parts.find((p) => p.type === type)?.value ?? "";
   return `${get("year")}.${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
 }
+
+/** 전화번호 표시: 01022223333 → 010-2222-3333 (서버는 숫자만 저장한다). */
+export function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("02")) return digits.replace(/^(02)(\d{3,4})(\d{4})$/, "$1-$2-$3");
+  return digits.replace(/^(\d{3})(\d{3,4})(\d{4})$/, "$1-$2-$3");
+}

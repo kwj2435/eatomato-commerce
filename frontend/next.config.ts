@@ -38,11 +38,12 @@ const nextConfig: NextConfig = {
    * - images.unsplash.com: 데모 상품·배너 이미지
    * - eatomato.kr: 후기 사진 등 백엔드 업로드 파일(/uploads/**)
    *
-   * unoptimized: Image Optimization 은 런타임 서버가 필요해 정적 배포에서 쓸 수 없다.
-   * Unsplash URL 에 이미 width/quality 파라미터를 실어 보내므로 화질 손실은 없다.
+   * 크기 조절은 커스텀 로더(src/lib/image-loader.ts)가 이미지 서버 파라미터로 한다.
+   * VM 메모리가 작아 Next 서버의 이미지 최적화(sharp)는 쓰지 않는다. 정적 export 에서도 동작한다.
    */
   images: {
-    unoptimized: true,
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
     remotePatterns: [
       {
         protocol: "https",

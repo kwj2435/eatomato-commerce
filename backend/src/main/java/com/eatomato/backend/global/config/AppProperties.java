@@ -6,7 +6,8 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app")
-public record AppProperties(Jwt jwt, Cors cors, Upload upload, Seed seed, Admin admin, Kakao kakao) {
+public record AppProperties(Jwt jwt, Cors cors, Upload upload, Seed seed, Admin admin, Kakao kakao, Payment payment,
+	LoginLimit loginLimit) {
 
 	public record Jwt(String secret, Duration accessTokenTtl, Duration refreshTokenTtl) {
 	}
@@ -29,6 +30,17 @@ public record AppProperties(Jwt jwt, Cors cors, Upload upload, Seed seed, Admin 
 		public boolean configured() {
 			return restApiKey != null && !restApiKey.isBlank();
 		}
+	}
+
+	/**
+	 * 결제. provider=mock 이면 결제가 항상 성공했다고 본다(PG 연동 전).
+	 * webhookSecret 이 비어 있으면 PG 웹훅을 받지 않는다.
+	 */
+	public record Payment(String provider, String webhookSecret) {
+	}
+
+	/** 로그인 시도 제한. window 안에 계정별 maxPerAccount 회, IP별 maxPerIp 회 실패하면 잠근다. */
+	public record LoginLimit(int maxPerAccount, int maxPerIp, Duration window) {
 	}
 
 	/** 기동 시 관리자 계정을 보장한다. loginId·password 가 비어 있으면 아무것도 하지 않는다. */

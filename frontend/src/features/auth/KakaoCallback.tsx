@@ -31,7 +31,10 @@ export function KakaoCallback() {
     completeKakaoLogin(new URLSearchParams(window.location.search))
       .then(({ session, next }) => {
         setSession(session);
-        router.replace(next);
+        // 카카오로 처음 가입했거나 정보가 비어 있으면 추가 정보 입력을 먼저 거친다.
+        router.replace(
+          session.member.profileComplete ? next : `/signup/profile?next=${encodeURIComponent(next)}`,
+        );
       })
       .catch((e: unknown) => setError(callbackError(e)));
   }, [router, setSession]);

@@ -8,6 +8,12 @@ export function safeNextPath(raw: string | null | undefined, fallback = AFTER_LO
   return raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : fallback;
 }
 
+/** 로그인 직후 갈 곳. 추가 정보(닉네임·주소)가 비어 있으면 그 입력 화면을 먼저 거친다. */
+export function afterLoginPath(profileComplete: boolean): string {
+  const next = nextPathFromLocation();
+  return profileComplete ? next : `/signup/profile?next=${encodeURIComponent(next)}`;
+}
+
 /** 현재 주소의 `?next=` 값. `useSearchParams` 대신 써서 정적 export 에서 Suspense 경계가 필요 없다. */
 export function nextPathFromLocation(fallback = AFTER_LOGIN_PATH): string {
   return safeNextPath(new URLSearchParams(window.location.search).get("next"), fallback);

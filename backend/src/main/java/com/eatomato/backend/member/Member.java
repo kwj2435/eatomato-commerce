@@ -38,6 +38,9 @@ public class Member {
 
 	private String name;
 
+	/** 공개 표시용 닉네임(후기 작성자 등). 가입 후 추가 정보 입력에서 받는다. */
+	private String nickname;
+
 	private String grade;
 
 	private String phoneFirst;
@@ -93,6 +96,22 @@ public class Member {
 
 	public void changeEmail(String email) {
 		this.email = email;
+	}
+
+	public void changeNickname(String nickname) {
+		this.nickname = nickname;
+	}
+
+	/**
+	 * 가입 후 추가 정보(닉네임·주소)를 다 넣었는지. 관리자 계정은 확인하지 않는다.
+	 * 프론트는 false 면 추가 정보 입력 화면으로 보낸다.
+	 */
+	public boolean isProfileComplete() {
+		return isAdmin() || (hasText(nickname) && hasText(zipCode) && hasText(roadAddress));
+	}
+
+	private static boolean hasText(String value) {
+		return value != null && !value.isBlank();
 	}
 
 	public void changeName(String name) {

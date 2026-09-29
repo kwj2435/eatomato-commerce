@@ -78,7 +78,8 @@ public class ReviewService {
 			.product(product)
 			.memberId(memberId)
 			.orderItemId(orderItemId)
-			.writerName(Review.maskName(member.getName()))
+			// 닉네임이 있으면 닉네임(공개용으로 받은 값), 없으면 이름 첫 글자만 남긴다.
+			.writerName(member.getNickname() != null ? member.getNickname() : Review.maskName(member.getName()))
 			.rating(rating)
 			.content(content.trim())
 			.images(imageUrls)

@@ -7,7 +7,7 @@ import java.util.Map;
 import com.eatomato.backend.admin.order.AdminOrderResponse;
 
 /**
- * 관리자 대시보드. 매출은 취소 주문을 뺀 결제 금액 합계(배송비 포함)다.
+ * 관리자 대시보드. 매출은 결제가 끝난 주문(결제완료·배송중·배송완료)의 결제 금액 합계(배송비 포함)다.
  */
 public record DashboardResponse(
 	Sales today,
@@ -20,7 +20,9 @@ public record DashboardResponse(
 	Map<String, Long> ordersByStatus,
 	List<DailySales> dailySales,
 	List<TopProduct> topProducts,
-	List<AdminOrderResponse> recentOrders
+	List<AdminOrderResponse> recentOrders,
+	/** 재고를 관리하는 상품 중 품절(재고 0)인 상품 수. */
+	long soldOutProducts
 ) {
 
 	public record Sales(long orders, long revenue) {

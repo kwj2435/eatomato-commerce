@@ -27,4 +27,13 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
 	void deleteByMemberId(Long memberId);
 
 	void deleteByProduct(Product product);
+
+	/** 결제가 끝난 주문 상품을 장바구니에서 지운다. */
+	@org.springframework.data.jpa.repository.Modifying
+	@org.springframework.data.jpa.repository.Query(
+		"delete from CartItem c where c.memberId = :memberId and c.product.id = :productId and c.optionKey = :optionKey")
+	void deleteByMemberIdAndProductIdAndOptionKey(
+		@org.springframework.data.repository.query.Param("memberId") Long memberId,
+		@org.springframework.data.repository.query.Param("productId") Long productId,
+		@org.springframework.data.repository.query.Param("optionKey") String optionKey);
 }

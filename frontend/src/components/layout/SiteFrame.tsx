@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { ProfileGate } from "@/components/layout/ProfileGate";
 import { TopBar } from "@/components/layout/TopBar";
 
 type SiteFrameProps = {
@@ -34,6 +35,7 @@ export function SiteFrame({ children, notice }: SiteFrameProps) {
     <div className="flex min-h-screen w-full flex-col bg-surface-primary">
       {notice ? <TopBar message={notice} /> : null}
       <Header />
+      <ProfileGate />
       <main className="flex-1">{children}</main>
       <Footer />
     </div>

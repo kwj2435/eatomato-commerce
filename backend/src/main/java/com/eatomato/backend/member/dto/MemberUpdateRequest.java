@@ -17,6 +17,7 @@ import jakarta.validation.constraints.Size;
 public record MemberUpdateRequest(
 	@Email @Size(max = 100) String email,
 	@Size(min = 1, max = 50) String name,
+	@Pattern(regexp = ProfileRequest.NICKNAME_PATTERN, message = ProfileRequest.NICKNAME_MESSAGE) String nickname,
 	@Valid Phone phone,
 	@Valid Address address,
 	@Valid BirthDate birthDate,

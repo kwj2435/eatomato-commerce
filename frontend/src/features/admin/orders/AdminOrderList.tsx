@@ -5,7 +5,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 
 import { changeAdminOrderStatus, listAdminOrders } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
-import { formatKRW } from "@/lib/utils/format";
+import { formatKRW, formatPhone } from "@/lib/utils/format";
 import type { AdminOrder, Page } from "@/types/admin";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 
@@ -13,6 +13,8 @@ import { formatDateTime } from "../format";
 import { Button, Card, Empty, Notice, PageHeader, Pagination, inputClass, tableClass, tdClass, thClass } from "../ui";
 
 const STATUSES = Object.keys(ORDER_STATUS_LABELS) as OrderStatus[];
+
+const PAYMENT_LABELS = { READY: "결제 전", DONE: "승인", CANCELED: "취소", FAILED: "실패" } as const;
 
 function isStatus(value: string | null): value is OrderStatus {
   return value !== null && (STATUSES as string[]).includes(value);
@@ -41,7 +43,11 @@ export function AdminOrderList() {
   useEffect(load, [load]);
 
   const change = async (order: AdminOrder, next: OrderStatus) => {
-    if (next === "CANCELLED" && !window.confirm(`주문 ${order.orderNumber} 을(를) 취소 처리할까요?`)) return;
+    const message =
+      next === "CANCELLED"
+        ? `주문 ${order.orderNumber} 을(를) 취소할까요?\n결제가 취소(환불)되고 재고가 복원됩니다.`
+        : `주문 ${order.orderNumber} 을(를) '${ORDER_STATUS_LABELS[next]}'(으)로 바꿀까요?`;
+    if (!window.confirm(message)) return;
     try {
       const updated = await changeAdminOrderStatus(order.orderNumber, next);
       setData((prev) =>
@@ -54,7 +60,10 @@ export function AdminOrderList() {
 
   return (
     <>
-      <PageHeader title="주문·결제" description="결제 연동 전이라 주문은 생성 즉시 결제완료로 기록됩니다. 취소 주문은 매출에서 빠집니다." />
+      <PageHeader
+        title="주문·결제"
+        description="결제대기 → 결제완료 → 배송중 → 배송완료 순서로만 바뀝니다. 취소는 배송 전까지 가능하며 환불·재고 복원이 함께 됩니다. PG 연동 전이라 결제는 MOCK 으로 승인됩니다."
+      />
       <Card>
         <form
           className="mb-4 flex flex-wrap gap-2"
@@ -133,15 +142,18 @@ export function AdminOrderList() {
                       </td>
                       <td className={`${tdClass} whitespace-nowrap text-right tabular-nums`}>{formatKRW(o.total)}</td>
                       <td className={tdClass}>
+                        {/* 지금 상태에서 허용된 다음 상태만 고를 수 있다(서버 규칙과 같음). */}
                         <select
                           aria-label={`주문 ${o.orderNumber} 상태`}
                           value={o.status}
+                          disabled={o.nextStatuses.length === 0}
                           onChange={(e) => change(o, e.target.value as OrderStatus)}
-                          className="h-8 rounded-md border border-black/15 bg-white px-2 text-[13px]"
+                          className="h-8 rounded-md border border-black/15 bg-white px-2 text-[13px] disabled:bg-black/[0.03] disabled:text-ink-subtle"
                         >
-                          {STATUSES.map((s) => (
+                          <option value={o.status}>{ORDER_STATUS_LABELS[o.status]}</option>
+                          {o.nextStatuses.map((s) => (
                             <option key={s} value={s}>
-                              {ORDER_STATUS_LABELS[s]}
+                              → {ORDER_STATUS_LABELS[s]}
                             </option>
                           ))}
                         </select>
@@ -150,6 +162,34 @@ export function AdminOrderList() {
                     {expanded === o.orderNumber ? (
                       <tr>
                         <td colSpan={6} className="border-b border-black/5 bg-black/[0.02] px-6 py-3">
+                          <div className="mb-3 grid gap-3 text-[13px] md:grid-cols-2">
+                            <div>
+                              <p className="mb-1 font-bold">배송지</p>
+                              {o.shipping ? (
+                                <p className="leading-[20px]">
+                                  {o.shipping.recipientName} · {formatPhone(o.shipping.recipientPhone)}
+                                  <br />({o.shipping.zipCode}) {o.shipping.roadAddress} {o.shipping.detailAddress}
+                                  {o.shipping.deliveryMemo ? (
+                                    <span className="block text-ink-muted">요청: {o.shipping.deliveryMemo}</span>
+                                  ) : null}
+                                </p>
+                              ) : (
+                                <p className="text-ink-subtle">배송지 입력 기능 이전 주문</p>
+                              )}
+                            </div>
+                            <div>
+                              <p className="mb-1 font-bold">결제</p>
+                              {o.payment ? (
+                                <p className="leading-[20px]">
+                                  {o.payment.provider} · {PAYMENT_LABELS[o.payment.status]} · {formatKRW(o.payment.amount)}
+                                  {o.payment.approvedAt ? <span className="block text-ink-muted">승인 {formatDateTime(o.payment.approvedAt)}</span> : null}
+                                  {o.payment.paymentKey ? <span className="block break-all text-ink-subtle">{o.payment.paymentKey}</span> : null}
+                                </p>
+                              ) : (
+                                <p className="text-ink-subtle">결제 기록 없음(이전 주문)</p>
+                              )}
+                            </div>
+                          </div>
                           <ul className="space-y-1 text-[13px]">
                             {o.items.map((item) => (
                               <li key={item.id} className="flex justify-between gap-4">

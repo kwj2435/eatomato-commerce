@@ -13,6 +13,7 @@ public record BetterTogetherResponse(
 	int price,
 	Integer salePrice,
 	String imageUrl,
+	boolean soldOut,
 	List<OptionGroupResponse> optionGroups
 ) {
 
@@ -24,6 +25,7 @@ public record BetterTogetherResponse(
 			product.getPrice(),
 			product.getSalePrice(),
 			product.getImageUrl(),
+			product.isSoldOut(),
 			OptionGroupResponse.listOf(product.getOptionGroups()));
 	}
 }

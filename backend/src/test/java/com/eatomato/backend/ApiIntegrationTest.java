@@ -215,11 +215,19 @@ class ApiIntegrationTest {
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("INVALID_OPTION"));
 
-		mockMvc.perform(post("/api/orders").header(HttpHeaders.AUTHORIZATION, token))
+		String order = mockMvc.perform(post("/api/orders").header(HttpHeaders.AUTHORIZATION, token)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"shipping\":{\"recipientName\":\"김토마\",\"recipientPhone\":\"010-1234-5678\",\"zipCode\":\"21986\",\"roadAddress\":\"인천 연수구 송도문화로 28\"}}"))
 			.andExpect(status().isCreated())
-			.andExpect(jsonPath("$.status").value("PAID"))
+			.andExpect(jsonPath("$.status").value("PENDING_PAYMENT"))
 			.andExpect(jsonPath("$.total").value(92000))
-			.andExpect(jsonPath("$.items", hasSize(1)));
+			.andExpect(jsonPath("$.items", hasSize(1)))
+			.andReturn().getResponse().getContentAsString();
+		String orderNumber = JsonPath.read(order, "$.orderNumber");
+		mockMvc.perform(post("/api/payments/confirm").header(HttpHeaders.AUTHORIZATION, token)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"orderNumber\":\"%s\",\"paymentKey\":\"mock-1\",\"amount\":92000}".formatted(orderNumber)))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("PAID"));
 
 		mockMvc.perform(get("/api/cart").header(HttpHeaders.AUTHORIZATION, token))
 			.andExpect(jsonPath("$.items", hasSize(0)));

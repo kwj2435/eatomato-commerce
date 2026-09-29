@@ -13,6 +13,7 @@ import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.member.dto.MemberResponse;
 import com.eatomato.backend.member.dto.MemberUpdateRequest;
 import com.eatomato.backend.member.dto.PasswordChangeRequest;
+import com.eatomato.backend.member.dto.ProfileRequest;
 
 import lombok.RequiredArgsConstructor;
 
@@ -41,6 +42,9 @@ public class MemberService {
 		if (request.name() != null) {
 			member.changeName(request.name().trim());
 		}
+		if (request.nickname() != null) {
+			changeNickname(member, request.nickname());
+		}
 		if (request.phone() != null) {
 			member.changePhone(request.phone().first(), request.phone().middle(), request.phone().last());
 		}
@@ -58,6 +62,24 @@ public class MemberService {
 			member.changeMarketing(channels.contains("email"), channels.contains("sms"));
 		}
 		return MemberResponse.from(member);
+	}
+
+	/** 가입 후 추가 정보(닉네임·주소) 저장. */
+	@Transactional
+	public MemberResponse completeProfile(Long memberId, ProfileRequest request) {
+		Member member = find(memberId);
+		changeNickname(member, request.nickname());
+		member.changeAddress(request.zipCode(), request.roadAddress().trim(),
+			request.detailAddress() == null ? "" : request.detailAddress().trim());
+		return MemberResponse.from(member);
+	}
+
+	private void changeNickname(Member member, String nickname) {
+		String trimmed = nickname.trim();
+		if (memberRepository.existsByNicknameAndIdNot(trimmed, member.getId())) {
+			throw new ApiException(ErrorCode.DUPLICATE_NICKNAME);
+		}
+		member.changeNickname(trimmed);
 	}
 
 	@Transactional

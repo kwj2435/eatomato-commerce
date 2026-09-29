@@ -37,6 +37,9 @@ public class OrderItem {
 
 	private String optionLabel;
 
+	/** 장바구니 옵션 조합 키. 결제가 끝나면 이 키로 장바구니의 같은 줄을 지운다. */
+	private String optionKey;
+
 	private int unitPrice;
 
 	private int quantity;
@@ -51,6 +54,7 @@ public class OrderItem {
 		item.productSlug = cartItem.getProduct().getSlug();
 		item.productName = cartItem.getProduct().getName();
 		item.optionLabel = cartItem.getOptionLabel();
+		item.optionKey = cartItem.getOptionKey();
 		item.unitPrice = cartItem.unitPrice();
 		item.quantity = cartItem.getQuantity();
 		item.imageUrl = cartItem.getProduct().getImageUrl();

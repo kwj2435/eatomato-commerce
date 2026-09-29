@@ -66,8 +66,13 @@ docker compose up -d --build
 | PATCH | `/api/cart/items/{id}` 🔒 | 수량·선택 변경 `{quantity?, selected?}` | `updateQuantity` · `toggleSelected` |
 | PUT | `/api/cart/selection` 🔒 | 전체 선택/해제 `{selected}` | `toggleAllSelected` |
 | DELETE | `/api/cart/items/{id}` · `/api/cart` 🔒 | 항목 삭제 / 비우기 | `removeItem` · `clear` |
-| POST | `/api/orders` 🔒 | 주문 `{cartItemIds?}` (생략 시 선택 항목 전체) | |
+| POST | `/api/orders` 🔒 | 주문서 제출 `{cartItemIds?, shipping{recipientName, recipientPhone, zipCode, roadAddress, detailAddress?, deliveryMemo?}}` → 결제대기 주문, 재고 선점 | 주문서 |
+| POST | `/api/payments/confirm` 🔒 | 결제 승인 `{orderNumber, paymentKey, amount}` → 결제완료 (금액 서버 대조, 중복 요청 안전) | 결제 완료 화면 |
+| POST | `/api/payments/webhook` | PG 결과 알림 `{orderNumber, paymentKey, status: DONE\|CANCELED, amount}` (헤더 `X-Payment-Webhook-Secret`) | PG 서버 |
+| POST | `/api/orders/{orderNumber}/cancel` 🔒 | 고객 취소(결제대기·결제완료). 환불·재고 복원 | 마이페이지 |
 | GET | `/api/orders` · `/api/orders/{orderNumber}` 🔒 | 주문 내역 | 마이페이지 주문 내역 |
+| GET | `/api/shipping-policy` | 배송비 정책 `{baseFee, freeThreshold, remoteAreaFee}` | 상세·장바구니·주문서 |
+| PUT | `/api/me/profile` 🔒 | 가입 후 추가 정보 `{nickname, zipCode, roadAddress, detailAddress}` | 추가 정보 입력 |
 | GET | `/api/me/reviewable-products` 🔒 | 후기 작성 가능 상품 | `listReviewableProducts` |
 | POST | `/api/reviews` 🔒 | 후기 저장 (multipart: `orderItemId`, `rating`, `content`, `photos`≤5) | `ReviewWriteForm` |
 | GET | `/api/me/reviews` 🔒 | 내가 쓴 후기 | 마이페이지 내가 쓴 글 |
@@ -89,6 +94,8 @@ docker compose up -d --build
 | GET · POST · PUT · DELETE | `/api/admin/notices[/{id}]` | 공지 관리 |
 | GET · PUT · DELETE | `/api/admin/site-contents[/{key}]` | 사이트 문구(메인 섹션 설명 등) 조회 / 수정 `{value}` / 기본값으로 |
 | POST | `/api/admin/uploads?category=products\|banners` | 이미지 업로드 (multipart `file`) → `{url}` |
+| PATCH | `/api/admin/products/{id}/stock` | 재고만 변경 `{stockQuantity}` (null = 재고 관리 안 함) |
+| GET · PUT | `/api/admin/shipping-policy` | 배송비 정책 조회·변경 |
 
 관리자 권한은 JWT 의 `roles` 클레임으로 1차 확인하고, `AdminAccessInterceptor` 가 요청마다 DB 의 권한·이용 상태를 다시 본다.
 첫 관리자 계정은 `ADMIN_LOGIN_ID` / `ADMIN_PASSWORD` 로 만든다(`AdminBootstrap`). local 프로필은 `admin` / `admin1234`.
@@ -100,7 +107,11 @@ docker compose up -d --build
 
 - 상품·공지·배너 id 는 DB 숫자 PK 의 문자열이다(`"prod-001"` → `"1"`). 회원 `id` 는 로그인 아이디.
 - 상세 `reviewCount` 는 실제 리뷰 수다(mock 은 390 고정).
-- 결제(PG) 연동 전이라 주문은 생성 즉시 `PAID` 로 기록된다. 이후 상태는 관리자가 바꾼다.
+- 주문 흐름: 주문서 제출 → `PENDING_PAYMENT`(재고 선점) → 결제 승인 → `PAID` → `SHIPPING` → `DELIVERED`. 취소는 배송 전까지(환불·재고 복원·판매량 되돌림). 허용되지 않는 전이는 400, 변경 이력은 `order_status_history`.
+- 결제: `PaymentGateway` 인터페이스로 PG 를 붙인다. 지금은 `MockPaymentGateway`(`PAYMENT_PROVIDER=mock`)가 항상 승인한다. 결제대기 30분이 지나면 자동 취소.
+- 재고: 상품 단위(`stock_quantity`, null = 무제한). 조건부 UPDATE 로 차감해 동시 주문에도 음수가 되지 않는다. 옵션 조합(SKU) 단위 재고는 아직 없다.
+- 배송비: `shipping_policy` 한 줄(관리자 설정). 제주(우편번호 63…)는 추가 배송비. 도서 산간 전체 목록은 미반영.
+- 로그인 잠금: 15분 안에 계정별 5회·IP별 20회 실패하면 잠금(메모리, 서버 1대 기준). nginx 가 `/api/auth/login|signup` 을 IP당 분당 10회로 한 번 더 제한.
 - 상품 삭제는 소프트 삭제다(주문 내역이 참조). 스토어 조회에서 빠지고 slug 는 다시 쓸 수 있게 비켜 둔다.
 - 카카오 로그인: 카카오 회원번호로 회원을 찾고, 없으면 카카오가 확인한 이메일과 같은 기존 회원에 자동 연결, 그것도 없으면 가입한다. 이메일 동의가 필수다.
 - 쿠폰·적립금·재입고 알림은 아직 없다.

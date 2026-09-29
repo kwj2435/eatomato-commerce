@@ -46,6 +46,14 @@ public enum ErrorCode {
 	INVALID_FILE(HttpStatus.BAD_REQUEST, "이미지 파일만 첨부할 수 있습니다."),
 	FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "파일 저장에 실패했습니다."),
 
+	TOO_MANY_LOGIN_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."),
+	DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "이미 사용 중인 닉네임입니다."),
+	SOLD_OUT(HttpStatus.CONFLICT, "품절된 상품입니다."),
+	INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "재고가 부족합니다."),
+	INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST, "지금 상태에서는 바꿀 수 없는 주문 상태입니다."),
+	PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 주문 금액과 다릅니다."),
+	PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "결제에 실패했습니다. 다시 시도해 주세요."),
+	INVALID_WEBHOOK(HttpStatus.UNAUTHORIZED, "잘못된 결제 알림입니다."),
 	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다.");
 
 	private final HttpStatus status;

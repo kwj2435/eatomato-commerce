@@ -19,7 +19,10 @@ const DEFAULT_INTERVAL = 5000;
  * 메인 히어로 배너 슬라이더.
  *
  * 자동재생 + dot 인디케이터 + 클릭 이동을 갖춘 최소 슬라이더.
- * 외부 라이브러리를 쓰지 않고, 상태 하나(currentIndex)로 관리한다.
+ * 외부 라이브러리를 쓰지 않고, 현재 슬라이드와 "이미 불러온 슬라이드" 목록만 상태로 둔다.
+ *
+ * 성능: 처음에는 현재·다음 슬라이드 이미지만 불러오고, 나머지는 차례가 왔을 때 불러온다.
+ * 예전에는 7장을 한꺼번에 받아 모바일 첫 화면이 느렸다.
  * 사용자가 dot 을 누르면 타이머를 리셋해 UX 를 자연스럽게 만든다.
  *
  * 문구는 배너 이미지에 직접 넣는다(화면에 따로 캡션을 그리지 않는다).
@@ -33,14 +36,20 @@ export function HeroBanner({
   banners,
   autoPlayInterval = DEFAULT_INTERVAL,
 }: HeroBannerProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [{ currentIndex, seen }, setSlide] = useState({ currentIndex: 0, seen: [0] });
+  const setCurrentIndex = useCallback((update: (prev: number) => number) => {
+    setSlide((prev) => {
+      const next = update(prev.currentIndex);
+      return { currentIndex: next, seen: prev.seen.includes(next) ? prev.seen : [...prev.seen, next] };
+    });
+  }, []);
 
   const goTo = useCallback(
     (nextIndex: number) => {
       const safeIndex = ((nextIndex % banners.length) + banners.length) % banners.length;
-      setCurrentIndex(safeIndex);
+      setCurrentIndex(() => safeIndex);
     },
-    [banners.length],
+    [banners.length, setCurrentIndex],
   );
 
   useEffect(() => {
@@ -49,7 +58,7 @@ export function HeroBanner({
       setCurrentIndex((prev) => (prev + 1) % banners.length);
     }, autoPlayInterval);
     return () => window.clearInterval(id);
-  }, [autoPlayInterval, banners.length, currentIndex]);
+  }, [autoPlayInterval, banners.length, currentIndex, setCurrentIndex]);
 
   if (banners.length === 0) return null;
 
@@ -64,6 +73,8 @@ export function HeroBanner({
       {/* 슬라이드들: 절대 위치로 겹쳐 두고 opacity 로 크로스페이드 */}
       {banners.map((banner, index) => {
         const isActive = index === currentIndex;
+        // 본 적 있는 슬라이드 + 다음 슬라이드(전환 때 깜빡이지 않게 미리)만 이미지를 그린다.
+        const shouldLoad = seen.includes(index) || index === (currentIndex + 1) % banners.length;
         return (
           <Link
             key={banner.id}
@@ -76,7 +87,7 @@ export function HeroBanner({
               isActive ? "z-[1] opacity-100" : "pointer-events-none z-0 opacity-0",
             )}
           >
-            {banner.imageUrl ? (
+            {banner.imageUrl && shouldLoad ? (
               <Image
                 src={banner.imageUrl}
                 alt={banner.alt}

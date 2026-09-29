@@ -31,6 +31,7 @@ export type BetterTogetherItem = {
   price: number;
   salePrice?: number;
   imageUrl?: string;
+  soldOut: boolean;
   optionGroups: OptionGroup[];
 };
 

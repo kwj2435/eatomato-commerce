@@ -25,6 +25,8 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
 	boolean existsByEmailAndIdNot(String email, Long id);
 
+	boolean existsByNicknameAndIdNot(String nickname, Long id);
+
 	// ── 관리자 ──────────────────────────────────────────────
 
 	@Query("""

@@ -73,6 +73,12 @@ public class AdminProductController {
 		adminProductService.changeVisible(id, request.visible());
 	}
 
+	/** 재고만 바꾼다(목록 화면의 재고 칸). stockQuantity 를 비우면 재고 관리 해제. */
+	@PatchMapping("/{id}/stock")
+	public AdminProductSummary changeStock(@PathVariable Long id, @Valid @RequestBody StockRequest request) {
+		return adminProductService.changeStock(id, request.stockQuantity());
+	}
+
 	@DeleteMapping("/{id}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable Long id) {
@@ -80,5 +86,8 @@ public class AdminProductController {
 	}
 
 	public record VisibleRequest(@NotNull Boolean visible) {
+	}
+
+	public record StockRequest(@Min(0) @Max(1_000_000) Integer stockQuantity) {
 	}
 }

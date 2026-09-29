@@ -18,6 +18,7 @@ const NAV = [
   { href: "/admin/banners", label: "배너" },
   { href: "/admin/notices", label: "공지" },
   { href: "/admin/contents", label: "문구" },
+  { href: "/admin/shipping", label: "배송비" },
 ] as const;
 
 type Access = { kind: "checking" } | { kind: "allowed" } | { kind: "denied"; message: string };

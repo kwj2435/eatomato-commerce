@@ -44,6 +44,7 @@ public class SecurityConfig {
 		"/api/categories",
 		"/api/banners",
 		"/api/site-contents",
+		"/api/shipping-policy",
 		"/api/notices/**",
 		"/api/reviews/featured",
 		"/uploads/**",
@@ -58,10 +59,12 @@ public class SecurityConfig {
 			.httpBasic(AbstractHttpConfigurer::disable)
 			.formLogin(AbstractHttpConfigurer::disable)
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			// HSTS 는 nginx 가 붙인다(두 곳에서 붙어 헤더가 중복되던 것 정리).
+			.headers(headers -> headers.httpStrictTransportSecurity(hsts -> hsts.disable()))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/kakao",
-					"/api/auth/refresh", "/api/auth/logout").permitAll()
+					"/api/auth/refresh", "/api/auth/logout", "/api/payments/webhook").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/kakao/authorize").permitAll()
 				.requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
 				.requestMatchers("/error").permitAll()

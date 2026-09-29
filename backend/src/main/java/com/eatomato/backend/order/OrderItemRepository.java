@@ -9,11 +9,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
-	/** 취소되지 않은 주문 중 아직 후기를 쓰지 않은 상품. */
+	/** 결제가 끝난 주문 중 아직 후기를 쓰지 않은 상품. */
 	@Query("""
 		select oi from OrderItem oi join oi.order o
 		where o.memberId = :memberId
-		  and o.status <> com.eatomato.backend.order.OrderStatus.CANCELLED
+		  and o.status in (com.eatomato.backend.order.OrderStatus.PAID,
+		    com.eatomato.backend.order.OrderStatus.SHIPPING, com.eatomato.backend.order.OrderStatus.DELIVERED)
 		  and oi.reviewed = false
 		order by o.orderedAt desc, oi.id
 		""")
@@ -25,7 +26,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 	@Query("""
 		select oi.productId, max(oi.productName), sum(oi.quantity), sum(oi.unitPrice * oi.quantity)
 		from OrderItem oi join oi.order o
-		where o.status <> com.eatomato.backend.order.OrderStatus.CANCELLED
+		where o.status in (com.eatomato.backend.order.OrderStatus.PAID,
+		  com.eatomato.backend.order.OrderStatus.SHIPPING, com.eatomato.backend.order.OrderStatus.DELIVERED)
 		group by oi.productId
 		order by sum(oi.quantity) desc
 		""")

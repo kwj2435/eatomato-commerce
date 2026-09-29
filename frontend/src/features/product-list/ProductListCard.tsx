@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { SoldOutOverlay } from "@/components/product/SoldOutOverlay";
 import { cn } from "@/lib/utils/cn";
 import { formatKRW } from "@/lib/utils/format";
 import type { Product, ProductBadge } from "@/types/product";
@@ -31,6 +32,7 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
       >
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-white">
           {product.badges?.length ? <BadgeStack badges={product.badges} /> : null}
+          {product.soldOut ? <SoldOutOverlay /> : null}
 
           {/* 기본 이미지 레이어 */}
           <div className="absolute inset-0 flex items-center justify-center bg-white transition-opacity duration-300 group-hover:opacity-0">
