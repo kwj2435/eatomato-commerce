@@ -21,7 +21,7 @@ function isStatus(value: string | null): value is OrderStatus {
 }
 
 /**
- * 주문·결제 현황. 결제(PG) 연동 전이라 주문은 생성 즉시 "결제완료" 이고,
+ * 주문·결제 현황. 결제가 승인되면 "결제완료" 가 되고(PG 연동 전에는 MOCK 승인),
  * 배송 진행에 맞춰 관리자가 상태를 바꾼다. 대시보드의 상태 타일에서 `?status=` 로 들어올 수 있다.
  */
 export function AdminOrderList() {
