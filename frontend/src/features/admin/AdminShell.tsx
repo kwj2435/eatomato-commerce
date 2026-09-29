@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils/cn";
 const NAV = [
   { href: "/admin", label: "대시보드" },
   { href: "/admin/orders", label: "주문·결제" },
+  { href: "/admin/shipments", label: "배송 준비" },
   { href: "/admin/products", label: "상품" },
   { href: "/admin/members", label: "회원" },
   { href: "/admin/banners", label: "배너" },

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Fragment, useCallback, useEffect, useState } from "react";
 
@@ -63,6 +64,14 @@ export function AdminOrderList() {
       <PageHeader
         title="주문·결제"
         description="결제대기 → 결제완료 → 배송중 → 배송완료 순서로만 바뀝니다. 취소는 배송 전까지 가능하며 환불·재고 복원이 함께 됩니다. PG 연동 전이라 결제는 MOCK 으로 승인됩니다."
+        actions={
+          <Link
+            href="/admin/shipments"
+            className="inline-flex h-10 items-center rounded-md bg-brand-deep px-4 text-[14px] font-medium text-white hover:bg-brand-secondary"
+          >
+            배송 준비 화면
+          </Link>
+        }
       />
       <Card>
         <form
@@ -131,6 +140,7 @@ export function AdminOrderList() {
                           className="tabular-nums hover:underline"
                         >
                           {o.orderNumber}
+                          <span className="ml-1 text-[11px] text-ink-subtle">{expanded === o.orderNumber ? "접기 ▴" : "배송지·상품 ▾"}</span>
                         </button>
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>

@@ -80,8 +80,19 @@ export const updateAdminMember = (
 
 // ── 주문 ──
 
-export const listAdminOrders = (params: { status?: OrderStatus | ""; q?: string; page?: number }) =>
+export const listAdminOrders = (params: { status?: OrderStatus | ""; q?: string; page?: number; size?: number }) =>
   apiFetch<Page<AdminOrder>>(`/api/admin/orders${query(params)}`, { auth: true });
+
+/** 한 상태의 주문을 페이지를 넘겨 가며 모두 모은다(배송 준비용). 최대 2,000건. */
+export async function listAllAdminOrders(status: OrderStatus): Promise<AdminOrder[]> {
+  const all: AdminOrder[] = [];
+  for (let page = 0; page < 20; page++) {
+    const data = await listAdminOrders({ status, page, size: 100 });
+    all.push(...data.content);
+    if (page >= data.totalPages - 1) break;
+  }
+  return all;
+}
 
 export const changeAdminOrderStatus = (orderNumber: string, status: OrderStatus) =>
   apiFetch<AdminOrder>(`/api/admin/orders/${orderNumber}/status`, {
