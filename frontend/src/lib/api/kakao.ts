@@ -33,7 +33,7 @@ export function startKakaoLogin(nextPath: string): void {
 
 /** 콜백 처리 없이 돌아갈 경로만 꺼낸다(이미 로그인된 상태로 콜백에 들어온 경우). */
 export function takeKakaoNextPath(): string {
-  const next = sessionStorage.getItem(NEXT_KEY) ?? "/mypage";
+  const next = sessionStorage.getItem(NEXT_KEY);
   sessionStorage.removeItem(STATE_KEY);
   sessionStorage.removeItem(NEXT_KEY);
   return safeNextPath(next);
@@ -43,7 +43,7 @@ export type KakaoCallbackResult = { session: AuthSession; next: string };
 
 export async function completeKakaoLogin(params: URLSearchParams): Promise<KakaoCallbackResult> {
   const expected = sessionStorage.getItem(STATE_KEY);
-  const next = sessionStorage.getItem(NEXT_KEY) ?? "/mypage";
+  const next = sessionStorage.getItem(NEXT_KEY);
   sessionStorage.removeItem(STATE_KEY);
   sessionStorage.removeItem(NEXT_KEY);
 

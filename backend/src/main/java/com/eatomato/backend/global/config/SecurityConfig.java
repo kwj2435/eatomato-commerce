@@ -43,6 +43,7 @@ public class SecurityConfig {
 		"/api/products/**",
 		"/api/categories",
 		"/api/banners",
+		"/api/site-contents",
 		"/api/notices/**",
 		"/api/reviews/featured",
 		"/uploads/**",

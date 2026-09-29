@@ -223,6 +223,39 @@ class AdminApiIntegrationTest {
 	}
 
 	@Test
+	void 사이트_문구_수정과_기본값_되돌리기() throws Exception {
+		mockMvc.perform(get("/api/site-contents"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.HOME_WHATS_NEW_DESCRIPTION").value(startsWith("일상에 신선한 감각을")));
+
+		String admin = login("admin", "admin1234");
+		mockMvc.perform(get("/api/admin/site-contents").header(HttpHeaders.AUTHORIZATION, admin))
+			.andExpect(jsonPath("$", hasSize(2)))
+			.andExpect(jsonPath("$[0].customized").value(false));
+
+		mockMvc.perform(put("/api/admin/site-contents/HOME_REVIEW_DESCRIPTION").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"  첫 줄\\r\\n둘째 줄  \"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.customized").value(true))
+			.andExpect(jsonPath("$.value").value("첫 줄\n둘째 줄"));
+		mockMvc.perform(get("/api/site-contents"))
+			.andExpect(jsonPath("$.HOME_REVIEW_DESCRIPTION").value("첫 줄\n둘째 줄"));
+
+		mockMvc.perform(delete("/api/admin/site-contents/HOME_REVIEW_DESCRIPTION").header(HttpHeaders.AUTHORIZATION, admin))
+			.andExpect(jsonPath("$.customized").value(false));
+		mockMvc.perform(get("/api/site-contents"))
+			.andExpect(jsonPath("$.HOME_REVIEW_DESCRIPTION").value(startsWith("신제품설명이")));
+
+		mockMvc.perform(put("/api/admin/site-contents/UNKNOWN").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"x\"}"))
+			.andExpect(status().isNotFound());
+		String user = signup("contentuser");
+		mockMvc.perform(put("/api/admin/site-contents/HOME_REVIEW_DESCRIPTION").header(HttpHeaders.AUTHORIZATION, user)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"x\"}"))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
 	void 배너_공지_업로드() throws Exception {
 		String admin = login("admin", "admin1234");
 

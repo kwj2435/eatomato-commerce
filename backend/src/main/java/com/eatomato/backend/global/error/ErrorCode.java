@@ -33,6 +33,7 @@ public enum ErrorCode {
 	DUPLICATE_SLUG(HttpStatus.CONFLICT, "이미 사용 중인 상품 URL(slug)입니다."),
 	INVALID_PRODUCT(HttpStatus.BAD_REQUEST, "상품 정보를 확인해 주세요."),
 	BANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "배너를 찾을 수 없습니다."),
+	SITE_CONTENT_NOT_FOUND(HttpStatus.NOT_FOUND, "편집할 수 없는 문구입니다."),
 	NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다."),
 
 	CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "장바구니 항목을 찾을 수 없습니다."),

@@ -49,6 +49,7 @@ docker compose up -d --build
 | GET | `/api/products/{slug}` | 상세 (옵션·함께구매·리뷰 10건 포함) | `getProductDetail` |
 | GET | `/api/products/{slug}/reviews?page=&size=` | 리뷰 페이지 조회 | |
 | GET | `/api/banners` | 메인 배너 | `listHeroBanners` |
+| GET | `/api/site-contents` | 사이트 문구 `{키: 문구}` (수정 안 한 문구는 기본값) | 메인 What's New·Review 설명 |
 | GET | `/api/reviews/featured?limit=4` | 메인 대표 리뷰 썸네일 | `listFeaturedReviews` |
 | GET | `/api/notices?query=` | 공지 목록 (고정 → 등록일 내림차순, 제목 검색) | `listNotices` |
 | GET | `/api/notices/ids` · `/api/notices/{id}` | 공지 id 목록 / 단건 | `listNoticeIds` · `getNotice` |
@@ -86,6 +87,7 @@ docker compose up -d --build
 | PATCH | `/api/admin/orders/{orderNumber}/status` | 상태 변경 `PAID` `SHIPPING` `DELIVERED` `CANCELLED` |
 | GET · POST · PUT · DELETE | `/api/admin/banners[/{id}]` | 메인 배너 관리 |
 | GET · POST · PUT · DELETE | `/api/admin/notices[/{id}]` | 공지 관리 |
+| GET · PUT · DELETE | `/api/admin/site-contents[/{key}]` | 사이트 문구(메인 섹션 설명 등) 조회 / 수정 `{value}` / 기본값으로 |
 | POST | `/api/admin/uploads?category=products\|banners` | 이미지 업로드 (multipart `file`) → `{url}` |
 
 관리자 권한은 JWT 의 `roles` 클레임으로 1차 확인하고, `AdminAccessInterceptor` 가 요청마다 DB 의 권한·이용 상태를 다시 본다.

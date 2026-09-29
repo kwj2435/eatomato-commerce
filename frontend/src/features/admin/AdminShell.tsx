@@ -17,6 +17,7 @@ const NAV = [
   { href: "/admin/members", label: "회원" },
   { href: "/admin/banners", label: "배너" },
   { href: "/admin/notices", label: "공지" },
+  { href: "/admin/contents", label: "문구" },
 ] as const;
 
 type Access = { kind: "checking" } | { kind: "allowed" } | { kind: "denied"; message: string };

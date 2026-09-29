@@ -2,13 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
+import { MultilineText } from "@/components/ui/MultilineText";
 import { listFeaturedReviews } from "@/lib/api/reviews";
 
 /**
  * "Review" 섹션.
  * 각 제품 상세의 리뷰 탭으로 딥링크되는 대표 리뷰 4장을 노출한다.
  */
-export async function ReviewSection() {
+/** @param description 섹션 설명. 관리자 화면(문구)에서 고친다. 비어 있으면 설명 줄을 그리지 않는다. */
+export async function ReviewSection({ description }: { description: string }) {
   const reviews = await listFeaturedReviews({ limit: 4 });
 
   return (
@@ -20,11 +22,11 @@ export async function ReviewSection() {
         >
           Review
         </h2>
-        <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
-          신제품설명이들어갑니다신제품설명이
-          <br />
-          들어갑니다신제품설명이들어갑니다
-        </p>
+        {description ? (
+          <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
+            <MultilineText text={description} />
+          </p>
+        ) : null}
 
         <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
           {reviews.map((review) => (

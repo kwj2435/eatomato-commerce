@@ -9,6 +9,7 @@ import { errorMessage } from "@/lib/api/client";
 import { startKakaoLogin } from "@/lib/api/kakao";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useRedirectIfLoggedIn } from "@/lib/store/use-redirect-if-logged-in";
+import { AFTER_LOGIN_PATH } from "@/lib/utils/next-path";
 
 import { AuthField } from "./AuthField";
 import { KakaoLoginButton } from "./KakaoLoginButton";
@@ -21,7 +22,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * 시안에 가입 화면이 없어 로그인 폼과 같은 스타일로 최소 항목(이메일·비밀번호·이름)만 받는다.
  * 로그인은 이메일로 하고, 회원 정보의 아이디는 서버가 이메일 앞부분으로 만든다.
  * 나머지 회원 정보(휴대폰·주소 등)는 마이페이지에서 채운다.
- * 가입에 성공하면 서버가 바로 로그인 토큰을 주므로 마이페이지로 이동한다.
+ * 가입에 성공하면 서버가 바로 로그인 토큰을 주므로 메인으로 이동한다.
  */
 export function SignupForm() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export function SignupForm() {
       setSession(
         await signup({ password, name: name.trim(), email: email.trim() }),
       );
-      router.replace("/mypage");
+      router.replace(AFTER_LOGIN_PATH);
     } catch (e) {
       setError(errorMessage(e));
       setPending(false);
@@ -115,7 +116,7 @@ export function SignupForm() {
         {pending ? "가입 중…" : "이메일로 가입하기"}
       </button>
 
-      <KakaoLoginButton onClick={() => startKakaoLogin("/mypage")} className="mt-[22px]" />
+      <KakaoLoginButton onClick={() => startKakaoLogin(AFTER_LOGIN_PATH)} className="mt-[22px]" />
 
       <Link
         href="/login"

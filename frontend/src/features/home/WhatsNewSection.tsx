@@ -1,5 +1,6 @@
 import { Container } from "@/components/layout/Container";
 import { ProductCard } from "@/components/product/ProductCard";
+import { MultilineText } from "@/components/ui/MultilineText";
 import { listNewProducts } from "@/lib/api/products";
 
 /**
@@ -11,7 +12,8 @@ import { listNewProducts } from "@/lib/api/products";
  *
  * 인터랙션이 없으므로 클라이언트 컴포넌트로 나눌 이유가 없다.
  */
-export async function WhatsNewSection() {
+/** @param description 섹션 설명. 관리자 화면(문구)에서 고친다. 비어 있으면 설명 줄을 그리지 않는다. */
+export async function WhatsNewSection({ description }: { description: string }) {
   const products = await listNewProducts({ limit: 4 });
 
   return (
@@ -23,11 +25,11 @@ export async function WhatsNewSection() {
         >
           What&rsquo;s New
         </h2>
-        <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
-          일상에 신선한 감각을 더해줄 신제품 컬렉션.
-          <br />
-          갓 채집한 듯 다채로운 그래픽으로 새로운 기분을 선사합니다.
-        </p>
+        {description ? (
+          <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
+            <MultilineText text={description} />
+          </p>
+        ) : null}
 
         <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
           {products.map((product) => (

@@ -3,6 +3,7 @@ import { HeroBanner } from "@/features/home/HeroBanner";
 import { ReviewSection } from "@/features/home/ReviewSection";
 import { WhatsNewSection } from "@/features/home/WhatsNewSection";
 import { listHeroBanners } from "@/lib/api/banners";
+import { getSiteContents } from "@/lib/api/site-content";
 
 /**
  * 메인 페이지.
@@ -12,13 +13,13 @@ import { listHeroBanners } from "@/lib/api/banners";
  * Hero 는 상호작용(슬라이더)이 필요해 클라이언트 컴포넌트로 분리했다.
  */
 export default async function HomePage() {
-  const [banners] = await Promise.all([listHeroBanners()]);
+  const [banners, contents] = await Promise.all([listHeroBanners(), getSiteContents()]);
 
   return (
     <SiteFrame notice="신규가입 시 2,000원 쿠폰과 멤버 전용 혜택을 즐겨보세요.">
       <HeroBanner banners={banners} />
-      <WhatsNewSection />
-      <ReviewSection />
+      <WhatsNewSection description={contents.HOME_WHATS_NEW_DESCRIPTION} />
+      <ReviewSection description={contents.HOME_REVIEW_DESCRIPTION} />
     </SiteFrame>
   );
 }
