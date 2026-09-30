@@ -56,7 +56,7 @@ export function CartView() {
   const message = orderError ?? error;
 
   return (
-    <section className="mt-[25px] w-full bg-[#FEF3EE] py-[34px] pb-[39px] md:pb-[100px]">
+    <section className="mt-[25px] w-full bg-surface-primary py-[34px] pb-[39px] md:pb-[100px]">
       <Container>
         <p className="text-[16px] font-normal leading-5 tracking-[-0.3px] text-black">
           장바구니 ({loaded ? itemCount : "…"})

@@ -133,7 +133,7 @@ function OrderUtility() {
       >
         후기 쓰러 가기
       </Link>
-      <span className="rounded-[4px] bg-[#9A9494] px-[5px] py-0.5 text-[10px] leading-3 tracking-[-0.2px] text-[#333030]">
+      <span className="rounded-[4px] bg-brand-deep px-[5px] py-0.5 text-[10px] leading-3 tracking-[-0.2px] text-white">
         적립금
       </span>
     </>

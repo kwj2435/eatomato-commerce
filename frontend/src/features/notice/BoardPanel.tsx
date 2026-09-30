@@ -7,18 +7,12 @@ import type { ReactNode } from "react";
  * 1280px 패널에 좌우 40px 안쪽 여백을 둬 안쪽 콘텐츠가 1200px 그리드에 맞는 구조다.
  * 그래서 `Container` 를 재사용하지 않고 별도 셸로 둔다.
  *
- * 하단 4분할 구분선은 시안 5p 캡처에 그대로 노출된 요소라 패널의 일부로 포함한다.
+ * 하단 4분할 구분선은 디자인 피드백으로 뺐다. 선이 차지하던 아래 여백(34px)은 남겨 푸터까지 간격을 유지한다.
  */
 export function BoardPanel({ children }: { children: ReactNode }) {
   return (
-    <section className="mx-auto w-full max-w-[1280px] bg-surface-primary px-5 pb-px md:px-10">
+    <section className="mx-auto w-full max-w-[1280px] bg-surface-primary px-5 pb-[34px] md:px-10">
       {children}
-
-      <div className="mt-[33px] grid grid-cols-4 gap-8">
-        {Array.from({ length: 4 }, (_, i) => (
-          <span key={i} className="h-px bg-[#ADADAD]" />
-        ))}
-      </div>
     </section>
   );
 }

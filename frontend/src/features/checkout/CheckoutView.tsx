@@ -174,7 +174,7 @@ function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig
   }
 
   return (
-    <section className="w-full bg-[#FEF3EE] py-10 md:py-14">
+    <section className="w-full bg-surface-primary py-10 md:py-14">
       <Container>
         <h1 className="text-[22px] font-medium tracking-[-0.4px] text-black">주문서</h1>
         <form onSubmit={handleSubmit} noValidate className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
