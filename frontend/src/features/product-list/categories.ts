@@ -2,6 +2,8 @@ import type { CategoryKey, SubcategoryKey } from "@/types/product";
 
 /**
  * 카테고리 · 서브카테고리 정의.
+ * slug 는 URL·DB 코드라 이름만 바꿀 땐 그대로 둔다(예: phone-acc 의 라벨은 Accessories, tok 은 Phone Grip).
+ * 백엔드 category·subcategory 테이블과 같아야 한다(V8__navigation_categories.sql).
  *
  * 이 파일 하나가 GNB 드롭다운, 상품 리스트 페이지의 탭, 라우트 파라미터 검증까지
  * 전부의 단일 진실 원천(single source of truth) 이 된다.
@@ -19,6 +21,8 @@ export type CategoryEntry = {
   label: string;
   /** 상품 리스트 상단 탭. 항상 첫 항목이 "All" 이라고 가정한다. */
   subcategories: SubcategoryEntry[];
+  /** GNB 드롭다운에서 "All" 을 빼고 하위 분류만 보인다(시안의 Earphone Case). 리스트 탭에는 그대로 둔다. */
+  hideAllInNav?: boolean;
 };
 
 export const CATEGORIES: Record<CategoryKey, CategoryEntry> = {
@@ -28,27 +32,43 @@ export const CATEGORIES: Record<CategoryKey, CategoryEntry> = {
     subcategories: [
       { slug: null, label: "All" },
       { slug: "epoxy-glass", label: "Epoxy & Glass" },
-      { slug: "clear-jelly", label: "Clear Jelly Hard" },
+      { slug: "clear-jelly", label: "Clear" },
     ],
+  },
+  "earphone-case": {
+    slug: "earphone-case",
+    label: "Earphone Case",
+    subcategories: [
+      { slug: null, label: "All" },
+      { slug: "airpods", label: "AirPods" },
+      { slug: "buds", label: "Buds" },
+    ],
+    hideAllInNav: true,
   },
   "phone-acc": {
     slug: "phone-acc",
-    label: "Phone ACC",
+    label: "Accessories",
     subcategories: [
       { slug: null, label: "All" },
-      { slug: "tok", label: "Tok" },
+      { slug: "tok", label: "Phone Grip" },
       { slug: "card-wallet", label: "Card Wallet" },
-      { slug: "airpods-case", label: "Airpods Case" },
+      { slug: "keyring", label: "Keyring" },
     ],
   },
   /**
-   * 세트 상품. 시안의 GNB 에서 SET ITEM 은 드롭다운 없는 단독 메뉴라
+   * 세트 상품. 시안의 GNB 에서 Sets 는 드롭다운 없는 단독 메뉴라
    * 서브카테고리를 "All" 하나만 둔다. 이 경우 헤더는 드롭다운을,
    * 리스트 페이지는 탭 줄을 각각 생략한다(`hasSubcategories` 참고).
    */
   set: {
     slug: "set",
-    label: "SET ITEM",
+    label: "Sets",
+    subcategories: [{ slug: null, label: "All" }],
+  },
+  /** 폰 액세서리 밖의 소품. Sets 처럼 하위 메뉴 없는 단독 메뉴. */
+  objects: {
+    slug: "objects",
+    label: "Objects",
     subcategories: [{ slug: null, label: "All" }],
   },
 };
@@ -60,14 +80,16 @@ export const CATEGORIES: Record<CategoryKey, CategoryEntry> = {
  */
 export const CATEGORY_LIST: CategoryEntry[] = [
   CATEGORIES["phone-case"],
+  CATEGORIES["earphone-case"],
   CATEGORIES["phone-acc"],
   CATEGORIES["set"],
+  CATEGORIES["objects"],
 ];
 
 /**
  * 하위 분류를 실제로 가진 카테고리인지 판별한다.
  *
- * "All" 하나뿐인 카테고리(SET ITEM)는 탭이나 드롭다운을 그려도 이동할 곳이 없어
+ * "All" 하나뿐인 카테고리(Sets·Objects)는 탭이나 드롭다운을 그려도 이동할 곳이 없어
  * 헤더 드롭다운과 리스트 탭 양쪽에서 이 헬퍼로 노출 여부를 판단한다.
  * 판단 규칙을 한 곳에 두어 두 화면이 서로 엇갈리지 않게 한다.
  */

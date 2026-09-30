@@ -88,12 +88,16 @@ public class DemoDataSeeder implements ApplicationRunner {
 		categoryRepository.saveAll(List.of(
 			new Category("phone-case", "Phone Case", 1)
 				.addSubcategory("epoxy-glass", "Epoxy & Glass")
-				.addSubcategory("clear-jelly", "Clear Jelly Hard"),
-			new Category("phone-acc", "Phone ACC", 2)
-				.addSubcategory("tok", "Tok")
+				.addSubcategory("clear-jelly", "Clear"),
+			new Category("earphone-case", "Earphone Case", 2)
+				.addSubcategory("airpods", "AirPods")
+				.addSubcategory("buds", "Buds"),
+			new Category("phone-acc", "Accessories", 3)
+				.addSubcategory("tok", "Phone Grip")
 				.addSubcategory("card-wallet", "Card Wallet")
-				.addSubcategory("airpods-case", "Airpods Case"),
-			new Category("set", "SET ITEM", 3)));
+				.addSubcategory("keyring", "Keyring"),
+			new Category("set", "Sets", 4),
+			new Category("objects", "Objects", 5)));
 		categoryRepository.flush();
 	}
 
@@ -113,22 +117,22 @@ public class DemoDataSeeder implements ApplicationRunner {
 				List.of(SALE, BEST), "phone-case", "clear-jelly", 640, "4.9", 8, 9),
 			product("jelly-airy-tint", "핸드폰 케이스 JELLY AIRY TINT", "옵션 | 맥세이프", 21000, 17500,
 				List.of(SALE), "phone-case", "clear-jelly", 190, "4.4", 10, 11),
-			// Phone ACC · Tok
+			// Accessories · Tok
 			product("tok-cream-round", "톡 CREAM ROUND", "옵션 | 원형", 12000, null,
 				List.of(NEW), "phone-acc", "tok", 300, "4.7", 12, 13),
 			product("tok-red-square", "톡 RED SQUARE", "옵션 | 사각형", 12000, 9900,
 				List.of(SALE), "phone-acc", "tok", 250, "4.5", 14, 0),
-			// Phone ACC · Card Wallet
+			// Accessories · Card Wallet
 			product("card-wallet-slim", "카드지갑 SLIM", "옵션 | 맥세이프", 19000, null,
 				List.of(BEST), "phone-acc", "card-wallet", 470, "4.8", 1, 2),
 			product("card-wallet-classic", "카드지갑 CLASSIC", "옵션 | 맥세이프", 24000, 19900,
 				List.of(SALE, BEST), "phone-acc", "card-wallet", 520, "4.9", 3, 4),
-			// Phone ACC · Airpods Case
+			// Earphone Case · AirPods
 			product("airpods-mellow", "에어팟 케이스 MELLOW", "옵션 | 3세대 / Pro", 16000, null,
-				List.of(NEW), "phone-acc", "airpods-case", 180, "4.6", 5, 6),
+				List.of(NEW), "earphone-case", "airpods", 180, "4.6", 5, 6),
 			product("airpods-dottie", "에어팟 케이스 DOTTIE", "옵션 | 3세대 / Pro", 16000, 13500,
-				List.of(SALE), "phone-acc", "airpods-case", 140, "4.4", 7, 8),
-			// SET ITEM (하위 분류 없음)
+				List.of(SALE), "earphone-case", "airpods", 140, "4.4", 7, 8),
+			// Sets (하위 분류 없음)
 			product("set-mellow-tok", "[SET] MELLOW 케이스 + 스마트톡", "옵션 | 맥세이프", 35000, 29900,
 				List.of(BEST), "set", null, 410, "4.8", 9, 10),
 			product("set-clear-card-wallet", "[SET] CLEAR JELLY HARD 케이스 + 카드지갑", "옵션 | 맥세이프", 41000, 34900,
@@ -184,7 +188,7 @@ public class DemoDataSeeder implements ApplicationRunner {
 				addMount(product.addOptionGroup("mount", "부착타입"));
 				addModel(product.addOptionGroup("model", "기종"));
 			}
-			case "phone-acc" -> addMount(product.addOptionGroup("type", "부착타입"));
+			case "phone-acc", "earphone-case" -> addMount(product.addOptionGroup("type", "부착타입"));
 			case "set" -> addModel(product.addOptionGroup("model", "기종"));
 			default -> {
 			}
@@ -249,7 +253,7 @@ public class DemoDataSeeder implements ApplicationRunner {
 		List<Seed> seeds = List.of(
 			new Seed("/products/phone-case", "메인 배너 1 — 핸드폰 케이스 신제품"),
 			new Seed("/products/phone-acc", "메인 배너 2 — 시즌 컬렉션"),
-			new Seed("/products/phone-acc/airpods-case", "메인 배너 3 — 에어팟 케이스"),
+			new Seed("/products/earphone-case/airpods", "메인 배너 3 — 에어팟 케이스"),
 			new Seed("/products/set", "메인 배너 4 — 세트 상품"),
 			new Seed("/signup", "메인 배너 5 — 신규 회원 혜택"),
 			new Seed("/products/phone-case", "메인 배너 6 — MD 픽"),

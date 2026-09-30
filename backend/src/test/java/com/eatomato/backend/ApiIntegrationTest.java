@@ -38,11 +38,14 @@ class ApiIntegrationTest {
 	void 카탈로그_조회() throws Exception {
 		mockMvc.perform(get("/api/categories"))
 			.andExpect(status().isOk())
-			.andExpect(jsonPath("$", hasSize(3)))
+			.andExpect(jsonPath("$", hasSize(5)))
 			.andExpect(jsonPath("$[0].slug").value("phone-case"))
 			.andExpect(jsonPath("$[0].subcategories[0].slug").value(nullValue()))
 			.andExpect(jsonPath("$[0].subcategories[0].label").value("All"))
-			.andExpect(jsonPath("$[2].subcategories", hasSize(1)));
+			.andExpect(jsonPath("$[1].slug").value("earphone-case"))
+			.andExpect(jsonPath("$[2].label").value("Accessories"))
+			.andExpect(jsonPath("$[3].subcategories", hasSize(1)))
+			.andExpect(jsonPath("$[4].slug").value("objects"));
 
 		// 할인가 기준 낮은가격순: JELLY AIRY TINT(17,500) 가 가장 싸다
 		mockMvc.perform(get("/api/products").param("category", "phone-case").param("sort", "price-asc"))

@@ -34,6 +34,17 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname),
   },
   /**
+   * 옛 주소 → 새 주소. 에어팟 케이스는 Phone ACC 아래에서 Earphone Case > AirPods 로 옮겼다.
+   * 정적 export(GitHub Pages)는 redirects 를 지원하지 않아 운영 서버 모드에서만 둔다.
+   */
+  ...(!isGithubPages && {
+    async redirects() {
+      return [
+        { source: "/products/phone-acc/airpods-case/", destination: "/products/earphone-case/airpods/", permanent: true },
+      ];
+    },
+  }),
+  /**
    * next/image 는 기본적으로 외부 도메인 이미지를 차단한다.
    * - images.unsplash.com: 데모 상품·배너 이미지
    * - eatomato.kr: 후기 사진 등 백엔드 업로드 파일(/uploads/**)

@@ -18,7 +18,7 @@ import { getShippingPolicy } from "@/lib/api/shipping";
  * `/products/[slug]` — 카테고리 전체 리스트 OR 개별 상품 상세.
  *
  * 슬러그 스페이스가 겹치지 않도록 규칙을 강제한다:
- * - 카테고리 슬러그는 `CATEGORIES` 에 등록된 값 (`phone-case`, `phone-acc`) 만 허용.
+ * - 카테고리 슬러그는 `CATEGORIES` 에 등록된 값 (`phone-case`, `earphone-case` 등) 만 허용.
  * - 상품 슬러그는 그 외 값. mock 데이터에서 카테고리와 이름 충돌이 없도록 유지.
  *
  * 하나의 라우트가 두 화면을 담당하도록 한 이유:
