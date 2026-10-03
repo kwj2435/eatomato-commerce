@@ -6,16 +6,23 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 
 import { changeAdminOrderStatus, listAdminOrders } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
+import { BANKS, bankName } from "@/lib/utils/banks";
 import { formatKRW, formatPhone } from "@/lib/utils/format";
 import type { AdminOrder, Page } from "@/types/admin";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 
 import { formatDateTime } from "../format";
-import { Button, Card, Empty, Notice, PageHeader, Pagination, inputClass, tableClass, tdClass, thClass } from "../ui";
+import { Button, Card, Empty, Field, Notice, PageHeader, Pagination, inputClass, tableClass, tdClass, thClass } from "../ui";
 
 const STATUSES = Object.keys(ORDER_STATUS_LABELS) as OrderStatus[];
 
-const PAYMENT_LABELS = { READY: "결제 전", DONE: "승인", CANCELED: "취소", FAILED: "실패" } as const;
+const PAYMENT_LABELS = {
+  READY: "결제 전",
+  WAITING_FOR_DEPOSIT: "입금대기",
+  DONE: "승인",
+  CANCELED: "취소",
+  FAILED: "실패",
+} as const;
 
 function isStatus(value: string | null): value is OrderStatus {
   return value !== null && (STATUSES as string[]).includes(value);
@@ -43,17 +50,26 @@ export function AdminOrderList() {
 
   useEffect(load, [load]);
 
+  const [refundFor, setRefundFor] = useState<AdminOrder | null>(null);
+
+  const replace = (updated: AdminOrder) =>
+    setData((prev) =>
+      prev ? { ...prev, content: prev.content.map((o) => (o.orderNumber === updated.orderNumber ? updated : o)) } : prev,
+    );
+
   const change = async (order: AdminOrder, next: OrderStatus) => {
+    // 무통장입금으로 입금까지 받은 주문은 고객 환불 계좌를 받아야 취소(환불)할 수 있다.
+    if (next === "CANCELLED" && order.status === "PAID" && order.payment?.virtualAccount) {
+      setRefundFor(order);
+      return;
+    }
     const message =
       next === "CANCELLED"
         ? `주문 ${order.orderNumber} 을(를) 취소할까요?\n결제가 취소(환불)되고 재고가 복원됩니다.`
         : `주문 ${order.orderNumber} 을(를) '${ORDER_STATUS_LABELS[next]}'(으)로 바꿀까요?`;
     if (!window.confirm(message)) return;
     try {
-      const updated = await changeAdminOrderStatus(order.orderNumber, next);
-      setData((prev) =>
-        prev ? { ...prev, content: prev.content.map((o) => (o.orderNumber === updated.orderNumber ? updated : o)) } : prev,
-      );
+      replace(await changeAdminOrderStatus(order.orderNumber, next));
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -63,7 +79,7 @@ export function AdminOrderList() {
     <>
       <PageHeader
         title="주문·결제"
-        description="결제대기 → 결제완료 → 배송중 → 배송완료 순서로만 바뀝니다. 취소는 배송 전까지 가능하며 환불·재고 복원이 함께 됩니다. PG 연동 전이라 결제는 MOCK 으로 승인됩니다."
+        description="결제대기 → (무통장입금은 입금대기 →) 결제완료 → 배송중 → 배송완료 순서로만 바뀝니다. 취소는 배송 전까지 가능하며 환불·재고 복원이 함께 됩니다. 무통장입금으로 받은 주문을 취소하면 고객 환불 계좌를 입력합니다."
         actions={
           <Link
             href="/admin/shipments"
@@ -191,7 +207,15 @@ export function AdminOrderList() {
                               <p className="mb-1 font-bold">결제</p>
                               {o.payment ? (
                                 <p className="leading-[20px]">
-                                  {o.payment.provider} · {PAYMENT_LABELS[o.payment.status]} · {formatKRW(o.payment.amount)}
+                                  {o.payment.provider}
+                                  {o.payment.method ? ` · ${o.payment.method}` : ""} · {PAYMENT_LABELS[o.payment.status]} ·{" "}
+                                  {formatKRW(o.payment.amount)}
+                                  {o.payment.virtualAccount ? (
+                                    <span className="block text-ink-muted">
+                                      입금 계좌 {bankName(o.payment.virtualAccount.bankCode)} {o.payment.virtualAccount.accountNumber}
+                                      {o.payment.virtualAccount.customerName ? ` (${o.payment.virtualAccount.customerName})` : ""}
+                                    </span>
+                                  ) : null}
                                   {o.payment.approvedAt ? <span className="block text-ink-muted">승인 {formatDateTime(o.payment.approvedAt)}</span> : null}
                                   {o.payment.paymentKey ? <span className="block break-all text-ink-subtle">{o.payment.paymentKey}</span> : null}
                                 </p>
@@ -227,6 +251,103 @@ export function AdminOrderList() {
         )}
         {data ? <Pagination page={data.page} totalPages={data.totalPages} onChange={setPage} /> : null}
       </Card>
+      {refundFor ? (
+        <RefundAccountDialog
+          order={refundFor}
+          onClose={() => setRefundFor(null)}
+          onDone={(updated) => {
+            replace(updated);
+            setRefundFor(null);
+          }}
+        />
+      ) : null}
     </>
+  );
+}
+
+/**
+ * 무통장입금 주문 환불 계좌 입력. 토스가 이 계좌로 환불금을 보낸다(고객에게 받은 계좌를 그대로 넣는다).
+ */
+function RefundAccountDialog({
+  order,
+  onClose,
+  onDone,
+}: {
+  order: AdminOrder;
+  onClose: () => void;
+  onDone: (updated: AdminOrder) => void;
+}) {
+  const [bank, setBank] = useState(BANKS[0].code);
+  const [accountNumber, setAccountNumber] = useState("");
+  const [holderName, setHolderName] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const digits = accountNumber.replace(/[^0-9]/g, "");
+    if (digits.length < 6) return setError("계좌번호를 숫자로 입력해 주세요.");
+    if (!holderName.trim()) return setError("예금주를 입력해 주세요.");
+    setPending(true);
+    setError(null);
+    try {
+      onDone(await changeAdminOrderStatus(order.orderNumber, "CANCELLED", { bank, accountNumber: digits, holderName: holderName.trim() }));
+    } catch (e) {
+      setError(errorMessage(e));
+      setPending(false);
+    }
+  };
+
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="refund-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <form onSubmit={submit} className="w-full max-w-[420px] rounded-lg bg-white p-6 shadow-xl">
+        <h2 id="refund-title" className="text-[16px] font-bold">
+          무통장입금 환불 계좌
+        </h2>
+        <p className="mt-1 text-[13px] leading-[19px] text-ink-muted">
+          주문 {order.orderNumber} ({formatKRW(order.total)})을 취소하고 아래 계좌로 환불합니다. 고객에게 받은 계좌를 입력하세요.
+        </p>
+        <div className="mt-4 space-y-3">
+          <Field label="은행" htmlFor="refund-bank">
+            <select id="refund-bank" value={bank} onChange={(e) => setBank(e.target.value)} className={inputClass}>
+              {BANKS.map((b) => (
+                <option key={b.code} value={b.code}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="계좌번호" htmlFor="refund-account">
+            <input
+              id="refund-account"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
+              inputMode="numeric"
+              placeholder="숫자만"
+              maxLength={24}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="예금주" htmlFor="refund-holder">
+            <input
+              id="refund-holder"
+              value={holderName}
+              onChange={(e) => setHolderName(e.target.value)}
+              maxLength={60}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        {error ? <p role="alert" className="mt-3 text-[13px] text-brand-primary">{error}</p> : null}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button onClick={onClose} disabled={pending}>
+            닫기
+          </Button>
+          <Button type="submit" variant="danger" disabled={pending}>
+            {pending ? "처리 중…" : "취소·환불"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

@@ -70,7 +70,7 @@ docker compose up -d --build
 | GET | `/api/payments/config` 🔒 | 결제창 설정 `{provider: TOSS\|MOCK, clientKey}` (토스 결제위젯 공개 키) | 주문서 |
 | POST | `/api/payments/confirm` 🔒 | 결제 승인 `{orderNumber, paymentKey, amount}` → 결제완료 (금액 서버 대조, 중복 요청 안전) | 결제 완료 화면 |
 | POST | `/api/payments/webhook` | PG 결과 알림 `{orderNumber, paymentKey, status: DONE\|CANCELED, amount}` (헤더 `X-Payment-Webhook-Secret`) | PG 서버 |
-| POST | `/api/payments/toss/webhook` | 토스페이먼츠 웹훅(`PAYMENT_STATUS_CHANGED`). 본문은 믿지 않고 토스 조회로 확인해 상점관리자 취소를 반영 | 토스 서버 |
+| POST | `/api/payments/toss/webhook` | 토스페이먼츠 웹훅. `PAYMENT_STATUS_CHANGED`: 토스 조회로 확인해 상점관리자 취소 반영. `DEPOSIT_CALLBACK`(무통장입금): 승인 때 받은 `secret` 과 맞으면 입금 확인 → 결제완료 | 토스 서버 |
 | POST | `/api/orders/{orderNumber}/cancel` 🔒 | 고객 취소(결제대기·결제완료). 환불·재고 복원 | 마이페이지 |
 | GET | `/api/orders` · `/api/orders/{orderNumber}` 🔒 | 주문 내역 | 마이페이지 주문 내역 |
 | GET | `/api/shipping-policy` | 배송비 정책 `{baseFee, freeThreshold, remoteAreaFee}` | 상세·장바구니·주문서 |
@@ -110,8 +110,9 @@ docker compose up -d --build
 - 상품·공지·배너 id 는 DB 숫자 PK 의 문자열이다(`"prod-001"` → `"1"`). 회원 `id` 는 로그인 아이디.
 - 상세 `reviewCount` 는 실제 리뷰 수다(mock 은 390 고정).
 - 주문 흐름: 주문서 제출 → `PENDING_PAYMENT`(재고 선점) → 결제 승인 → `PAID` → `SHIPPING` → `DELIVERED`. 취소는 배송 전까지(환불·재고 복원·판매량 되돌림). 허용되지 않는 전이는 400, 변경 이력은 `order_status_history`.
+- 무통장입금(토스 가상계좌): 승인하면 계좌가 발급되고 `AWAITING_DEPOSIT`(입금대기, 재고 유지) → 입금 웹훅이 오면 `PAID`. 입금 기한이 지나면 자동 취소. 입금 전 취소는 가상계좌를 닫고, 입금 뒤 취소(환불)는 고객 환불 계좌가 필요해 관리자만 할 수 있다(`PATCH /api/admin/orders/{n}/status` 에 `refundAccount{bank, accountNumber, holderName}`).
 - 결제: `PaymentGateway` 인터페이스로 PG 를 붙인다. `PAYMENT_PROVIDER=mock`(기본)은 `MockPaymentGateway` 가 항상 승인하고, `toss` 는 `TossPaymentGateway`(토스페이먼츠 결제위젯)가 승인·취소한다. 결제대기 30분이 지나면 자동 취소.
-  - 토스: 개발자센터 > API 키의 **결제위젯 연동 키**를 `TOSS_CLIENT_KEY`(test_gck_)·`TOSS_SECRET_KEY`(test_gsk_)에 넣는다(API 개별 연동 키 test_ck_ 는 위젯에서 안 된다). 결제위젯 어드민에서 가상계좌는 끈다(입금 대기는 결제완료로 보지 않는다).
+  - 토스: 개발자센터 > API 키의 **결제위젯 연동 키**를 `TOSS_CLIENT_KEY`(test_gck_)·`TOSS_SECRET_KEY`(test_gsk_)에 넣는다(API 개별 연동 키 test_ck_ 는 위젯에서 안 된다). 결제위젯 어드민의 결제 UI 에서 보일 결제수단(카드·가상계좌 등)을 고른다. 웹훅은 `PAYMENT_STATUS_CHANGED`·`DEPOSIT_CALLBACK` 둘 다 등록한다.
 - 재고: 상품 단위(`stock_quantity`, null = 무제한). 조건부 UPDATE 로 차감해 동시 주문에도 음수가 되지 않는다. 옵션 조합(SKU) 단위 재고는 아직 없다.
 - 배송비: `shipping_policy` 한 줄(관리자 설정). 제주(우편번호 63…)는 추가 배송비. 도서 산간 전체 목록은 미반영.
 - 로그인 잠금: 15분 안에 계정별 5회·IP별 20회 실패하면 잠금(메모리, 서버 1대 기준). nginx 가 `/api/auth/login|signup` 을 IP당 분당 10회로 한 번 더 제한.

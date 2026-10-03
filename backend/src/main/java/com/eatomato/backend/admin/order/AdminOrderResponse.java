@@ -36,19 +36,21 @@ public record AdminOrderResponse(
 	}
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	public record PaymentInfo(String provider, String status, String paymentKey, int amount, OffsetDateTime approvedAt) {
+	public record PaymentInfo(String provider, String status, String paymentKey, int amount, OffsetDateTime approvedAt,
+		String method, OrderResponse.VirtualAccount virtualAccount) {
 
-		static PaymentInfo from(Payment payment) {
+		static PaymentInfo from(Payment payment, OrderResponse.PaymentInfo info) {
 			if (payment == null) {
 				return null;
 			}
 			return new PaymentInfo(payment.getProvider(), payment.getStatus().name(), payment.getPaymentKey(),
-				payment.getAmount(), payment.getApprovedAt() == null ? null : Times.toOffset(payment.getApprovedAt()));
+				payment.getAmount(), payment.getApprovedAt() == null ? null : Times.toOffset(payment.getApprovedAt()),
+				payment.getMethod(), info == null ? null : info.virtualAccount());
 		}
 	}
 
 	public static AdminOrderResponse of(Order order, Member member, Payment payment) {
-		OrderResponse base = OrderResponse.from(order);
+		OrderResponse base = OrderResponse.from(order, payment);
 		return new AdminOrderResponse(
 			base.orderNumber(),
 			base.status(),
@@ -61,7 +63,7 @@ public record AdminOrderResponse(
 			base.total(),
 			base.items(),
 			base.shipping(),
-			PaymentInfo.from(payment),
+			PaymentInfo.from(payment, base.payment()),
 			member == null ? null
 				: new Orderer(String.valueOf(member.getId()), member.getLoginId(), member.getName()));
 	}

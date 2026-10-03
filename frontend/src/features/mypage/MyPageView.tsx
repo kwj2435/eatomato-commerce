@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
+import { VirtualAccountInfo } from "@/components/order/VirtualAccountInfo";
 import { errorMessage } from "@/lib/api/client";
 import { getMyMember } from "@/lib/api/member";
 import { cancelMyOrder, listMyOrders } from "@/lib/api/orders";
@@ -145,8 +146,13 @@ function OrderList({ orders: initial }: { orders: Order[] }) {
   const [error, setError] = useState<string | null>(null);
 
   const cancel = async (order: Order) => {
-    const paid = order.status === "PAID";
-    if (!window.confirm(paid ? "주문을 취소할까요? 결제가 취소(환불)됩니다." : "주문을 취소할까요?")) return;
+    const message =
+      order.status === "PAID"
+        ? "주문을 취소할까요? 결제가 취소(환불)됩니다."
+        : order.status === "AWAITING_DEPOSIT"
+          ? "주문을 취소할까요? 안내받은 입금 계좌는 더 이상 쓸 수 없습니다."
+          : "주문을 취소할까요?";
+    if (!window.confirm(message)) return;
     try {
       const updated = await cancelMyOrder(order.orderNumber);
       setOrders((prev) => prev.map((o) => (o.orderNumber === updated.orderNumber ? updated : o)));
@@ -189,6 +195,16 @@ function OrderList({ orders: initial }: { orders: Order[] }) {
               </li>
             ))}
           </ul>
+          {order.status === "AWAITING_DEPOSIT" && order.payment?.virtualAccount ? (
+            <VirtualAccountInfo
+              account={order.payment.virtualAccount}
+              amount={order.total}
+              className="mt-3 border border-brand-deep/40 bg-white px-3 py-2.5"
+            />
+          ) : null}
+          {order.status === "PAID" && !order.cancellable && order.payment?.virtualAccount ? (
+            <p className="mt-2 text-right text-[12px] text-[#999]">무통장입금 주문 취소는 고객센터로 요청해 주세요.</p>
+          ) : null}
           {order.cancellable ? (
             <div className="mt-2 text-right">
               <button

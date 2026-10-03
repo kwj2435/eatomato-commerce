@@ -90,6 +90,11 @@ public class Order {
 		this.paidAt = Times.now();
 	}
 
+	/** 무통장입금 계좌 발급. 입금이 확인되면 markPaid 로 결제완료가 된다. */
+	public void markAwaitingDeposit() {
+		transitionTo(OrderStatus.AWAITING_DEPOSIT);
+	}
+
 	public void cancel() {
 		transitionTo(OrderStatus.CANCELLED);
 		this.cancelledAt = Times.now();

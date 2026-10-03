@@ -28,7 +28,8 @@ type SelectionMap = Record<string, string>;
 type Status =
   | { kind: "idle" }
   | { kind: "warn"; message: string }
-  | { kind: "login" }
+  /** 비회원이 누른 버튼. 장바구니·주문 모두 회원 전용이라 로그인으로 안내한다. */
+  | { kind: "login"; action: "cart" | "buy" }
   | { kind: "success"; message: string };
 
 /**
@@ -118,14 +119,15 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
   /**
    * 메인 상품 + 옵션을 고른 BETTER TOGETHER 상품을 장바구니에 담는다.
    * 성공하면 true. "바로 구매하기" 는 담은 뒤 장바구니 화면으로 이동한다.
+   * 주문은 장바구니를 거쳐 만들어지므로(비회원 주문 없음) 두 버튼 모두 로그인이 필요하다.
    */
-  const addToCart = async (): Promise<boolean> => {
+  const addToCart = async (action: "cart" | "buy"): Promise<boolean> => {
     if (!mainReady) {
       setStatus({ kind: "warn", message: "옵션을 모두 선택해 주세요." });
       return false;
     }
     if (!hasSession()) {
-      setStatus({ kind: "login" });
+      setStatus({ kind: "login", action });
       return false;
     }
 
@@ -156,11 +158,11 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
   };
 
   const handleAddToCart = () => {
-    void addToCart();
+    void addToCart("cart");
   };
 
   const handleBuyNow = async () => {
-    if (await addToCart()) router.push("/cart");
+    if (await addToCart("buy")) router.push("/cart");
   };
 
   return (
@@ -267,13 +269,13 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
             disabled={pending || product.soldOut}
             className="flex h-[52px] flex-1 items-center justify-center border border-[#C9C9C9] bg-brand-tint text-[15px] font-medium tracking-[-0.2px] text-[#545454] transition-colors hover:border-black hover:text-black disabled:opacity-50"
           >
-            {product.soldOut ? "품절" : "잠깐 장바구니"}
+            {product.soldOut ? "품절" : "장바구니 담기"}
           </button>
         </div>
 
         {status.kind === "login" ? (
           <p role="status" aria-live="polite" className="mt-4 text-[13px] text-brand-primary">
-            장바구니는 로그인 후 이용할 수 있습니다.{" "}
+            {status.action === "buy" ? "구매는 로그인 후 이용할 수 있습니다." : "장바구니는 로그인 후 이용할 수 있습니다."}{" "}
             <Link
               href={`/login?next=${encodeURIComponent(pathname)}`}
               className="font-medium underline underline-offset-2"
@@ -295,7 +297,6 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
           </p>
         ) : null}
 
-        <NaverPayWidget />
       </div>
     </div>
   );
@@ -362,59 +363,6 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
       <span className="text-[14px] font-normal tracking-[-0.2px] text-[#545454]">
         {value}
       </span>
-    </div>
-  );
-}
-
-/**
- * 네이버페이 위젯 자리표시.
- * 실서비스에서는 네이버페이 SDK 가 이 자리에 iframe/스크립트를 렌더한다.
- */
-function NaverPayWidget() {
-  return (
-    <div className="mt-[22px] flex w-full max-w-[260px] flex-col border-t-[3px] border-[#333] bg-white">
-      <div className="flex items-center gap-2 py-2 pl-2.5 pr-2">
-        <div className="flex flex-col">
-          <span className="text-[11px] font-extrabold tracking-[-0.2px] text-[#2DB400]">
-            NAVER
-          </span>
-          <span className="text-[10px] leading-[13px] tracking-[-0.4px] text-[#555]">
-            네이버ID로 간편구매
-          </span>
-          <span className="text-[10px] leading-[13px] tracking-[-0.4px] text-[#555]">
-            네이버페이
-          </span>
-        </div>
-        <button
-          type="button"
-          className="flex h-[34px] flex-1 items-center justify-center gap-1 bg-[#03C75A] text-[13px] font-bold text-[#14181A]"
-        >
-          <span className="inline-block h-3.5 w-3.5 rounded-full bg-[#14181A] text-center leading-[14px] text-white text-[9px]">
-            N
-          </span>
-          pay 구매
-        </button>
-        <button
-          type="button"
-          aria-label="찜"
-          className="flex h-[34px] w-[34px] items-center justify-center border border-[#DDD] text-[12px] text-[#333]"
-        >
-          찜
-        </button>
-      </div>
-      <div className="flex items-center justify-between gap-2 border-t border-[#EEE] py-1.5 pl-2.5 pr-2">
-        <span className="truncate text-[11px] tracking-[-0.3px] text-[#999]">
-          <span className="font-bold text-[#2DB400]">이벤트</span> 100% 지급! 최대 1만원 혜택…
-        </span>
-        <span className="flex flex-none gap-0.5">
-          <span className="flex h-4 w-4 items-center justify-center border border-[#DDD] text-[9px] text-[#999]">
-            ‹
-          </span>
-          <span className="flex h-4 w-4 items-center justify-center border border-[#DDD] text-[9px] text-[#999]">
-            ›
-          </span>
-        </span>
-      </div>
     </div>
   );
 }

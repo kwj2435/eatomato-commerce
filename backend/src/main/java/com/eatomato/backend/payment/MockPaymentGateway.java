@@ -22,11 +22,11 @@ public class MockPaymentGateway implements PaymentGateway {
 	@Override
 	public PaymentApproval confirm(String paymentKey, String orderNumber, int amount) {
 		log.info("[MOCK PG] 결제 승인 가정: 주문 {} / {}원", orderNumber, amount);
-		return new PaymentApproval(paymentKey, amount);
+		return PaymentApproval.paid(paymentKey, amount, "MOCK");
 	}
 
 	@Override
-	public void cancel(String paymentKey, int amount, String reason) {
+	public void cancel(String paymentKey, int amount, String reason, RefundAccount refundAccount) {
 		log.info("[MOCK PG] 결제 취소 가정: {} / {}원 ({})", paymentKey, amount, reason);
 	}
 }

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
+import { VirtualAccountInfo } from "@/components/order/VirtualAccountInfo";
 import { errorMessage } from "@/lib/api/client";
 import { confirmPayment } from "@/lib/api/orders";
 import { useCartStore } from "@/lib/store/cart-store";
@@ -61,10 +62,18 @@ export function CheckoutComplete() {
     );
   }
 
+  const account = order.status === "AWAITING_DEPOSIT" ? order.payment?.virtualAccount : undefined;
+
   return (
     <Container className="mx-auto flex max-w-[560px] flex-col items-center py-[90px] text-center">
-      <p className="text-[24px] font-medium tracking-[-0.4px]">주문이 완료되었어요</p>
+      <p className="text-[24px] font-medium tracking-[-0.4px]">{account ? "주문이 접수되었어요" : "주문이 완료되었어요"}</p>
       <p className="mt-2 text-[14px] text-ink-muted">주문번호 {order.orderNumber}</p>
+      {account ? (
+        <div className="mt-8 w-full border-[1.5px] border-brand-deep bg-white px-5 py-5">
+          <p className="mb-3 text-left text-[14px] font-medium text-brand-deep">아래 계좌로 입금하면 주문이 완료돼요</p>
+          <VirtualAccountInfo account={account} amount={order.total} />
+        </div>
+      ) : null}
       <dl className="mt-8 w-full space-y-3 border-y-[1.5px] border-black py-6 text-left text-[14px]">
         {order.shipping ? (
           <div className="flex gap-4">
@@ -87,6 +96,12 @@ export function CheckoutComplete() {
           <dt className="w-20 flex-none text-ink-muted">결제 금액</dt>
           <dd className="font-bold tabular-nums">{formatKRW(order.total)}</dd>
         </div>
+        {order.payment?.method ? (
+          <div className="flex gap-4">
+            <dt className="w-20 flex-none text-ink-muted">결제 수단</dt>
+            <dd>{order.payment.method === "가상계좌" ? "무통장입금" : order.payment.method}</dd>
+          </div>
+        ) : null}
       </dl>
       <div className="mt-8 flex gap-3">
         <Link href="/mypage" className="border-[1.5px] border-black px-6 py-3 text-[14px] hover:bg-black hover:text-white">주문 내역 보기</Link>

@@ -53,6 +53,8 @@ public enum ErrorCode {
 	INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST, "지금 상태에서는 바꿀 수 없는 주문 상태입니다."),
 	PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 주문 금액과 다릅니다."),
 	PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "결제에 실패했습니다. 다시 시도해 주세요."),
+	REFUND_ACCOUNT_REQUIRED(HttpStatus.BAD_REQUEST, "무통장입금 결제를 환불하려면 환불 받을 계좌가 필요합니다."),
+	CANCEL_VIA_CUSTOMER_SERVICE(HttpStatus.BAD_REQUEST, "무통장입금으로 결제한 주문은 고객센터로 취소를 요청해 주세요."),
 	PAYMENT_CANCEL_FAILED(HttpStatus.BAD_GATEWAY, "결제 취소에 실패했습니다. 잠시 뒤 다시 시도해 주세요."),
 	INVALID_WEBHOOK(HttpStatus.UNAUTHORIZED, "잘못된 결제 알림입니다."),
 	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다.");

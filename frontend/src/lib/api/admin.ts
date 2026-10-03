@@ -102,11 +102,14 @@ export async function listAllAdminOrders(status: OrderStatus): Promise<AdminOrde
   return all;
 }
 
-export const changeAdminOrderStatus = (orderNumber: string, status: OrderStatus) =>
+/** 무통장입금으로 입금까지 끝난 주문을 취소할 때 고객 환불 계좌. bank 는 토스 은행 코드. */
+export type RefundAccount = { bank: string; accountNumber: string; holderName: string };
+
+export const changeAdminOrderStatus = (orderNumber: string, status: OrderStatus, refundAccount?: RefundAccount) =>
   apiFetch<AdminOrder>(`/api/admin/orders/${orderNumber}/status`, {
     method: "PATCH",
     auth: true,
-    json: { status },
+    json: { status, refundAccount },
   });
 
 // ── 배너 ──

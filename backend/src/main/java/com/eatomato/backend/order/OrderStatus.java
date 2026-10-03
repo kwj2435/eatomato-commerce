@@ -7,13 +7,16 @@ import java.util.Set;
  * 주문 상태와 허용 전이.
  *
  * PENDING_PAYMENT(결제대기) ─결제 승인→ PAID(결제완료) ─→ SHIPPING(배송중) ─→ DELIVERED(배송완료)
- *        └──────────────┴─→ CANCELLED(취소)  (배송 시작 전까지만 취소)
+ *        └─무통장입금 발급→ AWAITING_DEPOSIT(입금대기) ─입금 확인→ PAID
+ *        └──────────────┴──────────────┴─→ CANCELLED(취소)  (배송 시작 전까지만 취소)
  *
- * 결제완료로는 결제 승인(PG 콜백)으로만 바뀐다. 관리자가 직접 결제완료로 바꿀 수는 없다.
+ * 결제완료·입금대기로는 결제 승인·입금 웹훅으로만 바뀐다. 관리자가 직접 바꿀 수는 없다.
  */
 public enum OrderStatus {
 
 	PENDING_PAYMENT,
+	/** 무통장입금(가상계좌) 계좌를 받고 입금을 기다리는 중. 재고는 계속 잡아 둔다. */
+	AWAITING_DEPOSIT,
 	PAID,
 	SHIPPING,
 	DELIVERED,
@@ -24,7 +27,8 @@ public enum OrderStatus {
 
 	public Set<OrderStatus> next() {
 		return switch (this) {
-			case PENDING_PAYMENT -> EnumSet.of(PAID, CANCELLED);
+			case PENDING_PAYMENT -> EnumSet.of(AWAITING_DEPOSIT, PAID, CANCELLED);
+			case AWAITING_DEPOSIT -> EnumSet.of(PAID, CANCELLED);
 			case PAID -> EnumSet.of(SHIPPING, CANCELLED);
 			case SHIPPING -> EnumSet.of(DELIVERED);
 			case DELIVERED, CANCELLED -> EnumSet.noneOf(OrderStatus.class);
@@ -36,11 +40,12 @@ public enum OrderStatus {
 		Set<OrderStatus> next = EnumSet.noneOf(OrderStatus.class);
 		next.addAll(next());
 		next.remove(PAID);
+		next.remove(AWAITING_DEPOSIT);
 		return next;
 	}
 
 	public boolean isCancellable() {
-		return this == PENDING_PAYMENT || this == PAID;
+		return this == PENDING_PAYMENT || this == AWAITING_DEPOSIT || this == PAID;
 	}
 
 	public boolean isPaid() {

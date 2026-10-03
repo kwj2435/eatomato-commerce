@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import com.eatomato.backend.payment.Payment;
 import com.eatomato.backend.payment.PaymentGateway;
 import com.eatomato.backend.payment.PaymentRepository;
 import com.eatomato.backend.payment.PaymentService;
+import com.eatomato.backend.payment.PaymentStatus;
 import com.eatomato.backend.product.Product;
 import com.eatomato.backend.product.ProductRepository;
 import com.eatomato.backend.shipping.ShippingPolicyService;
@@ -80,21 +83,32 @@ public class OrderService {
 	}
 
 	public List<OrderResponse> listMine(Long memberId) {
-		return orderRepository.findByMemberIdOrderByOrderedAtDescIdDesc(memberId).stream()
-			.map(OrderResponse::from)
+		List<Order> orders = orderRepository.findByMemberIdOrderByOrderedAtDescIdDesc(memberId);
+		Map<Long, Payment> payments = paymentRepository.findByOrderIn(orders).stream()
+			.collect(Collectors.toMap(payment -> payment.getOrder().getId(), Function.identity()));
+		return orders.stream()
+			.map(order -> OrderResponse.from(order, payments.get(order.getId())))
 			.toList();
 	}
 
 	public OrderResponse getMine(Long memberId, String orderNumber) {
-		return OrderResponse.from(findMine(memberId, orderNumber));
+		Order order = findMine(memberId, orderNumber);
+		return OrderResponse.from(order, paymentRepository.findByOrder(order).orElse(null));
 	}
 
-	/** 고객 취소(결제대기·결제완료만). 결제완료였다면 PG 결제를 취소한다. */
+	/**
+	 * 고객 취소(결제대기·입금대기·결제완료). 결제완료였다면 PG 결제를 취소한다.
+	 * 무통장입금으로 입금까지 끝난 주문은 환불 계좌가 필요해 고객센터(관리자 취소)로 안내한다.
+	 */
 	@Transactional
 	public OrderResponse cancelMine(Long memberId, String orderNumber) {
 		Order order = findMine(memberId, orderNumber);
+		Payment payment = paymentRepository.findByOrder(order).orElse(null);
+		if (order.getStatus() == OrderStatus.PAID && payment != null && payment.isVirtualAccount()) {
+			throw new ApiException(ErrorCode.CANCEL_VIA_CUSTOMER_SERVICE);
+		}
 		cancel(order, memberId, "고객 취소");
-		return OrderResponse.from(order);
+		return OrderResponse.from(order, payment);
 	}
 
 	/**
@@ -103,16 +117,35 @@ public class OrderService {
 	 */
 	@Transactional
 	public void cancel(Order order, Long changedBy, String reason) {
+		cancel(order, changedBy, reason, null, false);
+	}
+
+	/**
+	 * @param refundAccount 무통장입금으로 입금까지 끝난 주문의 고객 환불 계좌(관리자 취소). 그 밖에는 null.
+	 * @param canceledAtGateway PG 에서 이미 취소된 결제(웹훅)면 true — PG 취소 API 를 다시 부르지 않는다.
+	 */
+	@Transactional
+	public void cancel(Order order, Long changedBy, String reason, PaymentGateway.RefundAccount refundAccount,
+		boolean canceledAtGateway) {
 		OrderStatus before = order.getStatus();
 		if (!before.isCancellable()) {
 			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
 		}
+		Payment payment = paymentRepository.findByOrder(order).orElse(null);
+		if (payment != null) {
+			if (canceledAtGateway) {
+				PaymentService.markCanceled(payment);
+			} else if (before == OrderStatus.PAID) {
+				PaymentService.refund(paymentGateway, payment, reason, refundAccount);
+			} else if (before == OrderStatus.AWAITING_DEPOSIT) {
+				PaymentService.closeVirtualAccount(paymentGateway, payment, reason);
+			} else {
+				PaymentService.markCanceled(payment);
+			}
+		}
 		if (before == OrderStatus.PAID) {
-			paymentRepository.findByOrder(order).ifPresent(payment -> PaymentService.refund(paymentGateway, payment, reason));
 			order.getItems().forEach(item ->
 				productRepository.findById(item.getProductId()).ifPresent(p -> p.decreaseSalesCount(item.getQuantity())));
-		} else {
-			paymentRepository.findByOrder(order).ifPresent(PaymentService::markCanceled);
 		}
 		quantitiesByProduct(order).forEach(productRepository::increaseStock);
 		order.cancel();
@@ -121,12 +154,13 @@ public class OrderService {
 
 	/** 관리자 상태 변경(배송중·배송완료·취소). 결제완료는 결제 승인으로만 바뀐다. */
 	@Transactional
-	public void changeStatusByAdmin(Order order, OrderStatus next, Long adminId) {
+	public void changeStatusByAdmin(Order order, OrderStatus next, Long adminId,
+		PaymentGateway.RefundAccount refundAccount) {
 		if (!order.getStatus().nextByAdmin().contains(next)) {
 			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
 		}
 		if (next == OrderStatus.CANCELLED) {
-			cancel(order, adminId, "관리자 취소");
+			cancel(order, adminId, "관리자 취소", refundAccount, false);
 			return;
 		}
 		OrderStatus before = order.getStatus();
@@ -143,6 +177,17 @@ public class OrderService {
 		expired.forEach(order -> cancel(order, null, "결제 시간 초과"));
 		if (!expired.isEmpty()) {
 			log.info("결제대기 만료 취소: {}건", expired.size());
+		}
+
+		// 무통장입금 기한이 지난 입금대기 주문도 취소해 재고를 돌려놓는다.
+		List<Payment> overdue = paymentRepository.findByStatusAndVaDueAtBefore(PaymentStatus.WAITING_FOR_DEPOSIT,
+			Times.now());
+		overdue.stream()
+			.map(Payment::getOrder)
+			.filter(order -> order.getStatus() == OrderStatus.AWAITING_DEPOSIT)
+			.forEach(order -> cancel(order, null, "입금 기한 만료"));
+		if (!overdue.isEmpty()) {
+			log.info("입금 기한 만료 취소: {}건", overdue.size());
 		}
 	}
 

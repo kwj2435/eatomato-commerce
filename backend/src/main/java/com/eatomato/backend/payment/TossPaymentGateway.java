@@ -3,7 +3,10 @@ package com.eatomato.backend.payment;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,6 +21,7 @@ import org.springframework.web.client.RestClientResponseException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import com.eatomato.backend.global.config.AppProperties;
+import com.eatomato.backend.global.time.Times;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -85,24 +89,35 @@ public class TossPaymentGateway implements PaymentGateway {
 		if (payment == null || !orderNumber.equals(payment.orderId())) {
 			throw new PaymentGatewayException("결제 정보가 주문과 맞지 않습니다.");
 		}
-		// 가상계좌는 승인 뒤에도 입금 대기(WAITING_FOR_DEPOSIT)라 결제완료로 볼 수 없다. 결제위젯 어드민에서 가상계좌를 끈다.
-		if (!"DONE".equals(payment.status())) {
-			log.warn("토스 승인 결과가 DONE 이 아님: 주문 {} ({})", orderNumber, payment.status());
-			throw new PaymentGatewayException("지원하지 않는 결제 수단입니다. 다른 결제 수단을 선택해 주세요.");
+		if ("DONE".equals(payment.status())) {
+			return PaymentApproval.paid(payment.paymentKey(), payment.totalAmount(), payment.method());
 		}
-		return new PaymentApproval(payment.paymentKey(), payment.totalAmount());
+		// 무통장입금(가상계좌)은 승인하면 계좌만 발급되고 입금 대기다. 입금은 DEPOSIT_CALLBACK 웹훅으로 온다.
+		if ("WAITING_FOR_DEPOSIT".equals(payment.status()) && payment.virtualAccount() != null) {
+			TossVirtualAccount va = payment.virtualAccount();
+			return new PaymentApproval(payment.paymentKey(), payment.totalAmount(), payment.method(), payment.secret(),
+				new VirtualAccount(va.bankCode(), va.accountNumber(), va.customerName(), toKst(va.dueDate())));
+		}
+		log.warn("토스 승인 결과를 처리할 수 없음: 주문 {} ({})", orderNumber, payment.status());
+		throw new PaymentGatewayException("지원하지 않는 결제 수단입니다. 다른 결제 수단을 선택해 주세요.");
 	}
 
 	@Override
-	public void cancel(String paymentKey, int amount, String reason) {
+	public void cancel(String paymentKey, int amount, String reason, RefundAccount refundAccount) {
 		String cancelReason = isBlank(reason) ? "주문 취소" : reason.substring(0, Math.min(reason.length(), 200));
+		Map<String, Object> body = new HashMap<>();
+		body.put("cancelReason", cancelReason);
+		if (refundAccount != null) {
+			body.put("refundReceiveAccount", Map.of("bank", refundAccount.bank(),
+				"accountNumber", refundAccount.accountNumber(), "holderName", refundAccount.holderName()));
+		}
 		try {
 			restClient.post()
 				.uri("/{paymentKey}/cancel", paymentKey)
 				// 전액 취소만 하므로 결제당 키 하나: 재시도해도 두 번 환불되지 않는다.
 				.header("Idempotency-Key", "cancel-" + paymentKey)
 				.contentType(MediaType.APPLICATION_JSON)
-				.body(Map.of("cancelReason", cancelReason))
+				.body(body)
 				.retrieve()
 				.toBodilessEntity();
 		} catch (RestClientResponseException e) {
@@ -142,13 +157,27 @@ public class TossPaymentGateway implements PaymentGateway {
 		return new TossError("HTTP_" + e.getStatusCode().value(), "결제 처리 중 오류가 발생했습니다.");
 	}
 
+	/** 토스 일시(2026-10-10T23:59:59+09:00)를 서버 기준(KST) LocalDateTime 으로. */
+	private static LocalDateTime toKst(String dateTime) {
+		return dateTime == null ? null
+			: OffsetDateTime.parse(dateTime).atZoneSameInstant(Times.KST).toLocalDateTime();
+	}
+
 	private static boolean isBlank(String value) {
 		return value == null || value.isBlank();
 	}
 
-	/** 토스 Payment 객체 중 쓰는 필드만. status: READY, IN_PROGRESS, WAITING_FOR_DEPOSIT, DONE, CANCELED, ... */
+	/**
+	 * 토스 Payment 객체 중 쓰는 필드만. status: READY, IN_PROGRESS, WAITING_FOR_DEPOSIT, DONE, CANCELED, ...
+	 * method 는 한글 이름(카드, 가상계좌, 간편결제 등)이다.
+	 */
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	public record TossPayment(String paymentKey, String orderId, String status, int totalAmount) {
+	public record TossPayment(String paymentKey, String orderId, String status, int totalAmount, String method,
+		String secret, TossVirtualAccount virtualAccount) {
+	}
+
+	@JsonIgnoreProperties(ignoreUnknown = true)
+	public record TossVirtualAccount(String accountNumber, String bankCode, String customerName, String dueDate) {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)

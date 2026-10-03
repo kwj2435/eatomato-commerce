@@ -132,7 +132,7 @@ export type AdminOrder = Order & {
   nextStatuses: OrderStatus[];
   payment?: {
     provider: string;
-    status: "READY" | "DONE" | "CANCELED" | "FAILED";
+    status: "READY" | "WAITING_FOR_DEPOSIT" | "DONE" | "CANCELED" | "FAILED";
     paymentKey?: string;
     amount: number;
     approvedAt?: string;

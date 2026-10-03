@@ -137,7 +137,7 @@ function StatusTile({ counts }: { counts: Record<OrderStatus, number> }) {
   return (
     <Card className="sm:col-span-2">
       <p className="text-[13px] text-ink-subtle">주문 상태</p>
-      <dl className="mt-2 grid grid-cols-5 gap-2">
+      <dl className="mt-2 grid grid-cols-3 gap-2 md:grid-cols-6">
         {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map((status) => (
           <Link key={status} href={`/admin/orders?status=${status}`} className="rounded-md px-1 py-1 hover:bg-black/[0.03]">
             <dt className="text-[12px] text-ink-muted">{ORDER_STATUS_LABELS[status]}</dt>

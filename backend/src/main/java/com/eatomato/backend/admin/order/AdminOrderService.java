@@ -21,6 +21,7 @@ import com.eatomato.backend.order.OrderRepository;
 import com.eatomato.backend.order.OrderService;
 import com.eatomato.backend.order.OrderStatus;
 import com.eatomato.backend.payment.Payment;
+import com.eatomato.backend.payment.PaymentGateway;
 import com.eatomato.backend.payment.PaymentRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -49,10 +50,11 @@ public class AdminOrderService {
 
 	/** 허용된 다음 상태로만 바꾼다. 취소면 환불·재고 복원까지 한다. */
 	@Transactional
-	public AdminOrderResponse changeStatus(Long adminId, String orderNumber, OrderStatus status) {
+	public AdminOrderResponse changeStatus(Long adminId, String orderNumber, OrderStatus status,
+		PaymentGateway.RefundAccount refundAccount) {
 		Order order = orderRepository.findByOrderNumber(orderNumber)
 			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_NOT_FOUND));
-		orderService.changeStatusByAdmin(order, status, adminId);
+		orderService.changeStatusByAdmin(order, status, adminId, refundAccount);
 		return withDetails(List.of(order)).getFirst();
 	}
 

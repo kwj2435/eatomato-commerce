@@ -12,7 +12,6 @@ import { useRequireAuth } from "@/lib/store/use-require-auth";
 
 import { CartSummary } from "./CartSummary";
 import { CartTable } from "./CartTable";
-import { PaymentWidgets } from "./PaymentWidgets";
 
 /**
  * 장바구니 뷰 (클라이언트 셸).
@@ -87,8 +86,6 @@ export function CartView() {
                 주문하기
               </button>
             </div>
-
-            <PaymentWidgets />
           </>
         )}
 
