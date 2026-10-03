@@ -3,6 +3,8 @@ import { ProductCard } from "@/components/product/ProductCard";
 import { MultilineText } from "@/components/ui/MultilineText";
 import { listNewProducts } from "@/lib/api/products";
 
+import { PlaceholderGrid } from "./PlaceholderGrid";
+
 /**
  * "What's New" 섹션.
  *
@@ -31,13 +33,17 @@ export async function WhatsNewSection({ description }: { description: string }) 
           </p>
         ) : null}
 
-        <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
-          {products.map((product) => (
-            <li key={product.id}>
-              <ProductCard product={product} />
-            </li>
-          ))}
-        </ul>
+        {products.length === 0 ? (
+          <PlaceholderGrid label="제품이미지" message="등록된 상품이 없습니다." />
+        ) : (
+          <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
+            {products.map((product) => (
+              <li key={product.id}>
+                <ProductCard product={product} />
+              </li>
+            ))}
+          </ul>
+        )}
       </Container>
     </section>
   );

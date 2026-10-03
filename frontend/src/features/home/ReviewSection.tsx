@@ -5,6 +5,8 @@ import { Container } from "@/components/layout/Container";
 import { MultilineText } from "@/components/ui/MultilineText";
 import { listFeaturedReviews } from "@/lib/api/reviews";
 
+import { PlaceholderGrid } from "./PlaceholderGrid";
+
 /**
  * "Review" 섹션.
  * 각 제품 상세의 리뷰 탭으로 딥링크되는 대표 리뷰 4장을 노출한다.
@@ -28,31 +30,35 @@ export async function ReviewSection({ description }: { description: string }) {
           </p>
         ) : null}
 
-        <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
-          {reviews.map((review) => (
-            <li key={review.id}>
-              <Link
-                href={`/products/${review.productSlug}#reviews`}
-                aria-label={review.alt}
-                className="group relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-surface-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
-              >
-                {review.imageUrl ? (
-                  <Image
-                    src={review.imageUrl}
-                    alt={review.alt}
-                    fill
-                    sizes="(min-width: 1200px) 292px, (min-width: 768px) 40vw, 80vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                ) : (
-                  <span className="text-[60px] font-normal tracking-[-1.2px] text-ink-placeholder">
-                    리뷰사진
-                  </span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {reviews.length === 0 ? (
+          <PlaceholderGrid label="리뷰사진" message="등록된 리뷰가 없습니다." />
+        ) : (
+          <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
+            {reviews.map((review) => (
+              <li key={review.id}>
+                <Link
+                  href={`/products/${review.productSlug}#reviews`}
+                  aria-label={review.alt}
+                  className="group relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-surface-elevated focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+                >
+                  {review.imageUrl ? (
+                    <Image
+                      src={review.imageUrl}
+                      alt={review.alt}
+                      fill
+                      sizes="(min-width: 1200px) 292px, (min-width: 768px) 40vw, 80vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <span className="text-[60px] font-normal tracking-[-1.2px] text-ink-placeholder">
+                      리뷰사진
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </Container>
     </section>
   );

@@ -60,7 +60,17 @@ export function HeroBanner({
     return () => window.clearInterval(id);
   }, [autoPlayInterval, banners.length, currentIndex, setCurrentIndex]);
 
-  if (banners.length === 0) return null;
+  // 관리자에서 배너를 하나도 등록하지 않았으면 같은 크기의 기본 배너를 둔다(첫 화면이 비어 보이지 않게).
+  if (banners.length === 0) {
+    return (
+      <section
+        aria-label="메인 배너"
+        className="flex h-[520px] w-full items-center justify-center bg-surface-hero md:h-[680px] lg:h-[814px]"
+      >
+        <p className="text-[18px] tracking-[-0.3px] text-ink-placeholder md:text-[24px]">등록된 사진이 없습니다</p>
+      </section>
+    );
+  }
 
   const current = banners[currentIndex];
 
