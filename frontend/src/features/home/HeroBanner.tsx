@@ -88,7 +88,7 @@ export function HeroBanner({
         return (
           <Link
             key={banner.id}
-            href={banner.href}
+            href={banner.href ?? "/"}
             aria-hidden={!isActive}
             tabIndex={isActive ? 0 : -1}
             aria-label={banner.alt}

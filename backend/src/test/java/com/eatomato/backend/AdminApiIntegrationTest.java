@@ -283,7 +283,7 @@ class AdminApiIntegrationTest {
 
 		String admin = login("admin", "admin1234");
 		mockMvc.perform(get("/api/admin/site-contents").header(HttpHeaders.AUTHORIZATION, admin))
-			.andExpect(jsonPath("$", hasSize(2)))
+			.andExpect(jsonPath("$", hasSize(4)))
 			.andExpect(jsonPath("$[0].customized").value(false));
 
 		mockMvc.perform(put("/api/admin/site-contents/HOME_REVIEW_DESCRIPTION").header(HttpHeaders.AUTHORIZATION, admin)
@@ -297,7 +297,7 @@ class AdminApiIntegrationTest {
 		mockMvc.perform(delete("/api/admin/site-contents/HOME_REVIEW_DESCRIPTION").header(HttpHeaders.AUTHORIZATION, admin))
 			.andExpect(jsonPath("$.customized").value(false));
 		mockMvc.perform(get("/api/site-contents"))
-			.andExpect(jsonPath("$.HOME_REVIEW_DESCRIPTION").value(startsWith("신제품설명이")));
+			.andExpect(jsonPath("$.HOME_REVIEW_DESCRIPTION").value(startsWith("실제로 함께한")));
 
 		mockMvc.perform(put("/api/admin/site-contents/UNKNOWN").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"x\"}"))
@@ -343,6 +343,36 @@ class AdminApiIntegrationTest {
 			.andExpect(status().isBadRequest());
 		mockMvc.perform(delete("/api/admin/banners/" + bannerId).header(HttpHeaders.AUTHORIZATION, admin))
 			.andExpect(status().isNoContent());
+
+		// 메인 상단 배너는 링크가 필요하다
+		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"imageUrl\":\"https://example.com/a.jpg\",\"alt\":\"링크 없음\",\"sortOrder\":1,\"active\":true}"))
+			.andExpect(status().isBadRequest());
+
+		// Best Picks 이미지는 링크 없이, Special 은 링크를 비우면 공지 목록으로. 위치별로 따로 나온다.
+		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"placement":"BEST_PICK","href":"/무시","imageUrl":"https://example.com/pick.jpg","alt":"추천",
+					 "sortOrder":0,"active":true}
+					"""))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.placement").value("BEST_PICK"))
+			.andExpect(jsonPath("$.href").value(""));
+		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"placement":"SPECIAL","imageUrl":"https://example.com/sale.jpg","alt":"시즌 할인","sortOrder":0,"active":true}
+					"""))
+			.andExpect(status().isCreated());
+		mockMvc.perform(get("/api/banners").param("placement", "BEST_PICK"))
+			.andExpect(jsonPath("$", hasSize(1)))
+			.andExpect(jsonPath("$[0].href").doesNotExist());
+		mockMvc.perform(get("/api/banners").param("placement", "SPECIAL"))
+			.andExpect(jsonPath("$", hasSize(1)))
+			.andExpect(jsonPath("$[0].href").value("/notice"));
+		mockMvc.perform(get("/api/banners")).andExpect(jsonPath("$", hasSize(7)));
 
 		String notice = mockMvc.perform(post("/api/admin/notices").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON)

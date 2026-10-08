@@ -205,6 +205,18 @@ export function AdminOrderList() {
                             </div>
                             <div>
                               <p className="mb-1 font-bold">결제</p>
+                              {o.couponDiscount + o.pointUsed + o.pointsEarned > 0 ? (
+                                <p className="mb-1 text-ink-muted">
+                                  {[
+                                    `상품 ${formatKRW(o.subtotal)} + 배송비 ${formatKRW(o.shippingFee)}`,
+                                    o.couponDiscount > 0 ? `쿠폰 -${formatKRW(o.couponDiscount)}` : null,
+                                    o.pointUsed > 0 ? `적립금 -${formatKRW(o.pointUsed)}` : null,
+                                    o.pointsEarned > 0 ? `구매 적립 +${formatKRW(o.pointsEarned)}` : null,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </p>
+                              ) : null}
                               {o.payment ? (
                                 <p className="leading-[20px]">
                                   {o.payment.provider}

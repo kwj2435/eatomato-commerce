@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { Container } from "@/components/layout/Container";
 import { VirtualAccountInfo } from "@/components/order/VirtualAccountInfo";
 import { errorMessage } from "@/lib/api/client";
-import { confirmPayment } from "@/lib/api/orders";
+import { confirmPayment, getMyOrder } from "@/lib/api/orders";
 import { useCartStore } from "@/lib/store/cart-store";
 import { useRequireAuth } from "@/lib/store/use-require-auth";
 import { formatKRW, formatPhone } from "@/lib/utils/format";
@@ -16,6 +16,7 @@ import type { Order } from "@/types/order";
 /**
  * 결제 완료 화면(= 토스 successUrl). 넘어온 paymentKey·orderId(주문번호)·amount 로 서버에 결제 승인을 요청한다.
  * 금액은 서버가 주문 금액과 대조하고, 같은 요청이 두 번 와도 한 번만 처리된다(새로고침 안전).
+ * paymentKey 없이 orderId 만 오면 쿠폰·적립금으로 0원 결제된 주문이라 승인 없이 주문만 불러온다.
  */
 export function CheckoutComplete() {
   const ready = useRequireAuth();
@@ -27,12 +28,12 @@ export function CheckoutComplete() {
   const orderNumber = params.get("orderId");
   const paymentKey = params.get("paymentKey");
   const amount = Number(params.get("amount"));
-  const invalid = !orderNumber || !paymentKey || !Number.isFinite(amount);
+  const invalid = !orderNumber || (paymentKey !== null && !Number.isFinite(amount));
 
   useEffect(() => {
     if (!ready || started.current || invalid) return;
     started.current = true;
-    confirmPayment(orderNumber, paymentKey, amount)
+    (paymentKey ? confirmPayment(orderNumber, paymentKey, amount) : getMyOrder(orderNumber))
       .then((confirmed) => {
         setOrder(confirmed);
         loadCart().catch(() => {});
@@ -92,11 +93,25 @@ export function CheckoutComplete() {
             {order.items.length > 1 ? ` 외 ${order.items.length - 1}건` : ""}
           </dd>
         </div>
+        {order.couponDiscount + order.pointUsed > 0 ? (
+          <div className="flex gap-4">
+            <dt className="w-20 flex-none text-ink-muted">할인</dt>
+            <dd className="tabular-nums">
+              {[
+                order.couponDiscount > 0 ? `쿠폰 -${formatKRW(order.couponDiscount)}` : null,
+                order.pointUsed > 0 ? `적립금 -${formatKRW(order.pointUsed)}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </dd>
+          </div>
+        ) : null}
         <div className="flex gap-4">
           <dt className="w-20 flex-none text-ink-muted">결제 금액</dt>
           <dd className="font-bold tabular-nums">{formatKRW(order.total)}</dd>
         </div>
-        {order.payment?.method ? (
+        {/* 테스트 결제(MOCK)는 고객에게 보일 이름이 아니라 감춘다. */}
+        {order.payment?.method && order.payment.method !== "MOCK" ? (
           <div className="flex gap-4">
             <dt className="w-20 flex-none text-ink-muted">결제 수단</dt>
             <dd>{order.payment.method === "가상계좌" ? "무통장입금" : order.payment.method}</dd>

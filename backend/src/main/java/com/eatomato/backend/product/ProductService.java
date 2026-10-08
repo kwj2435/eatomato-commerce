@@ -40,6 +40,12 @@ public class ProductService {
 			.toList();
 	}
 
+	public List<ProductResponse> listBest(int limit) {
+		return productRepository.findByBadge(ProductBadge.BEST, PageRequest.of(0, limit)).stream()
+			.map(ProductResponse::from)
+			.toList();
+	}
+
 	public List<ProductResponse> list(String categoryCode, String subcategoryCode, ProductSort sort) {
 		Category category = categoryRepository.findById(categoryCode)
 			.orElseThrow(() -> new ApiException(ErrorCode.INVALID_CATEGORY));

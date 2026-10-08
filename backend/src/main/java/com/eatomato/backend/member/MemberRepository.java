@@ -41,6 +41,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
 	List<Member> findByIdIn(Collection<Long> ids);
 
+	List<Member> findByLoginIdIn(Collection<String> loginIds);
+
+	/** 쿠폰 전체 발급 대상: 이용 중인 일반 회원. */
+	@Query("select m.id from Member m where m.enabled = true and m.role = :role")
+	List<Long> findActiveIdsByRole(@Param("role") MemberRole role);
+
 	List<Member> findByLoginIdContainingIgnoreCase(String keyword);
 
 	long countByCreatedAtGreaterThanEqual(LocalDateTime from);

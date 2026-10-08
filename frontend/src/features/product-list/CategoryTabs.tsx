@@ -36,11 +36,10 @@ export function CategoryTabs({ category, activeSubcategory }: CategoryTabsProps)
             key={sub.slug ?? "all"}
             href={categoryHref(category.slug, sub.slug)}
             aria-current={isActive ? "page" : undefined}
+            // 여백은 모든 탭에 같게 두고 배경만 바꾼다. 활성 탭에만 여백을 주면 클릭할 때마다 탭 간격이 흔들린다.
             className={cn(
-              "text-[21px] font-normal leading-6 tracking-[-0.4px] text-brand-secondary transition-colors",
-              isActive
-                ? "rounded-full bg-brand-highlight px-3.5 py-1"
-                : "hover:text-brand-primary",
+              "rounded-full px-3.5 py-1 text-[21px] font-normal leading-6 tracking-[-0.4px] text-brand-secondary transition-colors",
+              isActive ? "bg-brand-highlight" : "hover:text-brand-primary",
             )}
           >
             {sub.label}

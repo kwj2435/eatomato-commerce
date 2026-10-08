@@ -60,7 +60,14 @@ export type Order = {
   cancelledAt?: string;
   subtotal: number;
   shippingFee: number;
+  /** 쿠폰 할인(상품 금액에만). */
+  couponDiscount: number;
+  /** 사용한 적립금. */
+  pointUsed: number;
+  /** 결제할 금액 = subtotal + shippingFee - couponDiscount - pointUsed */
   total: number;
+  /** 배송완료 때 적립된 금액. */
+  pointsEarned: number;
   /** 고객이 직접 취소할 수 있는지(결제대기·입금대기·결제완료). 무통장입금으로 입금이 끝난 주문은 고객센터로. */
   cancellable: boolean;
   shipping?: OrderShipping;

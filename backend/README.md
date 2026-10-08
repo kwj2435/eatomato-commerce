@@ -44,13 +44,14 @@ docker compose up -d --build
 | GET | `/api/categories` | 카테고리 트리 (첫 서브카테고리는 `{slug:null,label:"All"}`) | `CATEGORY_LIST` |
 | GET | `/api/products?category=&subcategory=&sort=` | 카테고리별 목록. sort: `price-asc` `price-desc` `popularity`(기본) `rating` | `listProducts` |
 | GET | `/api/products/new?limit=4` | 신상품 (NEW 배지) | `listNewProducts` |
+| GET | `/api/products/best?limit=4` | 메인 Best Picks 오른쪽 상품 (BEST 배지) | `listBestProducts` |
 | GET | `/api/products/search?q=&sort=` | 상품명·옵션 검색 | `listSearchableProducts` |
 | GET | `/api/products/slugs` | 전체 slug (정적 빌드용) | `listAllProductSlugs` |
 | GET | `/api/products/{slug}` | 상세 (옵션·함께구매·리뷰 10건 포함) | `getProductDetail` |
 | GET | `/api/products/{slug}/reviews?page=&size=` | 리뷰 페이지 조회 | |
-| GET | `/api/banners` | 메인 배너 | `listHeroBanners` |
+| GET | `/api/banners?placement=HERO\|BEST_PICK\|SPECIAL` | 위치별 메인 배너(기본 HERO). BEST_PICK 은 링크 없음, SPECIAL 은 기본 `/notice` | `listHeroBanners` |
 | GET | `/api/site-contents` | 사이트 문구 `{키: 문구}` (수정 안 한 문구는 기본값) | 메인 What's New·Review 설명 |
-| GET | `/api/reviews/featured?limit=4` | 메인 대표 리뷰 썸네일 | `listFeaturedReviews` |
+| GET | `/api/reviews/featured?limit=4` | 메인 대표 리뷰 카드(사진·글·별점·상품명·상품 이미지) | `listFeaturedReviews` |
 | GET | `/api/notices?query=` | 공지 목록 (고정 → 등록일 내림차순, 제목 검색) | `listNotices` |
 | GET | `/api/notices/ids` · `/api/notices/{id}` | 공지 id 목록 / 단건 | `listNoticeIds` · `getNotice` |
 | POST | `/api/auth/signup` | 가입 `{loginId,password,email,name}` → 토큰 | |
@@ -71,6 +72,11 @@ docker compose up -d --build
 | POST | `/api/payments/confirm` 🔒 | 결제 승인 `{orderNumber, paymentKey, amount}` → 결제완료 (금액 서버 대조, 중복 요청 안전) | 결제 완료 화면 |
 | POST | `/api/payments/webhook` | PG 결과 알림 `{orderNumber, paymentKey, status: DONE\|CANCELED, amount}` (헤더 `X-Payment-Webhook-Secret`) | PG 서버 |
 | POST | `/api/payments/toss/webhook` | 토스페이먼츠 웹훅. `PAYMENT_STATUS_CHANGED`: 토스 조회로 확인해 상점관리자 취소 반영. `DEPOSIT_CALLBACK`(무통장입금): 승인 때 받은 `secret` 과 맞으면 입금 확인 → 결제완료 | 토스 서버 |
+| GET | `/api/me/coupons` 🔒 | 내 쿠폰(AVAILABLE·USED·EXPIRED) | 주문서·마이페이지 |
+| GET | `/api/me/points` 🔒 | 내 적립금 잔액 + 최근 내역 100건 | 주문서·마이페이지 |
+| GET·POST | `/api/admin/coupons` 🔒 | 쿠폰 목록·만들기 `{name, discountType: FIXED\|PERCENT, discountValue, maxDiscount?, minOrderAmount?, validDays?, validUntil?, issueOnSignup?}` | 관리자 |
+| PATCH | `/api/admin/coupons/{id}` 🔒 | 발급 중지/재개 `active`, 가입 자동 발급 `issueOnSignup` | 관리자 |
+| POST | `/api/admin/coupons/{id}/issue` 🔒 | 발급 `{all: true}` 또는 `{loginIds: [...]}`. 이미 받은 회원은 건너뜀 | 관리자 |
 | POST | `/api/orders/{orderNumber}/cancel` 🔒 | 고객 취소(결제대기·결제완료). 환불·재고 복원 | 마이페이지 |
 | GET | `/api/orders` · `/api/orders/{orderNumber}` 🔒 | 주문 내역 | 마이페이지 주문 내역 |
 | GET | `/api/shipping-policy` | 배송비 정책 `{baseFee, freeThreshold, remoteAreaFee}` | 상세·장바구니·주문서 |
@@ -92,7 +98,7 @@ docker compose up -d --build
 | PATCH | `/api/admin/members/{id}` | 등급·권한·이용 정지 `{grade?, role?, enabled?}` (본인 권한·상태는 못 바꿈) |
 | GET | `/api/admin/orders` | 주문 목록(`status`, `q`=주문번호·주문자 아이디) |
 | PATCH | `/api/admin/orders/{orderNumber}/status` | 상태 변경 `PAID` `SHIPPING` `DELIVERED` `CANCELLED` |
-| GET · POST · PUT · DELETE | `/api/admin/banners[/{id}]` | 메인 배너 관리 |
+| GET · POST · PUT · DELETE | `/api/admin/banners[/{id}]` | 메인 배너 관리 `{placement, href, imageUrl, alt, sortOrder, active}` |
 | GET · POST · PUT · DELETE | `/api/admin/notices[/{id}]` | 공지 관리 |
 | GET · PUT · DELETE | `/api/admin/site-contents[/{key}]` | 사이트 문구(메인 섹션 설명 등) 조회 / 수정 `{value}` / 기본값으로 |
 | POST | `/api/admin/uploads?category=products\|banners` | 이미지 업로드 (multipart `file`) → `{url}` |
@@ -110,6 +116,7 @@ docker compose up -d --build
 - 상품·공지·배너 id 는 DB 숫자 PK 의 문자열이다(`"prod-001"` → `"1"`). 회원 `id` 는 로그인 아이디.
 - 상세 `reviewCount` 는 실제 리뷰 수다(mock 은 390 고정).
 - 주문 흐름: 주문서 제출 → `PENDING_PAYMENT`(재고 선점) → 결제 승인 → `PAID` → `SHIPPING` → `DELIVERED`. 취소는 배송 전까지(환불·재고 복원·판매량 되돌림). 허용되지 않는 전이는 400, 변경 이력은 `order_status_history`.
+- 쿠폰·적립금: 주문서 제출(`POST /api/orders` 에 `memberCouponId`, `usePoints`) 때 쿠폰 1장(상품 금액에만)과 적립금(남은 결제 금액까지)을 바로 차감하고, 주문이 취소·만료되면 돌려준다. 결제할 금액이 0원이면 결제창 없이 바로 `PAID`. 적립은 배송완료 때 상품별 적립률(주문 시점 스냅샷), 후기 작성 때 텍스트 200원·포토 500원. 신규 가입 쿠폰(2,000원·30일)은 V10 이 넣는다.
 - 무통장입금(토스 가상계좌): 승인하면 계좌가 발급되고 `AWAITING_DEPOSIT`(입금대기, 재고 유지) → 입금 웹훅이 오면 `PAID`. 입금 기한이 지나면 자동 취소. 입금 전 취소는 가상계좌를 닫고, 입금 뒤 취소(환불)는 고객 환불 계좌가 필요해 관리자만 할 수 있다(`PATCH /api/admin/orders/{n}/status` 에 `refundAccount{bank, accountNumber, holderName}`).
 - 결제: `PaymentGateway` 인터페이스로 PG 를 붙인다. `PAYMENT_PROVIDER=mock`(기본)은 `MockPaymentGateway` 가 항상 승인하고, `toss` 는 `TossPaymentGateway`(토스페이먼츠 결제위젯)가 승인·취소한다. 결제대기 30분이 지나면 자동 취소.
   - 토스: 개발자센터 > API 키의 **결제위젯 연동 키**를 `TOSS_CLIENT_KEY`(test_gck_)·`TOSS_SECRET_KEY`(test_gsk_)에 넣는다(API 개별 연동 키 test_ck_ 는 위젯에서 안 된다). 결제위젯 어드민의 결제 UI 에서 보일 결제수단(카드·가상계좌 등)을 고른다. 웹훅은 `PAYMENT_STATUS_CHANGED`·`DEPOSIT_CALLBACK` 둘 다 등록한다.

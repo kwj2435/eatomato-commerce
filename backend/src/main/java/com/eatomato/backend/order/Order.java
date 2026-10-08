@@ -47,8 +47,21 @@ public class Order {
 
 	private int shippingFee;
 
+	/** 결제할 금액 = subtotal + shippingFee - couponDiscount - pointUsed. */
 	@Column(name = "total_amount")
 	private int total;
+
+	/** 쿠폰 할인(상품 금액에만). */
+	private int couponDiscount;
+
+	/** 사용한 적립금. */
+	private int pointUsed;
+
+	/** 사용한 회원 쿠폰. 취소하면 이 쿠폰을 돌려준다. */
+	private Long memberCouponId;
+
+	/** 배송완료 때 적립한 금액. */
+	private int pointsEarned;
 
 	/** 배송지. 배송지 입력 기능 이전에 만들어진 주문은 비어 있다. */
 	@Embedded
@@ -82,7 +95,24 @@ public class Order {
 	public void calculate(ShippingPolicy policy) {
 		this.subtotal = items.stream().mapToInt(OrderItem::lineTotal).sum();
 		this.shippingFee = policy.feeFor(subtotal, shippingAddress == null ? null : shippingAddress.getZipCode());
-		this.total = subtotal + shippingFee;
+		this.total = subtotal + shippingFee - couponDiscount - pointUsed;
+	}
+
+	/** 쿠폰·적립금 반영. calculate 뒤에 부른다. 결제할 금액이 0 아래로 내려가지 않게 호출하는 쪽이 확인한다. */
+	public void applyDiscounts(Long memberCouponId, int couponDiscount, int pointUsed) {
+		this.memberCouponId = memberCouponId;
+		this.couponDiscount = couponDiscount;
+		this.pointUsed = pointUsed;
+		this.total = subtotal + shippingFee - couponDiscount - pointUsed;
+	}
+
+	public void markPointsEarned(int points) {
+		this.pointsEarned = points;
+	}
+
+	/** 배송완료 적립금: 상품별 (단가 × 수량) × 주문 시점 적립률, 원 미만 버림. */
+	public int rewardPoints() {
+		return items.stream().mapToInt(item -> item.lineTotal() * item.getRewardRate() / 100).sum();
 	}
 
 	public void markPaid() {

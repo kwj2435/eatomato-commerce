@@ -72,7 +72,7 @@ function ProfileFields({ member }: { member: Member }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="mx-auto flex w-full max-w-[446px] flex-col bg-surface-util px-4 py-6 md:px-3.5 md:py-2.5">
+    <form onSubmit={handleSubmit} noValidate className="mx-auto flex w-full max-w-[446px] flex-col px-4 py-6 md:px-3.5 md:py-2.5">
       <h1 className="text-[18px] font-medium tracking-[-0.3px] text-black">추가 정보 입력</h1>
       <p className="mt-2 text-[14px] leading-[21px] text-ink-muted">
         서비스 이용을 위해 닉네임과 기본 배송지를 입력해 주세요. 닉네임은 후기 작성자로 표시됩니다.

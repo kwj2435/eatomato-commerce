@@ -30,12 +30,12 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
         href={`/products/${product.slug}`}
         className="group flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
       >
-        <div className="relative aspect-[3/4] w-full overflow-hidden bg-white">
+        <div className="relative aspect-[3/4] w-full overflow-hidden">
           {product.badges?.length ? <BadgeStack badges={product.badges} /> : null}
           {product.soldOut ? <SoldOutOverlay /> : null}
 
           {/* 기본 이미지 레이어 */}
-          <div className="absolute inset-0 flex items-center justify-center bg-white transition-opacity duration-300 group-hover:opacity-0">
+          <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-300 group-hover:opacity-0">
             {product.imageUrl ? (
               <Image
                 src={product.imageUrl}
@@ -52,7 +52,7 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
           </div>
 
           {/* 호버 이미지 레이어 */}
-          <div className="absolute inset-0 flex items-center justify-center bg-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
             {product.hoverImageUrl ? (
               <Image
                 src={product.hoverImageUrl}

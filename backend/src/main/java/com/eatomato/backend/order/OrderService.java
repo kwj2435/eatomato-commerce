@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.eatomato.backend.cart.CartItem;
 import com.eatomato.backend.cart.CartItemRepository;
+import com.eatomato.backend.coupon.CouponService;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.global.time.Times;
@@ -25,6 +26,8 @@ import com.eatomato.backend.payment.PaymentGateway;
 import com.eatomato.backend.payment.PaymentRepository;
 import com.eatomato.backend.payment.PaymentService;
 import com.eatomato.backend.payment.PaymentStatus;
+import com.eatomato.backend.point.PointService;
+import com.eatomato.backend.point.PointType;
 import com.eatomato.backend.product.Product;
 import com.eatomato.backend.product.ProductRepository;
 import com.eatomato.backend.shipping.ShippingPolicyService;
@@ -55,6 +58,8 @@ public class OrderService {
 	private final PaymentGateway paymentGateway;
 	private final OrderStatusHistoryRepository historyRepository;
 	private final ShippingPolicyService shippingPolicyService;
+	private final CouponService couponService;
+	private final PointService pointService;
 
 	@Transactional
 	public OrderResponse create(Long memberId, CreateOrderRequest request) {
@@ -76,9 +81,39 @@ public class OrderService {
 			blankToNull(s.detailAddress()), blankToNull(s.deliveryMemo())));
 		cartItems.forEach(cartItem -> order.addItem(OrderItem.snapshotOf(cartItem)));
 		order.calculate(shippingPolicyService.current());
+
+		// 쿠폰(상품 금액에만) → 적립금(남은 결제 금액까지) 순으로 깎는다.
+		int couponDiscount = request.memberCouponId() == null ? 0
+			: couponService.discountFor(memberId, request.memberCouponId(), order.getSubtotal());
+		int usePoints = request.usePoints() == null ? 0 : request.usePoints();
+		if (usePoints > order.getTotal() - couponDiscount) {
+			throw new ApiException(ErrorCode.POINT_EXCEEDS_TOTAL);
+		}
+		order.applyDiscounts(request.memberCouponId(), couponDiscount, usePoints);
 		orderRepository.save(order);
-		paymentRepository.save(new Payment(order, paymentGateway.provider(), order.getTotal()));
+		if (request.memberCouponId() != null) {
+			couponService.markUsed(memberId, request.memberCouponId(), order.getId());
+		}
+		pointService.use(memberId, usePoints, "주문 " + order.getOrderNumber() + " 사용", order.getId());
 		historyRepository.save(new OrderStatusHistory(order.getId(), null, order.getStatus(), memberId, "주문서 제출"));
+
+		// 쿠폰·적립금으로 전액 할인되면 결제창 없이 바로 결제완료.
+		if (order.getTotal() == 0) {
+			Payment payment = paymentRepository.save(new Payment(order, "NONE", 0));
+			PaymentService.approveWithoutGateway(payment);
+			order.markPaid();
+			order.getItems().forEach(item -> {
+				productRepository.findById(item.getProductId()).ifPresent(p -> p.increaseSalesCount(item.getQuantity()));
+				if (item.getOptionKey() != null) {
+					cartItemRepository.deleteByMemberIdAndProductIdAndOptionKey(memberId, item.getProductId(),
+						item.getOptionKey());
+				}
+			});
+			historyRepository.save(new OrderStatusHistory(order.getId(), OrderStatus.PENDING_PAYMENT, OrderStatus.PAID,
+				null, "쿠폰·적립금 전액 결제"));
+			return OrderResponse.from(order, payment);
+		}
+		paymentRepository.save(new Payment(order, paymentGateway.provider(), order.getTotal()));
 		return OrderResponse.from(order);
 	}
 
@@ -148,6 +183,12 @@ public class OrderService {
 				productRepository.findById(item.getProductId()).ifPresent(p -> p.decreaseSalesCount(item.getQuantity())));
 		}
 		quantitiesByProduct(order).forEach(productRepository::increaseStock);
+		// 이 주문에 쓴 쿠폰·적립금을 돌려준다.
+		if (order.getMemberCouponId() != null) {
+			couponService.restore(order.getId());
+		}
+		pointService.earn(order.getMemberId(), order.getPointUsed(), PointType.ORDER_REFUND,
+			"주문 " + order.getOrderNumber() + " 취소 반환", order.getId());
 		order.cancel();
 		historyRepository.save(new OrderStatusHistory(order.getId(), before, OrderStatus.CANCELLED, changedBy, reason));
 	}
@@ -166,6 +207,13 @@ public class OrderService {
 		OrderStatus before = order.getStatus();
 		order.transitionTo(next);
 		historyRepository.save(new OrderStatusHistory(order.getId(), before, next, adminId, null));
+		// 배송완료(더 이상 취소되지 않는 시점)에 구매 적립금을 준다.
+		if (next == OrderStatus.DELIVERED) {
+			int points = order.rewardPoints();
+			order.markPointsEarned(points);
+			pointService.earn(order.getMemberId(), points, PointType.ORDER_EARN,
+				"주문 " + order.getOrderNumber() + " 구매 적립", order.getId());
+		}
 	}
 
 	/** 결제대기로 30분이 지난 주문을 취소하고 재고를 돌려놓는다. 5분마다 돈다. */

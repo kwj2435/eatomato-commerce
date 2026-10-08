@@ -50,3 +50,18 @@ tasks.named('jar') {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// 로컬 bootRun 은 backend/.env 를 환경 변수로 넘긴다(배포는 docker compose 의 env_file). 셸에 이미 있는 값이 우선, 테스트에는 넣지 않는다.
+tasks.named('bootRun') {
+	def envFile = file('.env')
+	if (envFile.exists()) {
+		envFile.readLines()
+			.findAll { it ==~ /^[A-Za-z_][A-Za-z0-9_]*=.*/ }
+			.each { line ->
+				def (key, value) = [line.substring(0, line.indexOf('=')), line.substring(line.indexOf('=') + 1)]
+				if (System.getenv(key) == null) {
+					environment key, value
+				}
+			}
+	}
+}

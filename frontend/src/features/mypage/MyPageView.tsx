@@ -6,12 +6,15 @@ import { useEffect, useState } from "react";
 import { Container } from "@/components/layout/Container";
 import { VirtualAccountInfo } from "@/components/order/VirtualAccountInfo";
 import { errorMessage } from "@/lib/api/client";
+import { getMyPoints, listMyCoupons } from "@/lib/api/benefits";
 import { getMyMember } from "@/lib/api/member";
 import { cancelMyOrder, listMyOrders } from "@/lib/api/orders";
 import { listMyReviews } from "@/lib/api/reviews";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useRequireAuth } from "@/lib/store/use-require-auth";
+import { describeDiscount, describeMinOrder } from "@/lib/utils/coupon";
 import { formatKRW, formatNoticeDate } from "@/lib/utils/format";
+import type { MemberCoupon, PointEntry, Points } from "@/types/benefit";
 import type { Member } from "@/types/member";
 import { ORDER_STATUS_LABELS, type Order } from "@/types/order";
 import type { MyReview } from "@/types/review";
@@ -20,11 +23,9 @@ import { HistorySection } from "./HistorySection";
 import { MemberInfoForm } from "./MemberInfoForm";
 
 /**
- * 아직 서버 기능이 없는 내역 블록. 주문 내역·내가 쓴 글은 서버 데이터로 따로 그린다.
+ * 아직 서버 기능이 없는 내역 블록. 주문·글·쿠폰·적립금은 서버 데이터로 따로 그린다.
  */
 const PENDING_SECTIONS = [
-  { key: "coupons", title: "쿠폰 내역", emptyMessage: "쿠폰 내역이 없습니다." },
-  { key: "points", title: "적립금 내역", emptyMessage: "적립금 내역이 없습니다." },
   {
     key: "restock",
     title: "재입고 알림 내역",
@@ -36,6 +37,8 @@ type MyPageData = {
   member: Member;
   orders: Order[];
   reviews: MyReview[];
+  coupons: MemberCoupon[];
+  points: Points;
 };
 
 /**
@@ -56,11 +59,11 @@ export function MyPageView() {
   useEffect(() => {
     if (!ready) return;
     let cancelled = false;
-    Promise.all([getMyMember(), listMyOrders(), listMyReviews()])
-      .then(([member, orders, reviews]) => {
+    Promise.all([getMyMember(), listMyOrders(), listMyReviews(), listMyCoupons(), getMyPoints()])
+      .then(([member, orders, reviews, coupons, points]) => {
         if (cancelled) return;
         setMember(member);
-        setData({ member, orders, reviews });
+        setData({ member, orders, reviews, coupons, points });
       })
       .catch((e: unknown) => {
         if (!cancelled) setError(errorMessage(e));
@@ -102,6 +105,22 @@ export function MyPageView() {
 
           <HistorySection title="내가 쓴 글" emptyMessage="내가 쓴 글이 없습니다.">
             {data.reviews.length > 0 ? <ReviewList reviews={data.reviews} /> : undefined}
+          </HistorySection>
+
+          <HistorySection title="쿠폰 내역" emptyMessage="쿠폰 내역이 없습니다.">
+            {data.coupons.length > 0 ? <CouponList coupons={data.coupons} /> : undefined}
+          </HistorySection>
+
+          <HistorySection
+            title="적립금 내역"
+            emptyMessage="적립금 내역이 없습니다."
+            utility={
+              <span id="points" className="text-[13px] tracking-[-0.2px] text-black">
+                보유 적립금 <b className="text-brand-deep">{formatKRW(data.points.balance)}</b>
+              </span>
+            }
+          >
+            {data.points.history.length > 0 ? <PointList entries={data.points.history} /> : undefined}
           </HistorySection>
 
           {PENDING_SECTIONS.map((section) => (
@@ -195,6 +214,17 @@ function OrderList({ orders: initial }: { orders: Order[] }) {
               </li>
             ))}
           </ul>
+          {order.couponDiscount + order.pointUsed > 0 || order.pointsEarned > 0 ? (
+            <p className="mt-1.5 text-right text-[12px] text-[#777]">
+              {[
+                order.couponDiscount > 0 ? `쿠폰 -${formatKRW(order.couponDiscount)}` : null,
+                order.pointUsed > 0 ? `적립금 사용 -${formatKRW(order.pointUsed)}` : null,
+                order.pointsEarned > 0 ? `적립 +${formatKRW(order.pointsEarned)}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
           {order.status === "AWAITING_DEPOSIT" && order.payment?.virtualAccount ? (
             <VirtualAccountInfo
               account={order.payment.virtualAccount}
@@ -237,6 +267,62 @@ function ReviewList({ reviews }: { reviews: MyReview[] }) {
           </div>
           <p className="mt-1 line-clamp-2 text-[#333]">{review.content}</p>
           <p className="mt-1 text-[12px] text-[#999]">{formatNoticeDate(review.createdAt)}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const COUPON_STATUS_LABELS: Record<MemberCoupon["status"], string> = {
+  AVAILABLE: "사용 가능",
+  USED: "사용함",
+  EXPIRED: "기한 지남",
+};
+
+/** 쿠폰: 사용 가능한 것을 위로, 그다음 사용함·기한 지남. */
+function CouponList({ coupons }: { coupons: MemberCoupon[] }) {
+  const sorted = [...coupons].sort((a, b) => Number(a.status !== "AVAILABLE") - Number(b.status !== "AVAILABLE"));
+  return (
+    <ul className="border-t border-black">
+      {sorted.map((coupon) => {
+        const available = coupon.status === "AVAILABLE";
+        const condition = describeMinOrder(coupon);
+        return (
+          <li key={coupon.id} className="flex items-start justify-between gap-3 border-b border-black/20 py-3.5 text-[13px] tracking-[-0.2px]">
+            <div className={available ? "min-w-0" : "min-w-0 text-[#999]"}>
+              <p className="font-medium">{coupon.name}</p>
+              <p className="mt-0.5">
+                {describeDiscount(coupon)}
+                {condition ? ` · ${condition}` : ""}
+              </p>
+              <p className="mt-0.5 text-[12px] text-[#999]">
+                {coupon.expiresAt ? `${formatNoticeDate(coupon.expiresAt)}까지` : "기한 없음"}
+              </p>
+            </div>
+            <span className={available ? "flex-none font-medium text-brand-deep" : "flex-none text-[#999]"}>
+              {COUPON_STATUS_LABELS[coupon.status]}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** 적립금 내역(최신순). 적립 +, 사용 -. */
+function PointList({ entries }: { entries: PointEntry[] }) {
+  return (
+    <ul className="border-t border-black">
+      {entries.map((entry) => (
+        <li key={entry.id} className="flex items-baseline justify-between gap-3 border-b border-black/20 py-3 text-[13px] tracking-[-0.2px]">
+          <div className="min-w-0">
+            <p className="truncate">{entry.reason}</p>
+            <p className="mt-0.5 text-[12px] text-[#999]">{formatNoticeDate(entry.createdAt)}</p>
+          </div>
+          <span className={entry.amount > 0 ? "flex-none font-medium text-brand-deep tabular-nums" : "flex-none tabular-nums text-[#777]"}>
+            {entry.amount > 0 ? "+" : ""}
+            {formatKRW(entry.amount)}
+          </span>
         </li>
       ))}
     </ul>

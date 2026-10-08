@@ -161,7 +161,8 @@ public class PaymentService {
 	 */
 	public static void refund(PaymentGateway gateway, Payment payment, String reason,
 		PaymentGateway.RefundAccount refundAccount) {
-		if (payment.getStatus() == PaymentStatus.DONE) {
+		// 0원 결제(쿠폰·적립금 전액)는 PG 를 거치지 않았으니 PG 취소도 없다.
+		if (payment.getStatus() == PaymentStatus.DONE && payment.getAmount() > 0) {
 			if (payment.isVirtualAccount() && refundAccount == null) {
 				throw new ApiException(ErrorCode.REFUND_ACCOUNT_REQUIRED);
 			}
@@ -192,6 +193,11 @@ public class PaymentService {
 	private void increaseSalesCount(Order order) {
 		order.getItems().forEach(item -> productRepository.findById(item.getProductId())
 			.ifPresent(p -> p.increaseSalesCount(item.getQuantity())));
+	}
+
+	/** 쿠폰·적립금으로 결제할 금액이 0원인 주문: PG 없이 결제완료로 기록한다. */
+	public static void approveWithoutGateway(Payment payment) {
+		payment.approve(null, "쿠폰·적립금");
 	}
 
 	/** 결제 전에 취소된 주문의 결제 기록 정리. */

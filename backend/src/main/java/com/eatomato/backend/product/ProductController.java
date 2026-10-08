@@ -48,6 +48,12 @@ public class ProductController {
 		return productService.listNew(limit);
 	}
 
+	/** 메인 Best Picks 오른쪽 상품 칸(BEST 배지 상품). */
+	@GetMapping("/products/best")
+	public List<ProductResponse> listBest(@RequestParam(defaultValue = "4") @Min(1) @Max(50) int limit) {
+		return productService.listBest(limit);
+	}
+
 	@GetMapping("/products/search")
 	public List<ProductResponse> search(
 		@RequestParam(name = "q", required = false) String query,

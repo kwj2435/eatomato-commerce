@@ -5,12 +5,22 @@ import { apiFetch } from "./client";
 /**
  * 주문서 제출 → 결제대기 주문. 이어서 결제(PG)를 거쳐 confirmPayment 로 결제완료가 된다.
  * cartItemIds 를 비우면 장바구니에서 선택된 항목 전체를 주문한다.
+ * 쿠폰(1장)·적립금은 주문을 만들 때 바로 차감되고, 주문이 취소되면 돌려받는다.
+ * 쿠폰·적립금으로 결제할 금액이 0원이면 결제창 없이 결제완료(PAID)로 돌아온다.
  */
-export async function createOrder(shipping: OrderShipping, cartItemIds?: string[]): Promise<Order> {
+export async function createOrder(
+  shipping: OrderShipping,
+  options: { cartItemIds?: string[]; memberCouponId?: string; usePoints?: number } = {},
+): Promise<Order> {
   return apiFetch<Order>("/api/orders", {
     method: "POST",
     auth: true,
-    json: { shipping, cartItemIds: cartItemIds?.map(Number) },
+    json: {
+      shipping,
+      cartItemIds: options.cartItemIds?.map(Number),
+      memberCouponId: options.memberCouponId ? Number(options.memberCouponId) : undefined,
+      usePoints: options.usePoints || undefined,
+    },
   });
 }
 

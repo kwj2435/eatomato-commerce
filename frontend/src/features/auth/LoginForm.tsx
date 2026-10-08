@@ -58,7 +58,7 @@ export function LoginForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto flex w-full max-w-[446px] flex-col bg-surface-util px-4 py-6 md:px-3.5 md:py-2.5"
+      className="mx-auto flex w-full max-w-[446px] flex-col px-4 py-6 md:px-3.5 md:py-2.5"
     >
       <Field
         label="아이디 또는 이메일"

@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.eatomato.backend.banner.Banner;
+import com.eatomato.backend.banner.BannerPlacement;
 import com.eatomato.backend.banner.BannerRepository;
 import com.eatomato.backend.global.time.Times;
 import com.eatomato.backend.notice.Notice;
@@ -262,7 +263,7 @@ public class DemoDataSeeder implements ApplicationRunner {
 		List<Banner> banners = new ArrayList<>();
 		for (int i = 0; i < seeds.size(); i++) {
 			Seed seed = seeds.get(i);
-			banners.add(new Banner(seed.href(), TomatoImages.url(i, 1440, 814, 75), seed.alt(), i + 1, true));
+			banners.add(new Banner(BannerPlacement.HERO, seed.href(), TomatoImages.url(i, 1440, 814, 75), seed.alt(), i + 1, true));
 		}
 		bannerRepository.saveAll(banners);
 	}

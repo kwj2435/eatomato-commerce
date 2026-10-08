@@ -68,7 +68,7 @@ export function SignupForm() {
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="mx-auto flex w-full max-w-[446px] flex-col bg-surface-util px-4 py-6 md:px-3.5 md:py-2.5"
+      className="mx-auto flex w-full max-w-[446px] flex-col px-4 py-6 md:px-3.5 md:py-2.5"
     >
       <AuthField
         label="이메일"

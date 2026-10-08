@@ -161,7 +161,7 @@ function CartMobileList({ items, allSelected, onToggleAll, policyText }: CartMob
                 label={`${item.name} 선택`}
               />
             </span>
-            <span className="flex h-[100px] w-20 flex-none items-center justify-center overflow-hidden bg-white">
+            <span className="flex h-[100px] w-20 flex-none items-center justify-center overflow-hidden">
               {item.imageUrl ? (
                 <Image
                   src={item.imageUrl}
@@ -256,7 +256,7 @@ function CartItemRow({ item, isLast, showShipCell, shipRowSpan, policy }: CartIt
               label={`${item.name} 선택`}
             />
           </span>
-          <span className="mr-[27px] flex h-[100px] w-20 flex-none items-center justify-center overflow-hidden bg-white">
+          <span className="mr-[27px] flex h-[100px] w-20 flex-none items-center justify-center overflow-hidden">
             {item.imageUrl ? (
               <Image
                 src={item.imageUrl}

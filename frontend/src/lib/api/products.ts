@@ -22,6 +22,12 @@ export async function listNewProducts(
   return apiFetch<Product[]>(`/api/products/new?limit=${limit}`);
 }
 
+/** 메인 Best Picks 오른쪽 칸에 넣을 BEST 배지 상품. */
+export async function listBestProducts(params: ListNewProductsParams = {}): Promise<Product[]> {
+  const { limit = 4 } = params;
+  return apiFetch<Product[]>(`/api/products/best?limit=${limit}`);
+}
+
 export type ListProductsParams = {
   category: CategoryKey;
   /** `undefined` 은 카테고리 전체를 의미한다. */

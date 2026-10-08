@@ -18,7 +18,7 @@ type ReviewsSectionProps = {
 
 /**
  * REVIEWS 섹션.
- * 상단 배너 → 요약 → 리뷰 리스트.
+ * 요약 → 리뷰 리스트(없으면 첫 후기 안내).
  * "사진 후기만 보기" 필터는 필터 UI 만 표시하고 실 로직은 다음 이터레이션으로.
  *
  * 상세 페이지는 빌드 시점에 정적으로 만들어지므로, 그 뒤에 작성된 후기가 보이도록
@@ -53,11 +53,7 @@ export function ReviewsSection({
         REVIEWS
       </h2>
 
-      <div className="mt-[57px] flex h-[76px] w-full items-center justify-center bg-brand-primary text-center text-[18px] font-medium tracking-[-0.4px] text-white md:text-[22px]">
-        텍스트 리뷰 200원 적립 ｜ 포토리뷰 500원 적립
-      </div>
-
-      <div className="flex h-[60px] items-center justify-between">
+      <div className="mt-[57px] flex h-[60px] items-center justify-between">
         <div className="flex items-baseline gap-2">
           <span className="text-[27px] font-normal tracking-[0.5px] text-[#545454]">
             {averageRating.toFixed(0)} / 5
@@ -75,11 +71,17 @@ export function ReviewsSection({
         </label>
       </div>
 
-      <div className="flex flex-col">
-        {reviews.map((review) => (
-          <ReviewRow key={review.id} review={review} />
-        ))}
-      </div>
+      {reviews.length === 0 ? (
+        <p className="border-y-2 border-brand-primary py-[52px] text-center text-[15px] tracking-[-0.3px] text-[#545454]">
+          제품의 첫 후기를 남겨주세요
+        </p>
+      ) : (
+        <div className="flex flex-col">
+          {reviews.map((review) => (
+            <ReviewRow key={review.id} review={review} />
+          ))}
+        </div>
+      )}
     </Container>
   );
 }

@@ -13,6 +13,8 @@ import com.eatomato.backend.member.Member;
 import com.eatomato.backend.member.MemberRepository;
 import com.eatomato.backend.order.OrderItem;
 import com.eatomato.backend.order.OrderItemRepository;
+import com.eatomato.backend.point.PointService;
+import com.eatomato.backend.point.PointType;
 import com.eatomato.backend.product.Product;
 import com.eatomato.backend.product.ProductRepository;
 import com.eatomato.backend.review.dto.MyReviewResponse;
@@ -34,6 +36,7 @@ public class ReviewService {
 	private final OrderItemRepository orderItemRepository;
 	private final ProductRepository productRepository;
 	private final MemberRepository memberRepository;
+	private final PointService pointService;
 	private final FileStorage fileStorage;
 
 	public List<ReviewThumbnailResponse> listFeatured(int limit) {
@@ -85,6 +88,9 @@ public class ReviewService {
 			.images(imageUrls)
 			.build());
 		orderItem.markReviewed();
+		// 후기 적립금: 사진이 있으면 포토 후기(상품 상세 후기 탭 안내와 같은 금액).
+		pointService.earn(memberId, imageUrls.isEmpty() ? PointService.TEXT_REVIEW_REWARD
+			: PointService.PHOTO_REVIEW_REWARD, PointType.REVIEW_EARN, product.getName() + " 후기 적립", null);
 		return MyReviewResponse.from(review);
 	}
 }

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eatomato.backend.banner.Banner;
+import com.eatomato.backend.banner.BannerPlacement;
 import com.eatomato.backend.banner.BannerRepository;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
@@ -22,7 +23,7 @@ import com.eatomato.backend.global.error.ErrorCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/** 메인 히어로 배너 관리. 노출 순서는 sortOrder 오름차순, active=false 는 메인에서 빠진다. */
+/** 메인 배너(상단·Best Picks·Special) 관리. 위치마다 sortOrder 오름차순으로 보이고, active=false 는 메인에서 빠진다. */
 @RestController
 @RequestMapping("/api/admin/banners")
 @RequiredArgsConstructor
@@ -40,8 +41,9 @@ public class AdminBannerController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@Transactional
 	public AdminBannerResponse create(@Valid @RequestBody AdminBannerRequest request) {
-		Banner banner = new Banner(request.href().trim(), request.imageUrl().trim(), request.alt().trim(),
-			request.sortOrder(), request.active());
+		BannerPlacement placement = placement(request);
+		Banner banner = new Banner(placement, href(placement, request.href()), request.imageUrl().trim(),
+			request.alt().trim(), request.sortOrder(), request.active());
 		return AdminBannerResponse.from(bannerRepository.save(banner));
 	}
 
@@ -49,8 +51,9 @@ public class AdminBannerController {
 	@Transactional
 	public AdminBannerResponse update(@PathVariable Long id, @Valid @RequestBody AdminBannerRequest request) {
 		Banner banner = find(id);
-		banner.update(request.href().trim(), request.imageUrl().trim(), request.alt().trim(), request.sortOrder(),
-			request.active());
+		BannerPlacement placement = placement(request);
+		banner.update(placement, href(placement, request.href()), request.imageUrl().trim(), request.alt().trim(),
+			request.sortOrder(), request.active());
 		return AdminBannerResponse.from(banner);
 	}
 
@@ -59,6 +62,25 @@ public class AdminBannerController {
 	@Transactional
 	public void delete(@PathVariable Long id) {
 		bannerRepository.delete(find(id));
+	}
+
+	private static BannerPlacement placement(AdminBannerRequest request) {
+		return request.placement() == null ? BannerPlacement.HERO : request.placement();
+	}
+
+	/** BEST_PICK 은 링크가 없고, SPECIAL 은 비우면 공지 목록으로 보낸다. */
+	private static String href(BannerPlacement placement, String href) {
+		String value = href == null ? "" : href.trim();
+		return switch (placement) {
+			case BEST_PICK -> "";
+			case SPECIAL -> value.isEmpty() ? "/notice" : value;
+			case HERO -> {
+				if (value.isEmpty()) {
+					throw new ApiException(ErrorCode.BANNER_HREF_REQUIRED);
+				}
+				yield value;
+			}
+		};
 	}
 
 	private Banner find(Long id) {

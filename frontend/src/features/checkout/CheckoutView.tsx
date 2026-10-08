@@ -7,12 +7,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Container } from "@/components/layout/Container";
 import { searchPostcode } from "@/components/address/postcode";
 import { errorMessage } from "@/lib/api/client";
+import { getMyPoints, listMyCoupons } from "@/lib/api/benefits";
 import { cancelMyOrder, createOrder, getPaymentConfig, type PaymentConfig } from "@/lib/api/orders";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useCartStore } from "@/lib/store/cart-store";
 import { useRequireAuth } from "@/lib/store/use-require-auth";
 import { cn } from "@/lib/utils/cn";
+import { couponDiscount, describeMinOrder } from "@/lib/utils/coupon";
 import { formatKRW } from "@/lib/utils/format";
+import type { MemberCoupon } from "@/types/benefit";
 import type { Member } from "@/types/member";
 import type { Order } from "@/types/order";
 import { isRemoteArea, shippingFeeFor } from "@/types/shipping";
@@ -35,6 +38,7 @@ export function CheckoutView() {
   const loaded = useCartStore((s) => s.loaded);
   const load = useCartStore((s) => s.load);
   const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+  const [benefits, setBenefits] = useState<Benefits | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,6 +46,11 @@ export function CheckoutView() {
     load().catch((e: unknown) => setLoadError(errorMessage(e)));
     getPaymentConfig()
       .then(setPaymentConfig)
+      .catch((e: unknown) => setLoadError(errorMessage(e)));
+    Promise.all([listMyCoupons(), getMyPoints()])
+      .then(([coupons, points]) =>
+        setBenefits({ coupons: coupons.filter((c) => c.status === "AVAILABLE"), pointBalance: points.balance }),
+      )
       .catch((e: unknown) => setLoadError(errorMessage(e)));
   }, [ready, load]);
 
@@ -52,7 +61,7 @@ export function CheckoutView() {
       </Container>
     );
   }
-  if (!ready || !loaded || !member || !paymentConfig) {
+  if (!ready || !loaded || !member || !paymentConfig || !benefits) {
     return (
       <Container className="py-14">
         <div className="h-[420px] animate-pulse bg-black/[0.04]" />
@@ -60,10 +69,21 @@ export function CheckoutView() {
     );
   }
   // 회원 정보가 준비된 뒤에 폼을 그려, 회원 주소·연락처를 배송지 초기값으로 쓴다.
-  return <CheckoutForm member={member} paymentConfig={paymentConfig} />;
+  return <CheckoutForm member={member} paymentConfig={paymentConfig} benefits={benefits} />;
 }
 
-function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig: PaymentConfig }) {
+/** 주문서에서 쓸 수 있는 쿠폰(사용 가능만)과 적립금 잔액. */
+type Benefits = { coupons: MemberCoupon[]; pointBalance: number };
+
+function CheckoutForm({
+  member,
+  paymentConfig,
+  benefits,
+}: {
+  member: Member;
+  paymentConfig: PaymentConfig;
+  benefits: Benefits;
+}) {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const policy = useCartStore((s) => s.policy);
@@ -77,6 +97,8 @@ function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig
   const [detailAddress, setDetailAddress] = useState(member.address.detail);
   const [memoPreset, setMemoPreset] = useState("");
   const [memoCustom, setMemoCustom] = useState("");
+  const [couponId, setCouponId] = useState("");
+  const [pointsInput, setPointsInput] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +108,12 @@ function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig
   const shippingFee = policy
     ? shippingFeeFor({ baseFee: policy.standardFee, freeThreshold: policy.freeThreshold, remoteAreaFee: policy.remoteAreaFee }, subtotal, zipCode)
     : 0;
-  const total = subtotal + shippingFee;
+  // 쿠폰(상품 금액에만) → 적립금(남은 결제 금액까지) 순. 서버도 같은 순서로 다시 계산한다.
+  const coupon = benefits.coupons.find((c) => c.id === couponId);
+  const discount = coupon ? couponDiscount(coupon, subtotal) : 0;
+  const maxPoints = Math.max(0, Math.min(benefits.pointBalance, subtotal - discount + shippingFee));
+  const usePoints = Math.min(Math.max(0, Math.floor(Number(pointsInput) || 0)), maxPoints);
+  const total = subtotal + shippingFee - discount - usePoints;
   const blocked = selected.some((it) => !it.available);
   const toss = paymentConfig.provider === "TOSS";
   const { widgets, error: widgetError } = useTossWidgets(toss ? paymentConfig.clientKey : null, total);
@@ -115,14 +142,22 @@ function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig
     setPending(true);
     setError(null);
     try {
-      const order = await createOrder({
-        recipientName: recipientName.trim(),
-        recipientPhone: phone,
-        zipCode,
-        roadAddress,
-        detailAddress: detailAddress.trim(),
-        deliveryMemo: (memoPreset === "직접 입력" ? memoCustom : memoPreset).trim(),
-      });
+      const order = await createOrder(
+        {
+          recipientName: recipientName.trim(),
+          recipientPhone: phone,
+          zipCode,
+          roadAddress,
+          detailAddress: detailAddress.trim(),
+          deliveryMemo: (memoPreset === "직접 입력" ? memoCustom : memoPreset).trim(),
+        },
+        { memberCouponId: couponId || undefined, usePoints },
+      );
+      // 쿠폰·적립금으로 0원이 되면 서버가 바로 결제완료로 만든다(결제창 없음).
+      if (order.status === "PAID") {
+        router.replace(`/checkout/complete?${new URLSearchParams({ orderId: order.orderNumber })}`);
+        return;
+      }
       if (toss) {
         await requestTossPayment(order, phone);
         return;
@@ -232,8 +267,49 @@ function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig
               </ul>
             </Panel>
 
+            <Panel title="쿠폰·적립금">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label={`쿠폰 (${benefits.coupons.length}장)`} htmlFor="co-coupon">
+                  <select id="co-coupon" value={couponId} onChange={(e) => setCouponId(e.target.value)} className={inputClass}>
+                    <option value="">{benefits.coupons.length ? "쿠폰 선택 안 함" : "사용할 수 있는 쿠폰이 없어요"}</option>
+                    {benefits.coupons.map((c) => {
+                      const amount = couponDiscount(c, subtotal);
+                      return (
+                        <option key={c.id} value={c.id} disabled={amount === 0}>
+                          {c.name} · {amount > 0 ? `-${formatKRW(amount)}` : `${describeMinOrder(c)} 사용 가능`}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </Field>
+                <Field label={`적립금 (보유 ${formatKRW(benefits.pointBalance)})`} htmlFor="co-points">
+                  <div className="flex gap-2">
+                    <input
+                      id="co-points"
+                      value={pointsInput}
+                      onChange={(e) => setPointsInput(e.target.value.replace(/[^0-9]/g, ""))}
+                      onBlur={() => setPointsInput(usePoints ? String(usePoints) : "")}
+                      inputMode="numeric"
+                      placeholder="0"
+                      disabled={maxPoints === 0}
+                      className={cn(inputBase, "min-w-0 flex-1 text-right tabular-nums disabled:bg-black/[0.03]")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPointsInput(String(maxPoints))}
+                      disabled={maxPoints === 0}
+                      className="h-11 flex-none whitespace-nowrap border border-black px-4 text-[14px] hover:bg-black hover:text-white disabled:border-black/20 disabled:text-black/30 disabled:hover:bg-transparent"
+                    >
+                      전액 사용
+                    </button>
+                  </div>
+                </Field>
+              </div>
+            </Panel>
+
+            {/* 0원 결제(쿠폰·적립금 전액)면 결제창이 필요 없어 숨긴다. 위젯이 그려진 자리는 그대로 둔다. */}
             {toss ? (
-              <div className="border-[1.5px] border-black bg-white">
+              <div className={cn("border-[1.5px] border-black bg-white", total === 0 && "hidden")}>
                 <h2 className="px-6 pt-6 text-[16px] font-medium">결제 수단</h2>
                 {widgetError ? <p role="alert" className="px-6 pt-3 text-[13px] text-brand-primary">{widgetError}</p> : null}
                 {/* 토스 결제위젯이 자체 여백을 가지고 있어 패딩 없이 그린다. */}
@@ -247,6 +323,8 @@ function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig
             <h2 className="text-[16px] font-medium">결제 금액</h2>
             <Row label="상품 합계" value={formatKRW(subtotal)} />
             <Row label="배송비" value={shippingFee === 0 ? "무료" : formatKRW(shippingFee)} />
+            {discount > 0 ? <Row label="쿠폰 할인" value={`-${formatKRW(discount)}`} /> : null}
+            {usePoints > 0 ? <Row label="적립금 사용" value={`-${formatKRW(usePoints)}`} /> : null}
             <div className="h-px bg-black" />
             <Row label="총 결제 금액" value={formatKRW(total)} strong />
             <label className="flex items-start gap-2 text-[13px] leading-[19px] text-ink-muted">
@@ -256,7 +334,7 @@ function CheckoutForm({ member, paymentConfig }: { member: Member; paymentConfig
             {error ? <p role="alert" className="text-[13px] text-brand-primary">{error}</p> : null}
             <button
               type="submit"
-              disabled={pending || (toss && !widgets)}
+              disabled={pending || (toss && total > 0 && !widgets)}
               className="h-[56px] w-full bg-black text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
               {pending ? "처리 중…" : `${formatKRW(total)} 결제하기`}

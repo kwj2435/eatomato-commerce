@@ -1,3 +1,5 @@
+import type { BannerPlacement } from "./banner";
+import type { CouponTerms } from "./benefit";
 import type { Member, MemberRole } from "./member";
 import type { Notice } from "./notice";
 import type { Order, OrderStatus } from "./order";
@@ -143,6 +145,8 @@ export type AdminOrder = Order & {
 
 export type AdminBanner = {
   id: string;
+  placement: BannerPlacement;
+  /** BEST_PICK 은 빈 문자열(링크 없음). */
   href: string;
   imageUrl: string;
   alt: string;
@@ -162,3 +166,30 @@ export type AdminNoticeInput = {
 };
 
 export type AdminNotice = Notice;
+
+// ── 쿠폰 ──────────────────────────────────────────────────
+
+export type AdminCoupon = CouponTerms & {
+  id: string;
+  name: string;
+  /** 발급일부터 며칠. */
+  validDays?: number;
+  /** 이 시각까지(종료일 23:59:59). validDays 와 같이 있으면 이른 쪽. */
+  validUntil?: string;
+  issueOnSignup: boolean;
+  /** false 면 발급 중지(이미 받은 쿠폰은 기한까지 쓸 수 있다). */
+  active: boolean;
+  /** 지금 새로 발급할 수 있는지(발급 중 + 종료일 전). */
+  issuable: boolean;
+  issuedCount: number;
+  usedCount: number;
+  createdAt: string;
+};
+
+export type AdminCouponInput = CouponTerms & {
+  name: string;
+  validDays?: number;
+  /** yyyy-MM-dd */
+  validUntil?: string;
+  issueOnSignup: boolean;
+};

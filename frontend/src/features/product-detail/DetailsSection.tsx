@@ -22,7 +22,7 @@ export function DetailsSection({ images }: DetailsSectionProps) {
         {images.map((src, i) => (
           <div
             key={src + i}
-            className="relative aspect-[4/5] w-full overflow-hidden border border-[#B0AAA9] bg-white"
+            className="relative aspect-[4/5] w-full overflow-hidden border border-[#B0AAA9]"
           >
             <Image
               src={src}
@@ -33,13 +33,6 @@ export function DetailsSection({ images }: DetailsSectionProps) {
             />
           </div>
         ))}
-      </div>
-
-      <div className="mt-[66px] flex flex-col items-center gap-3.5">
-        {/* "더 보기" 페이지네이션 점 3개 — 시안 기준 정적 표기 */}
-        <span aria-hidden className="h-[7px] w-[7px] rounded-full bg-[#212121]" />
-        <span aria-hidden className="h-[7px] w-[7px] rounded-full bg-[#212121]" />
-        <span aria-hidden className="h-[7px] w-[7px] rounded-full bg-[#212121]" />
       </div>
     </Container>
   );

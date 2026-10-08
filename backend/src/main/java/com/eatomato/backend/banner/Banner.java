@@ -1,6 +1,8 @@
 package com.eatomato.backend.banner;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -10,7 +12,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 메인 히어로 배너. 문구는 이미지에 직접 넣고, 그 문구를 alt 에 적어 스크린리더가 읽게 한다.
+ * 메인 배너(상단 슬라이드·Best Picks·Special). 문구는 이미지에 직접 넣고, 그 문구를 alt 에 적어 스크린리더가 읽게 한다.
+ * 링크가 없는 배너(BEST_PICK)는 href 가 빈 문자열이다.
  */
 @Entity
 @Table(name = "banner")
@@ -21,6 +24,9 @@ public class Banner {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
+
+	@Enumerated(EnumType.STRING)
+	private BannerPlacement placement;
 
 	private String href;
 
@@ -33,7 +39,8 @@ public class Banner {
 
 	private boolean active;
 
-	public Banner(String href, String imageUrl, String alt, int sortOrder, boolean active) {
+	public Banner(BannerPlacement placement, String href, String imageUrl, String alt, int sortOrder, boolean active) {
+		this.placement = placement;
 		this.href = href;
 		this.imageUrl = imageUrl;
 		this.alt = alt;
@@ -41,7 +48,9 @@ public class Banner {
 		this.active = active;
 	}
 
-	public void update(String href, String imageUrl, String alt, int sortOrder, boolean active) {
+	public void update(BannerPlacement placement, String href, String imageUrl, String alt, int sortOrder,
+		boolean active) {
+		this.placement = placement;
 		this.href = href;
 		this.imageUrl = imageUrl;
 		this.alt = alt;

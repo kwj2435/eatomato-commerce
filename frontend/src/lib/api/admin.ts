@@ -1,6 +1,8 @@
 import type {
   AdminBanner,
   AdminBannerInput,
+  AdminCoupon,
+  AdminCouponInput,
   AdminMemberDetail,
   AdminMemberSummary,
   AdminNotice,
@@ -150,3 +152,22 @@ export async function uploadAdminImage(file: File, category: "products" | "banne
   });
   return res.url;
 }
+
+// ── 쿠폰 ──
+
+export const listAdminCoupons = () => apiFetch<AdminCoupon[]>("/api/admin/coupons", { auth: true });
+
+export const createAdminCoupon = (input: AdminCouponInput) =>
+  apiFetch<AdminCoupon>("/api/admin/coupons", { method: "POST", auth: true, json: input });
+
+/** 발급 중지/재개, 가입 자동 발급 켜기/끄기. */
+export const updateAdminCoupon = (id: string, patch: { active?: boolean; issueOnSignup?: boolean }) =>
+  apiFetch<AdminCoupon>(`/api/admin/coupons/${id}`, { method: "PATCH", auth: true, json: patch });
+
+/** all 이면 이용 중인 일반 회원 전체, 아니면 loginIds 의 회원. 이미 받은 회원은 건너뛴다. */
+export const issueAdminCoupon = (id: string, target: { all: true } | { all: false; loginIds: string[] }) =>
+  apiFetch<{ issued: number; notFound: string[] }>(`/api/admin/coupons/${id}/issue`, {
+    method: "POST",
+    auth: true,
+    json: target,
+  });

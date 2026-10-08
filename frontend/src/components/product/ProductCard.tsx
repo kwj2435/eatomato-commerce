@@ -29,7 +29,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
         href={`/products/${product.slug}`}
         className="group flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
       >
-        <div className="relative aspect-[3/4] w-full overflow-hidden bg-surface-elevated">
+        <div className="relative aspect-[3/4] w-full overflow-hidden">
           {product.badges?.length ? <BadgeGroup badges={product.badges} /> : null}
           {product.soldOut ? <SoldOutOverlay /> : null}
 

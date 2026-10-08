@@ -22,6 +22,7 @@ import com.eatomato.backend.auth.dto.TokenResponse;
 import com.eatomato.backend.auth.kakao.KakaoUser;
 import com.eatomato.backend.auth.limit.LoginAttemptLimiter;
 import com.eatomato.backend.auth.token.RefreshTokenService;
+import com.eatomato.backend.coupon.CouponService;
 import com.eatomato.backend.global.config.AppProperties;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
@@ -40,6 +41,7 @@ public class AuthService {
 	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private final MemberRepository memberRepository;
+	private final CouponService couponService;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtEncoder jwtEncoder;
 	private final AppProperties properties;
@@ -63,6 +65,7 @@ public class AuthService {
 			passwordEncoder.encode(request.password()),
 			email,
 			request.name().trim()));
+		couponService.issueSignupCoupons(member.getId());
 		return issueToken(member);
 	}
 
@@ -131,6 +134,7 @@ public class AuthService {
 					passwordEncoder.encode(UUID.randomUUID().toString()),
 					email,
 					name.length() > 50 ? name.substring(0, 50) : name));
+				couponService.issueSignupCoupons(member.getId());
 			}
 			member.linkKakao(kakao.id());
 		}

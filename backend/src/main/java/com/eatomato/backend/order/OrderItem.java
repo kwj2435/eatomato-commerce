@@ -37,6 +37,9 @@ public class OrderItem {
 
 	private String optionLabel;
 
+	/** 주문 시점 적립률(%). 배송완료 때 이 값으로 적립한다. */
+	private int rewardRate;
+
 	/** 장바구니 옵션 조합 키. 결제가 끝나면 이 키로 장바구니의 같은 줄을 지운다. */
 	private String optionKey;
 
@@ -58,6 +61,7 @@ public class OrderItem {
 		item.unitPrice = cartItem.unitPrice();
 		item.quantity = cartItem.getQuantity();
 		item.imageUrl = cartItem.getProduct().getImageUrl();
+		item.rewardRate = cartItem.getProduct().getRewardRate();
 		return item;
 	}
 
