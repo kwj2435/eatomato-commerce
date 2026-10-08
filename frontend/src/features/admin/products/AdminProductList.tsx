@@ -112,12 +112,20 @@ export function AdminProductList() {
         title="상품"
         description="등록·수정 내용은 스토어에 1분 안에 반영됩니다. 숨김 상품은 스토어에서 보이지 않습니다."
         actions={
-          <Link
-            href="/admin/products/new"
-            className="inline-flex h-10 items-center rounded-md bg-brand-deep px-4 text-[14px] font-medium text-white hover:bg-brand-secondary"
-          >
-            상품 등록
-          </Link>
+          <>
+            <Link
+              href="/admin/products/bulk"
+              className="inline-flex h-10 items-center rounded-md border border-black/15 bg-white px-4 text-[14px]"
+            >
+              일괄 등록
+            </Link>
+            <Link
+              href="/admin/products/new"
+              className="inline-flex h-10 items-center rounded-md bg-brand-deep px-4 text-[14px] font-medium text-white hover:bg-brand-secondary"
+            >
+              상품 등록
+            </Link>
+          </>
         }
       />
 
