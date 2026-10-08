@@ -30,6 +30,9 @@ export function BetterTogether({
 }: BetterTogetherProps) {
   const [open, setOpen] = useState(true);
 
+  // 함께 구매할 상품을 지정하지 않은 상품은 패널 자체를 그리지 않는다.
+  if (items.length === 0) return null;
+
   return (
     <section className="mt-4 border border-[#333]">
       <button
