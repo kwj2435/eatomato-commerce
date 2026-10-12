@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { QuantityStepper } from "@/features/cart/QuantityStepper";
 import type { AddCartItemInput } from "@/lib/api/cart";
 import { errorMessage } from "@/lib/api/client";
 import { getProductDetail } from "@/lib/api/products";
-import { hasSession } from "@/lib/store/auth-store";
 import { useCartStore } from "@/lib/store/cart-store";
 import { formatKRW } from "@/lib/utils/format";
 import type { OptionGroup, ProductDetail } from "@/types/product-detail";
@@ -28,8 +26,6 @@ type SelectionMap = Record<string, string>;
 type Status =
   | { kind: "idle" }
   | { kind: "warn"; message: string }
-  /** 비회원이 누른 버튼. 장바구니·주문 모두 회원 전용이라 로그인으로 안내한다. */
-  | { kind: "login"; action: "cart" | "buy" }
   | { kind: "success"; message: string };
 
 /**
@@ -72,7 +68,6 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
 
   const addItem = useCartStore((s) => s.addItem);
   const router = useRouter();
-  const pathname = usePathname();
 
   const basePrice = product.salePrice ?? product.price;
 
@@ -119,15 +114,11 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
   /**
    * 메인 상품 + 옵션을 고른 BETTER TOGETHER 상품을 장바구니에 담는다.
    * 성공하면 true. "바로 구매하기" 는 담은 뒤 장바구니 화면으로 이동한다.
-   * 주문은 장바구니를 거쳐 만들어지므로(비회원 주문 없음) 두 버튼 모두 로그인이 필요하다.
+   * 비로그인이면 브라우저 장바구니에 담는다(비회원 주문).
    */
-  const addToCart = async (action: "cart" | "buy"): Promise<boolean> => {
+  const addToCart = async (): Promise<boolean> => {
     if (!mainReady) {
       setStatus({ kind: "warn", message: "옵션을 모두 선택해 주세요." });
-      return false;
-    }
-    if (!hasSession()) {
-      setStatus({ kind: "login", action });
       return false;
     }
 
@@ -158,11 +149,11 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
   };
 
   const handleAddToCart = () => {
-    void addToCart("cart");
+    void addToCart();
   };
 
   const handleBuyNow = async () => {
-    if (await addToCart("buy")) router.push("/cart");
+    if (await addToCart()) router.push("/cart");
   };
 
   return (
@@ -273,17 +264,7 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
           </button>
         </div>
 
-        {status.kind === "login" ? (
-          <p role="status" aria-live="polite" className="mt-4 text-[13px] text-brand-primary">
-            {status.action === "buy" ? "구매는 로그인 후 이용할 수 있습니다." : "장바구니는 로그인 후 이용할 수 있습니다."}{" "}
-            <Link
-              href={`/login?next=${encodeURIComponent(pathname)}`}
-              className="font-medium underline underline-offset-2"
-            >
-              로그인하기
-            </Link>
-          </p>
-        ) : status.kind !== "idle" ? (
+        {status.kind !== "idle" ? (
           <p
             role="status"
             aria-live="polite"

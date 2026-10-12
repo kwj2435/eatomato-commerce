@@ -6,10 +6,13 @@ import { useEffect, useRef, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
 import { VirtualAccountInfo } from "@/components/order/VirtualAccountInfo";
-import { errorMessage } from "@/lib/api/client";
+import { ApiError, errorMessage } from "@/lib/api/client";
+import { confirmGuestPayment, lookupGuestOrder } from "@/lib/api/guest";
 import { confirmPayment, getMyOrder } from "@/lib/api/orders";
-import { useCartStore } from "@/lib/store/cart-store";
-import { useRequireAuth } from "@/lib/store/use-require-auth";
+import { useIsLoggedIn } from "@/lib/store/auth-store";
+import { removeGuestCartLines, useCartStore } from "@/lib/store/cart-store";
+import { readGuestCheckout } from "@/lib/store/guest-checkout";
+import { useHydrated } from "@/lib/store/use-hydrated";
 import { formatKRW, formatPhone } from "@/lib/utils/format";
 import type { Order } from "@/types/order";
 
@@ -17,9 +20,12 @@ import type { Order } from "@/types/order";
  * 결제 완료 화면(= 토스 successUrl). 넘어온 paymentKey·orderId(주문번호)·amount 로 서버에 결제 승인을 요청한다.
  * 금액은 서버가 주문 금액과 대조하고, 같은 요청이 두 번 와도 한 번만 처리된다(새로고침 안전).
  * paymentKey 없이 orderId 만 오면 쿠폰·적립금으로 0원 결제된 주문이라 승인 없이 주문만 불러온다.
+ *
+ * 비회원은 주문서가 sessionStorage 에 둔 주문 비밀번호로 승인하고, 주문한 줄을 브라우저 장바구니에서 지운다.
  */
 export function CheckoutComplete() {
-  const ready = useRequireAuth();
+  const ready = useHydrated();
+  const loggedIn = useIsLoggedIn();
   const params = useSearchParams();
   const loadCart = useCartStore((s) => s.load);
   const [order, setOrder] = useState<Order | null>(null);
@@ -33,13 +39,26 @@ export function CheckoutComplete() {
   useEffect(() => {
     if (!ready || started.current || invalid) return;
     started.current = true;
-    (paymentKey ? confirmPayment(orderNumber, paymentKey, amount) : getMyOrder(orderNumber))
-      .then((confirmed) => {
-        setOrder(confirmed);
+    const member = () =>
+      (paymentKey ? confirmPayment(orderNumber, paymentKey, amount) : getMyOrder(orderNumber)).then((confirmed) => {
         loadCart().catch(() => {});
-      })
-      .catch((e: unknown) => setError(errorMessage(e)));
-  }, [ready, invalid, orderNumber, paymentKey, amount, loadCart]);
+        return confirmed;
+      });
+    const guest = async () => {
+      const checkout = readGuestCheckout(orderNumber);
+      if (!checkout) {
+        throw new ApiError(404, "GUEST_CHECKOUT_NOT_FOUND", "결제 정보를 찾지 못했어요. 비회원 주문 조회에서 주문 상태를 확인해 주세요.");
+      }
+      const confirmed = await (paymentKey
+        ? confirmGuestPayment(orderNumber, checkout.password, paymentKey, amount)
+        : lookupGuestOrder(orderNumber, checkout.password));
+      removeGuestCartLines(checkout.lineIds).catch(() => {});
+      return confirmed;
+    };
+    (loggedIn ? member() : guest()).then(setOrder).catch((e: unknown) => setError(errorMessage(e)));
+  }, [ready, loggedIn, invalid, orderNumber, paymentKey, amount, loadCart]);
+
+  const ordersHref = loggedIn ? "/mypage" : "/orders/guest";
 
   if (error || invalid) {
     return (
@@ -49,7 +68,7 @@ export function CheckoutComplete() {
         <p className="text-[13px] text-ink-muted">주문은 결제대기로 남아 있으며 30분 뒤 자동 취소됩니다.</p>
         <div className="flex gap-3">
           <Link href="/cart" className="border-[1.5px] border-black px-6 py-3 text-[14px]">장바구니로</Link>
-          <Link href="/mypage" className="border-[1.5px] border-black px-6 py-3 text-[14px]">주문 내역</Link>
+          <Link href={ordersHref} className="border-[1.5px] border-black px-6 py-3 text-[14px]">주문 내역</Link>
         </div>
       </Container>
     );
@@ -69,6 +88,9 @@ export function CheckoutComplete() {
     <Container className="mx-auto flex max-w-[560px] flex-col items-center py-[90px] text-center">
       <p className="text-[24px] font-medium tracking-[-0.4px]">{account ? "주문이 접수되었어요" : "주문이 완료되었어요"}</p>
       <p className="mt-2 text-[14px] text-ink-muted">주문번호 {order.orderNumber}</p>
+      {loggedIn ? null : (
+        <p className="mt-1 text-[13px] text-ink-muted">비회원 주문은 주문번호와 주문 비밀번호로 조회할 수 있어요. 주문번호를 꼭 메모해 두세요.</p>
+      )}
       {account ? (
         <div className="mt-8 w-full border-[1.5px] border-brand-deep bg-white px-5 py-5">
           <p className="mb-3 text-left text-[14px] font-medium text-brand-deep">아래 계좌로 입금하면 주문이 완료돼요</p>
@@ -119,7 +141,7 @@ export function CheckoutComplete() {
         ) : null}
       </dl>
       <div className="mt-8 flex gap-3">
-        <Link href="/mypage" className="border-[1.5px] border-black px-6 py-3 text-[14px] hover:bg-black hover:text-white">주문 내역 보기</Link>
+        <Link href={ordersHref} className="border-[1.5px] border-black px-6 py-3 text-[14px] hover:bg-black hover:text-white">주문 내역 보기</Link>
         <Link href="/" className="border-[1.5px] border-black px-6 py-3 text-[14px] hover:bg-black hover:text-white">쇼핑 계속하기</Link>
       </div>
     </Container>

@@ -1,6 +1,7 @@
 package com.eatomato.backend.cart.dto;
 
 import java.util.List;
+import java.util.function.Function;
 
 import com.eatomato.backend.cart.CartItem;
 import com.eatomato.backend.shipping.ShippingPolicy;
@@ -31,10 +32,10 @@ public record CartResponse(List<Item> items, Summary summary, Policy shippingPol
 		Integer stock
 	) {
 
-		static Item from(CartItem item) {
+		static Item from(CartItem item, String id) {
 			var product = item.getProduct();
 			return new Item(
-				String.valueOf(item.getId()),
+				id,
 				String.valueOf(product.getId()),
 				product.getSlug(),
 				product.getName(),
@@ -63,6 +64,11 @@ public record CartResponse(List<Item> items, Summary summary, Policy shippingPol
 	}
 
 	public static CartResponse from(List<CartItem> items, ShippingPolicy policy) {
+		return from(items, policy, item -> String.valueOf(item.getId()));
+	}
+
+	/** idOf: 줄 id. 비회원 장바구니는 저장된 id 가 없어 브라우저가 붙인 id 를 그대로 돌려준다. */
+	public static CartResponse from(List<CartItem> items, ShippingPolicy policy, Function<CartItem, String> idOf) {
 		List<CartItem> selected = items.stream().filter(CartItem::isSelected).toList();
 		int subtotal = selected.stream().mapToInt(CartItem::lineTotal).sum();
 		int shippingFee = policy.feeFor(subtotal);
@@ -74,7 +80,7 @@ public record CartResponse(List<Item> items, Summary summary, Policy shippingPol
 			subtotal + shippingFee,
 			policy.freeShippingRemainder(subtotal));
 		return new CartResponse(
-			items.stream().map(Item::from).toList(),
+			items.stream().map(item -> Item.from(item, idOf.apply(item))).toList(),
 			summary,
 			new Policy(policy.getFreeThreshold(), policy.getBaseFee(), policy.getRemoteAreaFee()));
 	}

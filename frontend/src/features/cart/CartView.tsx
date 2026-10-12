@@ -8,7 +8,7 @@ import { Container } from "@/components/layout/Container";
 import { errorMessage } from "@/lib/api/client";
 import { formatKRW } from "@/lib/utils/format";
 import { useCartStore, useCartSummary } from "@/lib/store/cart-store";
-import { useRequireAuth } from "@/lib/store/use-require-auth";
+import { useHydrated } from "@/lib/store/use-hydrated";
 
 import { CartSummary } from "./CartSummary";
 import { CartTable } from "./CartTable";
@@ -16,13 +16,13 @@ import { CartTable } from "./CartTable";
 /**
  * 장바구니 뷰 (클라이언트 셸).
  *
- * - 로그인이 필요하다. 비로그인이면 로그인 페이지로 보낸다(`useRequireAuth`).
- * - 서버 장바구니를 불러오기 전에는 스켈레톤을 보여 준다.
+ * - 회원은 서버 장바구니, 비회원은 브라우저 장바구니를 쓴다(cart-store 가 구분한다).
+ * - 장바구니를 불러오기 전에는 스켈레톤을 보여 준다.
  * - 빈 카트는 별도 empty state 로 대체(상품 리스트로 이동 CTA 포함).
- * - "주문하기" 는 주문서(/checkout)로 넘어간다. 결제는 주문서에서 한다.
+ * - "주문하기" 는 주문서(/checkout)로 넘어간다. 결제는 주문서에서 한다. 비회원은 주문서에서 주문자 정보를 받는다.
  */
 export function CartView() {
-  const ready = useRequireAuth();
+  const ready = useHydrated();
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const loaded = useCartStore((s) => s.loaded);

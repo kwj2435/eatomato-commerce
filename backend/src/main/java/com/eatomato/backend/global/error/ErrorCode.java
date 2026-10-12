@@ -40,6 +40,7 @@ public enum ErrorCode {
 	CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "장바구니 항목을 찾을 수 없습니다."),
 	EMPTY_ORDER(HttpStatus.BAD_REQUEST, "주문할 상품을 선택해 주세요."),
 	ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다."),
+	GUEST_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문번호 또는 주문 비밀번호가 일치하지 않습니다."),
 
 	ORDER_ITEM_NOT_REVIEWABLE(HttpStatus.BAD_REQUEST, "후기를 작성할 수 없는 주문 상품입니다."),
 	REVIEW_ALREADY_WRITTEN(HttpStatus.CONFLICT, "이미 후기를 작성한 상품입니다."),

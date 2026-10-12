@@ -229,6 +229,10 @@ function ShipmentCard({
             <p className="mt-1.5 text-[12px] text-ink-subtle">
               주문자 {o.member.name} ({o.member.loginId})
             </p>
+          ) : o.guest ? (
+            <p className="mt-1.5 text-[12px] text-ink-subtle">
+              주문자 {o.guest.name} (비회원 · {formatPhone(o.guest.phone)})
+            </p>
           ) : null}
         </div>
 

@@ -20,6 +20,7 @@ import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.global.time.Times;
 import com.eatomato.backend.order.dto.CreateOrderRequest;
+import com.eatomato.backend.order.dto.GuestOrderRequest;
 import com.eatomato.backend.order.dto.OrderResponse;
 import com.eatomato.backend.payment.Payment;
 import com.eatomato.backend.payment.PaymentGateway;
@@ -66,6 +67,29 @@ public class OrderService {
 		List<CartItem> cartItems = request.cartItemIds() == null || request.cartItemIds().isEmpty()
 			? cartItemRepository.findByMemberIdAndSelectedTrue(memberId)
 			: cartItemRepository.findByMemberIdAndIdIn(memberId, request.cartItemIds());
+		Order order = new Order(newOrderNumber(), memberId, toAddress(request.shipping()));
+		return place(order, cartItems, request.memberCouponId(),
+			request.usePoints() == null ? 0 : request.usePoints());
+	}
+
+	/**
+	 * 비회원 주문. 장바구니 줄은 브라우저가 보낸 것을 저장하지 않고 쓴다(CartService.guestLine).
+	 * 쿠폰·적립금 없이 만들고, 주문번호 + 주문 비밀번호로 조회한다.
+	 */
+	@Transactional
+	public OrderResponse createGuest(List<CartItem> lines, CreateOrderRequest.Shipping shipping,
+		GuestOrderRequest.Orderer orderer, String passwordHash) {
+		Order order = Order.guest(newOrderNumber(), toAddress(shipping), orderer.name().trim(),
+			orderer.phone().replace("-", ""), orderer.email().trim(), passwordHash);
+		return place(order, lines, null, 0);
+	}
+
+	/**
+	 * 주문 생성 공통: 재고 선점 → 상품 스냅샷 → 금액 계산 → 쿠폰·적립금 → 결제 준비.
+	 * 쿠폰·적립금은 회원 주문에서만 넘어온다.
+	 */
+	private OrderResponse place(Order order, List<CartItem> cartItems, Long memberCouponId, int usePoints) {
+		Long memberId = order.getMemberId();
 		if (cartItems.isEmpty()) {
 			throw new ApiException(ErrorCode.EMPTY_ORDER);
 		}
@@ -75,27 +99,23 @@ public class OrderService {
 
 		reserveStock(cartItems);
 
-		CreateOrderRequest.Shipping s = request.shipping();
-		Order order = new Order(newOrderNumber(), memberId, new ShippingAddress(
-			s.recipientName().trim(), s.recipientPhone().replace("-", ""), s.zipCode(), s.roadAddress().trim(),
-			blankToNull(s.detailAddress()), blankToNull(s.deliveryMemo())));
 		cartItems.forEach(cartItem -> order.addItem(OrderItem.snapshotOf(cartItem)));
 		order.calculate(shippingPolicyService.current());
 
 		// 쿠폰(상품 금액에만) → 적립금(남은 결제 금액까지) 순으로 깎는다.
-		int couponDiscount = request.memberCouponId() == null ? 0
-			: couponService.discountFor(memberId, request.memberCouponId(), order.getSubtotal());
-		int usePoints = request.usePoints() == null ? 0 : request.usePoints();
+		int couponDiscount = memberCouponId == null ? 0
+			: couponService.discountFor(memberId, memberCouponId, order.getSubtotal());
 		if (usePoints > order.getTotal() - couponDiscount) {
 			throw new ApiException(ErrorCode.POINT_EXCEEDS_TOTAL);
 		}
-		order.applyDiscounts(request.memberCouponId(), couponDiscount, usePoints);
+		order.applyDiscounts(memberCouponId, couponDiscount, usePoints);
 		orderRepository.save(order);
-		if (request.memberCouponId() != null) {
-			couponService.markUsed(memberId, request.memberCouponId(), order.getId());
+		if (memberCouponId != null) {
+			couponService.markUsed(memberId, memberCouponId, order.getId());
 		}
 		pointService.use(memberId, usePoints, "주문 " + order.getOrderNumber() + " 사용", order.getId());
-		historyRepository.save(new OrderStatusHistory(order.getId(), null, order.getStatus(), memberId, "주문서 제출"));
+		historyRepository.save(new OrderStatusHistory(order.getId(), null, order.getStatus(), memberId,
+			order.isGuest() ? "비회원 주문서 제출" : "주문서 제출"));
 
 		// 쿠폰·적립금으로 전액 할인되면 결제창 없이 바로 결제완료.
 		if (order.getTotal() == 0) {
@@ -104,7 +124,7 @@ public class OrderService {
 			order.markPaid();
 			order.getItems().forEach(item -> {
 				productRepository.findById(item.getProductId()).ifPresent(p -> p.increaseSalesCount(item.getQuantity()));
-				if (item.getOptionKey() != null) {
+				if (memberId != null && item.getOptionKey() != null) {
 					cartItemRepository.deleteByMemberIdAndProductIdAndOptionKey(memberId, item.getProductId(),
 						item.getOptionKey());
 				}
@@ -137,12 +157,17 @@ public class OrderService {
 	 */
 	@Transactional
 	public OrderResponse cancelMine(Long memberId, String orderNumber) {
-		Order order = findMine(memberId, orderNumber);
+		return cancelByCustomer(findMine(memberId, orderNumber));
+	}
+
+	/** 고객 취소 공통(회원·비회원). 주문 주인인지는 부르는 쪽이 확인한다. */
+	@Transactional
+	public OrderResponse cancelByCustomer(Order order) {
 		Payment payment = paymentRepository.findByOrder(order).orElse(null);
 		if (order.getStatus() == OrderStatus.PAID && payment != null && payment.isVirtualAccount()) {
 			throw new ApiException(ErrorCode.CANCEL_VIA_CUSTOMER_SERVICE);
 		}
-		cancel(order, memberId, "고객 취소");
+		cancel(order, order.getMemberId(), "고객 취소");
 		return OrderResponse.from(order, payment);
 	}
 
@@ -207,8 +232,8 @@ public class OrderService {
 		OrderStatus before = order.getStatus();
 		order.transitionTo(next);
 		historyRepository.save(new OrderStatusHistory(order.getId(), before, next, adminId, null));
-		// 배송완료(더 이상 취소되지 않는 시점)에 구매 적립금을 준다.
-		if (next == OrderStatus.DELIVERED) {
+		// 배송완료(더 이상 취소되지 않는 시점)에 구매 적립금을 준다. 비회원은 적립금이 없다.
+		if (next == OrderStatus.DELIVERED && !order.isGuest()) {
 			int points = order.rewardPoints();
 			order.markPointsEarned(points);
 			pointService.earn(order.getMemberId(), points, PointType.ORDER_EARN,
@@ -280,6 +305,11 @@ public class OrderService {
 			candidate = Times.now().format(ORDER_NUMBER_DATE) + String.format("%04d", RANDOM.nextInt(10_000));
 		} while (orderRepository.existsByOrderNumber(candidate));
 		return candidate;
+	}
+
+	private static ShippingAddress toAddress(CreateOrderRequest.Shipping s) {
+		return new ShippingAddress(s.recipientName().trim(), s.recipientPhone().replace("-", ""), s.zipCode(),
+			s.roadAddress().trim(), blankToNull(s.detailAddress()), blankToNull(s.deliveryMemo()));
 	}
 
 	private static String blankToNull(String value) {

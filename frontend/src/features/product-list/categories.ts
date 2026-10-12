@@ -23,6 +23,8 @@ export type CategoryEntry = {
   subcategories: SubcategoryEntry[];
   /** GNB 드롭다운에서 "All" 을 빼고 하위 분류만 보인다(시안의 Earphone Case). 리스트 탭에는 그대로 둔다. */
   hideAllInNav?: boolean;
+  /** 상단 메뉴(GNB·모바일 메뉴)에서 감춘다. 상품 리스트·상세 주소는 그대로 열린다. */
+  hiddenInNav?: boolean;
 };
 
 export const CATEGORIES: Record<CategoryKey, CategoryEntry> = {
@@ -44,6 +46,8 @@ export const CATEGORIES: Record<CategoryKey, CategoryEntry> = {
       { slug: "buds", label: "Buds" },
     ],
     hideAllInNav: true,
+    // 임시로 상단 메뉴에서 감춘다. 다시 보이려면 이 줄만 지운다.
+    hiddenInNav: true,
   },
   "phone-acc": {
     slug: "phone-acc",

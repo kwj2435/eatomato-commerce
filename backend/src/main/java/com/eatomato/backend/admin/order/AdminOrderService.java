@@ -2,6 +2,7 @@ package com.eatomato.backend.admin.order;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -60,7 +61,8 @@ public class AdminOrderService {
 
 	/** 주문 목록에 주문자·결제 정보를 붙인다(회원·결제 조회는 한 번에). */
 	public List<AdminOrderResponse> withDetails(List<Order> orders) {
-		Map<Long, Member> members = memberRepository.findByIdIn(orders.stream().map(Order::getMemberId).toList())
+		Map<Long, Member> members = memberRepository.findByIdIn(
+				orders.stream().map(Order::getMemberId).filter(Objects::nonNull).toList())
 			.stream()
 			.collect(Collectors.toMap(Member::getId, Function.identity()));
 		Map<Long, Payment> payments = paymentRepository.findByOrderIn(orders).stream()

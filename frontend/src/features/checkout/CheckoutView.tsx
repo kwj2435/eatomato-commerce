@@ -8,10 +8,12 @@ import { Container } from "@/components/layout/Container";
 import { searchPostcode } from "@/components/address/postcode";
 import { errorMessage } from "@/lib/api/client";
 import { getMyPoints, listMyCoupons } from "@/lib/api/benefits";
+import { cancelGuestOrder, createGuestOrder } from "@/lib/api/guest";
 import { cancelMyOrder, createOrder, getPaymentConfig, type PaymentConfig } from "@/lib/api/orders";
-import { useAuthStore } from "@/lib/store/auth-store";
+import { useAuthStore, useIsLoggedIn } from "@/lib/store/auth-store";
 import { useCartStore } from "@/lib/store/cart-store";
-import { useRequireAuth } from "@/lib/store/use-require-auth";
+import { readGuestCart, saveGuestCheckout } from "@/lib/store/guest-checkout";
+import { useHydrated } from "@/lib/store/use-hydrated";
 import { cn } from "@/lib/utils/cn";
 import { couponDiscount, describeMinOrder } from "@/lib/utils/coupon";
 import { formatKRW } from "@/lib/utils/format";
@@ -31,9 +33,13 @@ const MEMO_PRESETS = ["", "문 앞에 놓아 주세요", "경비실에 맡겨 �
  *   주문서 제출(POST /api/orders, 결제대기) → 토스 결제위젯 결제창 → 결제 완료 화면(/checkout/complete)에서 승인(confirm)
  *   결제창에서 실패·취소하면 /checkout/fail 로 오거나 여기서 오류를 받고, 결제대기 주문은 바로 취소한다(재고 복원).
  * 서버가 MOCK 결제(PAYMENT_PROVIDER=mock)면 결제창 없이 바로 완료 화면으로 넘어가고 서버가 승인을 가정한다.
+ *
+ * 비회원 주문: 로그인하지 않았으면 주문자 정보·주문 비밀번호·개인정보 수집 동의를 더 받고 /api/guest/orders 로 주문한다.
+ * 쿠폰·적립금은 회원만 쓸 수 있다. 결제창에서 돌아온 화면이 승인·취소에 쓰도록 주문 비밀번호를 sessionStorage 에 둔다.
  */
 export function CheckoutView() {
-  const ready = useRequireAuth();
+  const hydrated = useHydrated();
+  const loggedIn = useIsLoggedIn();
   const member = useAuthStore((s) => s.member);
   const loaded = useCartStore((s) => s.loaded);
   const load = useCartStore((s) => s.load);
@@ -42,17 +48,18 @@ export function CheckoutView() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!hydrated) return;
     load().catch((e: unknown) => setLoadError(errorMessage(e)));
     getPaymentConfig()
       .then(setPaymentConfig)
       .catch((e: unknown) => setLoadError(errorMessage(e)));
+    if (!loggedIn) return;
     Promise.all([listMyCoupons(), getMyPoints()])
       .then(([coupons, points]) =>
         setBenefits({ coupons: coupons.filter((c) => c.status === "AVAILABLE"), pointBalance: points.balance }),
       )
       .catch((e: unknown) => setLoadError(errorMessage(e)));
-  }, [ready, load]);
+  }, [hydrated, loggedIn, load]);
 
   if (loadError) {
     return (
@@ -61,7 +68,7 @@ export function CheckoutView() {
       </Container>
     );
   }
-  if (!ready || !loaded || !member || !paymentConfig || !benefits) {
+  if (!hydrated || !loaded || !paymentConfig || (loggedIn && (!member || !benefits))) {
     return (
       <Container className="py-14">
         <div className="h-[420px] animate-pulse bg-black/[0.04]" />
@@ -69,32 +76,51 @@ export function CheckoutView() {
     );
   }
   // 회원 정보가 준비된 뒤에 폼을 그려, 회원 주소·연락처를 배송지 초기값으로 쓴다.
-  return <CheckoutForm member={member} paymentConfig={paymentConfig} benefits={benefits} />;
+  // 로그인 상태가 바뀌면(주문서에서 로그인 등) 폼을 새로 그린다.
+  return loggedIn && member && benefits ? (
+    <CheckoutForm key="member" member={member} paymentConfig={paymentConfig} benefits={benefits} />
+  ) : (
+    <CheckoutForm key="guest" member={null} paymentConfig={paymentConfig} benefits={NO_BENEFITS} />
+  );
 }
 
 /** 주문서에서 쓸 수 있는 쿠폰(사용 가능만)과 적립금 잔액. */
 type Benefits = { coupons: MemberCoupon[]; pointBalance: number };
+
+/** 비회원은 쿠폰·적립금이 없다. */
+const NO_BENEFITS: Benefits = { coupons: [], pointBalance: 0 };
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function CheckoutForm({
   member,
   paymentConfig,
   benefits,
 }: {
-  member: Member;
+  /** null 이면 비회원 주문. */
+  member: Member | null;
   paymentConfig: PaymentConfig;
   benefits: Benefits;
 }) {
+  const guest = member === null;
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const policy = useCartStore((s) => s.policy);
 
-  const [recipientName, setRecipientName] = useState(member.name ?? "");
+  const [recipientName, setRecipientName] = useState(member?.name ?? "");
   const [recipientPhone, setRecipientPhone] = useState(
-    [member.phone.first, member.phone.middle, member.phone.last].filter(Boolean).join("-"),
+    member ? [member.phone.first, member.phone.middle, member.phone.last].filter(Boolean).join("-") : "",
   );
-  const [zipCode, setZipCode] = useState(member.address.zipCode);
-  const [roadAddress, setRoadAddress] = useState(member.address.road);
-  const [detailAddress, setDetailAddress] = useState(member.address.detail);
+  const [zipCode, setZipCode] = useState(member?.address.zipCode ?? "");
+  const [roadAddress, setRoadAddress] = useState(member?.address.road ?? "");
+  const [detailAddress, setDetailAddress] = useState(member?.address.detail ?? "");
+  // 비회원 주문자 정보와 주문 조회 비밀번호
+  const [ordererName, setOrdererName] = useState("");
+  const [ordererPhone, setOrdererPhone] = useState("");
+  const [ordererEmail, setOrdererEmail] = useState("");
+  const [orderPassword, setOrderPassword] = useState("");
+  const [orderPasswordConfirm, setOrderPasswordConfirm] = useState("");
+  const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [memoPreset, setMemoPreset] = useState("");
   const [memoCustom, setMemoCustom] = useState("");
   const [couponId, setCouponId] = useState("");
@@ -130,9 +156,29 @@ function CheckoutForm({
     }
   };
 
+  const copyOrderer = () => {
+    setRecipientName(ordererName);
+    setRecipientPhone(ordererPhone);
+  };
+
+  /** 비회원 주문자 정보 확인. 문제가 있으면 안내 문구. */
+  const guestError = (): string | null => {
+    if (!ordererName.trim()) return "주문하시는 분 이름을 입력해 주세요.";
+    if (!/^0\d{8,10}$/.test(ordererPhone.replace(/[^0-9]/g, ""))) return "주문하시는 분 연락처를 확인해 주세요. 예: 010-1234-5678";
+    if (!EMAIL_PATTERN.test(ordererEmail.trim())) return "주문 안내를 받을 이메일을 확인해 주세요.";
+    if (orderPassword.length < 4 || orderPassword.length > 20) return "주문 조회 비밀번호를 4~20자로 입력해 주세요.";
+    if (orderPassword !== orderPasswordConfirm) return "주문 조회 비밀번호가 서로 달라요.";
+    if (!privacyAgreed) return "비회원 주문을 위한 개인정보 수집·이용에 동의해 주세요.";
+    return null;
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const phone = recipientPhone.replace(/[^0-9]/g, "");
+    if (guest) {
+      const message = guestError();
+      if (message) return setError(message);
+    }
     if (!recipientName.trim()) return setError("받는 분 이름을 입력해 주세요.");
     if (!/^0\d{8,10}$/.test(phone)) return setError("연락처를 확인해 주세요. 예: 010-1234-5678");
     if (!/^\d{5}$/.test(zipCode) || !roadAddress) return setError("주소 검색으로 배송지를 입력해 주세요.");
@@ -142,17 +188,29 @@ function CheckoutForm({
     setPending(true);
     setError(null);
     try {
-      const order = await createOrder(
-        {
-          recipientName: recipientName.trim(),
-          recipientPhone: phone,
-          zipCode,
-          roadAddress,
-          detailAddress: detailAddress.trim(),
-          deliveryMemo: (memoPreset === "직접 입력" ? memoCustom : memoPreset).trim(),
-        },
-        { memberCouponId: couponId || undefined, usePoints },
-      );
+      const shipping = {
+        recipientName: recipientName.trim(),
+        recipientPhone: phone,
+        zipCode,
+        roadAddress,
+        detailAddress: detailAddress.trim(),
+        deliveryMemo: (memoPreset === "직접 입력" ? memoCustom : memoPreset).trim(),
+      };
+      let order: Order;
+      if (guest) {
+        const selectedIds = new Set(selected.map((it) => it.id));
+        const lines = readGuestCart().filter((line) => selectedIds.has(line.id));
+        order = await createGuestOrder({
+          lines,
+          shipping,
+          orderer: { name: ordererName.trim(), phone: ordererPhone.replace(/[^0-9]/g, ""), email: ordererEmail.trim() },
+          password: orderPassword,
+          agreePrivacy: privacyAgreed,
+        });
+        saveGuestCheckout({ orderNumber: order.orderNumber, password: orderPassword, lineIds: lines.map((l) => l.id) });
+      } else {
+        order = await createOrder(shipping, { memberCouponId: couponId || undefined, usePoints });
+      }
       // 쿠폰·적립금으로 0원이 되면 서버가 바로 결제완료로 만든다(결제창 없음).
       if (order.status === "PAID") {
         router.replace(`/checkout/complete?${new URLSearchParams({ orderId: order.orderNumber })}`);
@@ -184,14 +242,14 @@ function CheckoutForm({
       await widgets.requestPayment({
         orderId: order.orderNumber,
         orderName: orderName(order),
-        customerName: recipientName.trim(),
-        customerEmail: member.email || null,
-        customerMobilePhone: phone,
+        customerName: (guest ? ordererName : recipientName).trim(),
+        customerEmail: (guest ? ordererEmail.trim() : member?.email) || null,
+        customerMobilePhone: guest ? ordererPhone.replace(/[^0-9]/g, "") : phone,
         successUrl: `${window.location.origin}/checkout/complete/`,
         failUrl: `${window.location.origin}/checkout/fail/`,
       });
     } catch (e) {
-      cancelMyOrder(order.orderNumber).catch(() => {});
+      (guest ? cancelGuestOrder(order.orderNumber, orderPassword) : cancelMyOrder(order.orderNumber)).catch(() => {});
       setError(tossErrorMessage(e));
       setPending(false);
     }
@@ -212,9 +270,47 @@ function CheckoutForm({
     <section className="w-full bg-surface-primary py-10 md:py-14">
       <Container>
         <h1 className="text-[22px] font-medium tracking-[-0.4px] text-black">주문서</h1>
+        {guest ? (
+          <p className="mt-3 text-[14px] text-ink-muted">
+            비회원으로 주문하고 있어요. 로그인하면 쿠폰·적립금을 쓸 수 있어요.{" "}
+            <Link href="/login?next=%2Fcheckout" className="font-medium text-black underline underline-offset-2">
+              로그인하기
+            </Link>
+          </p>
+        ) : null}
         <form onSubmit={handleSubmit} noValidate className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
           <div className="space-y-8">
+            {guest ? (
+              <Panel title="주문하시는 분">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label="이름" htmlFor="co-orderer-name">
+                    <input id="co-orderer-name" value={ordererName} onChange={(e) => setOrdererName(e.target.value)} maxLength={50} className={inputClass} autoComplete="name" />
+                  </Field>
+                  <Field label="연락처" htmlFor="co-orderer-phone">
+                    <input id="co-orderer-phone" value={ordererPhone} onChange={(e) => setOrdererPhone(e.target.value)} inputMode="tel" placeholder="010-1234-5678" maxLength={13} className={inputClass} autoComplete="tel" />
+                  </Field>
+                  <Field label="이메일 (주문 안내를 보내 드려요)" htmlFor="co-orderer-email" className="md:col-span-2">
+                    <input id="co-orderer-email" type="email" value={ordererEmail} onChange={(e) => setOrdererEmail(e.target.value)} maxLength={100} className={inputClass} autoComplete="email" />
+                  </Field>
+                  <Field label="주문 조회 비밀번호 (4~20자)" htmlFor="co-order-pw">
+                    <input id="co-order-pw" type="password" value={orderPassword} onChange={(e) => setOrderPassword(e.target.value)} maxLength={20} className={inputClass} autoComplete="new-password" />
+                  </Field>
+                  <Field label="비밀번호 확인" htmlFor="co-order-pw2">
+                    <input id="co-order-pw2" type="password" value={orderPasswordConfirm} onChange={(e) => setOrderPasswordConfirm(e.target.value)} maxLength={20} className={inputClass} autoComplete="new-password" />
+                  </Field>
+                </div>
+                <p className="mt-3 text-[13px] leading-[19px] text-ink-muted">
+                  주문번호와 이 비밀번호로 <Link href="/orders/guest" className="underline underline-offset-2">비회원 주문 조회</Link>에서 주문을 확인·취소할 수 있어요.
+                </p>
+              </Panel>
+            ) : null}
+
             <Panel title="배송지">
+              {guest ? (
+                <button type="button" onClick={copyOrderer} className="-mt-1 mb-4 border border-black px-3 py-1.5 text-[13px] hover:bg-black hover:text-white">
+                  주문하시는 분과 같아요
+                </button>
+              ) : null}
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="받는 분" htmlFor="co-name">
                   <input id="co-name" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} maxLength={50} className={inputClass} autoComplete="name" />
@@ -267,45 +363,47 @@ function CheckoutForm({
               </ul>
             </Panel>
 
-            <Panel title="쿠폰·적립금">
-              <div className="grid gap-4 md:grid-cols-2">
-                <Field label={`쿠폰 (${benefits.coupons.length}장)`} htmlFor="co-coupon">
-                  <select id="co-coupon" value={couponId} onChange={(e) => setCouponId(e.target.value)} className={inputClass}>
-                    <option value="">{benefits.coupons.length ? "쿠폰 선택 안 함" : "사용할 수 있는 쿠폰이 없어요"}</option>
-                    {benefits.coupons.map((c) => {
-                      const amount = couponDiscount(c, subtotal);
-                      return (
-                        <option key={c.id} value={c.id} disabled={amount === 0}>
-                          {c.name} · {amount > 0 ? `-${formatKRW(amount)}` : `${describeMinOrder(c)} 사용 가능`}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </Field>
-                <Field label={`적립금 (보유 ${formatKRW(benefits.pointBalance)})`} htmlFor="co-points">
-                  <div className="flex gap-2">
-                    <input
-                      id="co-points"
-                      value={pointsInput}
-                      onChange={(e) => setPointsInput(e.target.value.replace(/[^0-9]/g, ""))}
-                      onBlur={() => setPointsInput(usePoints ? String(usePoints) : "")}
-                      inputMode="numeric"
-                      placeholder="0"
-                      disabled={maxPoints === 0}
-                      className={cn(inputBase, "min-w-0 flex-1 text-right tabular-nums disabled:bg-black/[0.03]")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setPointsInput(String(maxPoints))}
-                      disabled={maxPoints === 0}
-                      className="h-11 flex-none whitespace-nowrap border border-black px-4 text-[14px] hover:bg-black hover:text-white disabled:border-black/20 disabled:text-black/30 disabled:hover:bg-transparent"
-                    >
-                      전액 사용
-                    </button>
-                  </div>
-                </Field>
-              </div>
-            </Panel>
+            {guest ? null : (
+              <Panel title="쿠폰·적립금">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field label={`쿠폰 (${benefits.coupons.length}장)`} htmlFor="co-coupon">
+                    <select id="co-coupon" value={couponId} onChange={(e) => setCouponId(e.target.value)} className={inputClass}>
+                      <option value="">{benefits.coupons.length ? "쿠폰 선택 안 함" : "사용할 수 있는 쿠폰이 없어요"}</option>
+                      {benefits.coupons.map((c) => {
+                        const amount = couponDiscount(c, subtotal);
+                        return (
+                          <option key={c.id} value={c.id} disabled={amount === 0}>
+                            {c.name} · {amount > 0 ? `-${formatKRW(amount)}` : `${describeMinOrder(c)} 사용 가능`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </Field>
+                  <Field label={`적립금 (보유 ${formatKRW(benefits.pointBalance)})`} htmlFor="co-points">
+                    <div className="flex gap-2">
+                      <input
+                        id="co-points"
+                        value={pointsInput}
+                        onChange={(e) => setPointsInput(e.target.value.replace(/[^0-9]/g, ""))}
+                        onBlur={() => setPointsInput(usePoints ? String(usePoints) : "")}
+                        inputMode="numeric"
+                        placeholder="0"
+                        disabled={maxPoints === 0}
+                        className={cn(inputBase, "min-w-0 flex-1 text-right tabular-nums disabled:bg-black/[0.03]")}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPointsInput(String(maxPoints))}
+                        disabled={maxPoints === 0}
+                        className="h-11 flex-none whitespace-nowrap border border-black px-4 text-[14px] hover:bg-black hover:text-white disabled:border-black/20 disabled:text-black/30 disabled:hover:bg-transparent"
+                      >
+                        전액 사용
+                      </button>
+                    </div>
+                  </Field>
+                </div>
+              </Panel>
+            )}
 
             {/* 0원 결제(쿠폰·적립금 전액)면 결제창이 필요 없어 숨긴다. 위젯이 그려진 자리는 그대로 둔다. */}
             {toss ? (
@@ -327,6 +425,7 @@ function CheckoutForm({
             {usePoints > 0 ? <Row label="적립금 사용" value={`-${formatKRW(usePoints)}`} /> : null}
             <div className="h-px bg-black" />
             <Row label="총 결제 금액" value={formatKRW(total)} strong />
+            {guest ? <GuestPrivacyConsent checked={privacyAgreed} onChange={setPrivacyAgreed} /> : null}
             <label className="flex items-start gap-2 text-[13px] leading-[19px] text-ink-muted">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
               주문 상품·금액·배송지를 확인했으며 결제 진행에 동의합니다.
@@ -348,6 +447,32 @@ function CheckoutForm({
         </form>
       </Container>
     </section>
+  );
+}
+
+/** 비회원 주문 개인정보 수집·이용 동의(필수). 자세한 내용은 개인정보 처리방침으로 연결한다. */
+function GuestPrivacyConsent({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <div className="space-y-2 border border-black/15 p-3 text-[12px] leading-[18px] text-ink-muted">
+      <label className="flex items-start gap-2 text-[13px] leading-[19px]">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5" />
+        <span>[필수] 비회원 주문을 위한 개인정보 수집·이용에 동의합니다.</span>
+      </label>
+      <dl className="grid grid-cols-[56px_1fr] gap-x-2 gap-y-1">
+        <dt>수집 항목</dt>
+        <dd>주문자 이름·연락처·이메일, 받는 분 이름·연락처·주소, 주문 비밀번호(암호화 저장)</dd>
+        <dt>이용 목적</dt>
+        <dd>주문·결제, 상품 배송, 주문 조회·취소, 고객 상담</dd>
+        <dt>보유 기간</dt>
+        <dd>관계 법령에 따라 5년간 보관 후 파기 (전자상거래법상 계약·결제·재화 공급 기록)</dd>
+      </dl>
+      <p>
+        동의하지 않으면 비회원 주문을 할 수 없어요.{" "}
+        <Link href="/privacy" target="_blank" className="underline underline-offset-2">
+          개인정보 처리방침
+        </Link>
+      </p>
+    </div>
   );
 }
 

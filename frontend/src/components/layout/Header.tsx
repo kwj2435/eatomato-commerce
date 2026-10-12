@@ -26,7 +26,7 @@ type NavItem = {
   children?: Array<{ label: string; href: string }>;
 };
 
-const CATEGORY_NAV_ITEMS: NavItem[] = CATEGORY_LIST.map((category) => ({
+const CATEGORY_NAV_ITEMS: NavItem[] = CATEGORY_LIST.filter((category) => !category.hiddenInNav).map((category) => ({
   label: category.label,
   href: categoryHref(category.slug),
   // "All" 하나뿐인 카테고리(Sets·Objects)는 시안대로 드롭다운 없이 단독 링크로 둔다.

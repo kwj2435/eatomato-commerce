@@ -48,7 +48,7 @@ export function shipmentCsv(orders: AdminOrder[]): string {
     return [
       cell(o.orderNumber),
       cell(formatDateTime(o.paidAt ?? o.orderedAt)),
-      cell(s?.recipientName ?? o.member?.name ?? ""),
+      cell(s?.recipientName ?? o.member?.name ?? o.guest?.name ?? ""),
       cell(s ? formatPhone(s.recipientPhone) : ""),
       s ? `="${s.zipCode.replace(/\D/g, "")}"` : "",
       cell(s?.roadAddress ?? ""),
@@ -56,7 +56,7 @@ export function shipmentCsv(orders: AdminOrder[]): string {
       cell(s?.deliveryMemo ?? ""),
       cell(itemsText(o)),
       cell(totalQuantity(o)),
-      cell(o.member?.loginId ?? ""),
+      cell(o.member?.loginId ?? (o.guest ? "비회원" : "")),
     ].join(",");
   });
   return "﻿" + [HEADERS.join(","), ...rows].join("\r\n") + "\r\n";

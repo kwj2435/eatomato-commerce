@@ -38,7 +38,18 @@ public class Order {
 
 	private String orderNumber;
 
+	/** 비회원 주문이면 null. */
 	private Long memberId;
+
+	/** 비회원 주문자. 회원 주문이면 모두 null. */
+	private String guestName;
+
+	private String guestPhone;
+
+	private String guestEmail;
+
+	/** 비회원 주문 조회 비밀번호(BCrypt). */
+	private String guestPassword;
 
 	@Enumerated(EnumType.STRING)
 	private OrderStatus status;
@@ -84,6 +95,21 @@ public class Order {
 		this.shippingAddress = shippingAddress;
 		this.status = OrderStatus.PENDING_PAYMENT;
 		this.orderedAt = Times.now();
+	}
+
+	/** 비회원 결제대기 주문. passwordHash 는 인코딩된 주문 비밀번호다. */
+	public static Order guest(String orderNumber, ShippingAddress shippingAddress, String name, String phone,
+		String email, String passwordHash) {
+		Order order = new Order(orderNumber, null, shippingAddress);
+		order.guestName = name;
+		order.guestPhone = phone;
+		order.guestEmail = email;
+		order.guestPassword = passwordHash;
+		return order;
+	}
+
+	public boolean isGuest() {
+		return memberId == null;
 	}
 
 	public void addItem(OrderItem item) {

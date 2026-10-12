@@ -62,6 +62,14 @@ public class CartItem {
 		this.createdAt = Times.now();
 	}
 
+	/** 저장하지 않는 비회원 장바구니 줄. 비회원 장바구니는 브라우저에 있고, 금액 계산·주문 때만 이렇게 만든다. */
+	public static CartItem guestLine(Product product, String optionKey, String optionLabel, int optionPriceDelta,
+		int quantity, boolean selected) {
+		CartItem item = new CartItem(null, product, optionKey, optionLabel, optionPriceDelta, quantity);
+		item.selected = selected;
+		return item;
+	}
+
 	public int unitPrice() {
 		return product.currentPrice() + optionPriceDelta;
 	}

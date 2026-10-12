@@ -77,8 +77,9 @@ public class PaymentService {
 		}
 
 		// 주문을 마쳤으니 장바구니에서 같은 줄을 지운다(무통장입금도 계좌를 받은 시점에 지운다).
+		// 비회원 장바구니는 브라우저에 있어 화면이 지운다.
 		order.getItems().forEach(item -> {
-			if (item.getOptionKey() != null) {
+			if (!order.isGuest() && item.getOptionKey() != null) {
 				cartItemRepository.deleteByMemberIdAndProductIdAndOptionKey(order.getMemberId(), item.getProductId(),
 					item.getOptionKey());
 			}

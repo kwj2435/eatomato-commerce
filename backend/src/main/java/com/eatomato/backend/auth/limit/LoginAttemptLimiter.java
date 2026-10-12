@@ -42,12 +42,22 @@ public class LoginAttemptLimiter {
 
 	/** 잠겨 있으면 429 로 막는다. 로그인 처리 전에 부른다. */
 	public void check(String account, String ip) {
+		check(account, ip, "로그인");
+	}
+
+	/**
+	 * 비밀번호로 확인하는 다른 요청(비회원 주문 조회 등)에도 같은 기준을 쓴다.
+	 * account 는 로그인 아이디와 겹치지 않게 접두어를 붙여 넘긴다(예: "guest-order:주문번호").
+	 *
+	 * @param action 안내 문구에 들어갈 이름. 예: "로그인", "주문 조회"
+	 */
+	public void check(String account, String ip, String action) {
 		Instant now = Instant.now();
 		Duration wait = max(retryAfter(accountKey(account), maxPerAccount, now), retryAfter(ipKey(ip), maxPerIp, now));
 		if (!wait.isZero()) {
 			long minutes = Math.max(1, (wait.getSeconds() + 59) / 60);
 			throw new ApiException(ErrorCode.TOO_MANY_LOGIN_ATTEMPTS,
-				"로그인 시도가 너무 많습니다. " + minutes + "분 후 다시 시도해 주세요.");
+				action + " 시도가 너무 많습니다. " + minutes + "분 후 다시 시도해 주세요.");
 		}
 	}
 

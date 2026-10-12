@@ -160,7 +160,11 @@ export function AdminOrderList() {
                         </button>
                       </td>
                       <td className={`${tdClass} whitespace-nowrap`}>
-                        {o.member ? `${o.member.name} (${o.member.loginId})` : "-"}
+                        {o.member
+                          ? `${o.member.name} (${o.member.loginId})`
+                          : o.guest
+                            ? `${o.guest.name} (비회원)`
+                            : "-"}
                       </td>
                       <td className={`${tdClass} max-w-[240px] truncate`}>
                         {o.items[0]?.name}

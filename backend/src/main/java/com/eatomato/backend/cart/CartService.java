@@ -1,6 +1,7 @@
 package com.eatomato.backend.cart;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.eatomato.backend.cart.dto.AddCartItemRequest;
 import com.eatomato.backend.cart.dto.CartResponse;
+import com.eatomato.backend.cart.dto.GuestCartLine;
 import com.eatomato.backend.cart.dto.UpdateCartItemRequest;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
@@ -92,6 +94,42 @@ public class CartService {
 	public CartResponse clear(Long memberId) {
 		cartItemRepository.deleteByMemberId(memberId);
 		return CartResponse.from(List.of(), shippingPolicyService.current());
+	}
+
+	/**
+	 * 비회원 장바구니(브라우저 보관) 금액 계산. 삭제됐거나 옵션 구성이 바뀌어 맞지 않는 줄은 빼고 돌려준다
+	 * (브라우저는 응답으로 장바구니를 교체한다). 판매 중지·재고 부족은 available=false 로 남긴다.
+	 */
+	public CartResponse quoteGuest(List<GuestCartLine> lines) {
+		Map<CartItem, String> ids = new IdentityHashMap<>();
+		List<CartItem> items = new ArrayList<>();
+		for (GuestCartLine line : lines) {
+			Product product = productRepository.findById(line.productId()).orElse(null);
+			if (product == null) {
+				continue;
+			}
+			try {
+				CartItem item = toGuestLine(product, line);
+				ids.put(item, line.id());
+				items.add(item);
+			} catch (ApiException e) {
+				// 옵션이 바뀐 상품: 담을 수 없는 줄이라 뺀다.
+			}
+		}
+		return CartResponse.from(items, shippingPolicyService.current(), ids::get);
+	}
+
+	/** 비회원 주문용 장바구니 줄(저장하지 않음). 판매 중지·재고는 주문을 만들 때 확인한다. */
+	public CartItem guestLine(GuestCartLine line) {
+		Product product = productRepository.findById(line.productId())
+			.orElseThrow(() -> new ApiException(ErrorCode.PRODUCT_NOT_FOUND));
+		return toGuestLine(product, line);
+	}
+
+	private static CartItem toGuestLine(Product product, GuestCartLine line) {
+		SelectedOptions options = resolveOptions(product, line.options() == null ? Map.of() : line.options());
+		return CartItem.guestLine(product, options.key(), options.label(), options.priceDelta(), line.quantity(),
+			line.selected());
 	}
 
 	/** 담으려는 총수량만큼 재고가 있는지. 부족하면 남은 수량을 알려 준다. */

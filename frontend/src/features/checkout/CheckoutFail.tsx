@@ -5,17 +5,22 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 import { Container } from "@/components/layout/Container";
+import { cancelGuestOrder } from "@/lib/api/guest";
 import { cancelMyOrder } from "@/lib/api/orders";
-import { useRequireAuth } from "@/lib/store/use-require-auth";
+import { useIsLoggedIn } from "@/lib/store/auth-store";
+import { readGuestCheckout } from "@/lib/store/guest-checkout";
+import { useHydrated } from "@/lib/store/use-hydrated";
 
 import { tossErrorMessage } from "./useTossWidgets";
 
 /**
  * 결제 실패 화면(= 토스 failUrl). ?code=&message=&orderId= 로 온다.
  * 결제되지 않은 주문이므로 결제대기 주문을 바로 취소해 재고를 돌려놓는다(장바구니 상품은 그대로 남는다).
+ * 비회원은 주문서가 sessionStorage 에 둔 주문 비밀번호로 취소한다(없으면 30분 뒤 자동 취소).
  */
 export function CheckoutFail() {
-  const ready = useRequireAuth();
+  const ready = useHydrated();
+  const loggedIn = useIsLoggedIn();
   const params = useSearchParams();
   const orderId = params.get("orderId");
   const message = tossErrorMessage({ code: params.get("code"), message: params.get("message") });
@@ -24,8 +29,13 @@ export function CheckoutFail() {
   useEffect(() => {
     if (!ready || started.current || !orderId) return;
     started.current = true;
-    cancelMyOrder(orderId).catch(() => {});
-  }, [ready, orderId]);
+    if (loggedIn) {
+      cancelMyOrder(orderId).catch(() => {});
+      return;
+    }
+    const checkout = readGuestCheckout(orderId);
+    if (checkout) cancelGuestOrder(orderId, checkout.password).catch(() => {});
+  }, [ready, loggedIn, orderId]);
 
   return (
     <Container className="flex flex-col items-center gap-5 py-[120px] text-center">
