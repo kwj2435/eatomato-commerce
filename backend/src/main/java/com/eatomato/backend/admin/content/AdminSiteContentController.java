@@ -42,6 +42,7 @@ public class AdminSiteContentController {
 		return siteContentService.reset(key);
 	}
 
-	public record UpdateRequest(@NotNull @Size(max = 500) String value) {
+	/** 항목별 길이 제한은 SiteContentService 가 확인한다(About 본문은 더 길다). */
+	public record UpdateRequest(@NotNull @Size(max = 5000) String value) {
 	}
 }

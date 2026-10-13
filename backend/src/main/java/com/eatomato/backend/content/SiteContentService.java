@@ -45,6 +45,9 @@ public class SiteContentService {
 	public Item update(String rawKey, String value) {
 		SiteContentKey key = find(rawKey);
 		String normalized = value.replace("\r\n", "\n").strip();
+		if (normalized.length() > key.getMaxLength()) {
+			throw new ApiException(ErrorCode.INVALID_REQUEST, key.getMaxLength() + "자까지 입력할 수 있습니다.");
+		}
 		SiteContent content = repository.findById(key.name())
 			.map(existing -> {
 				existing.change(normalized);
@@ -71,13 +74,15 @@ public class SiteContentService {
 	}
 
 	/**
+	 * @param kind       TEXT(문구) 또는 IMAGE(이미지 주소)
+	 * @param maxLength  저장할 수 있는 최대 글자 수
 	 * @param customized 관리자가 수정했는지(false 면 기본값을 쓰는 중)
 	 */
-	public record Item(String key, String label, String value, String defaultValue, boolean customized,
-		OffsetDateTime updatedAt) {
+	public record Item(String key, String label, String kind, int maxLength, String value, String defaultValue,
+		boolean customized, OffsetDateTime updatedAt) {
 
 		static Item of(SiteContentKey key, SiteContent content) {
-			return new Item(key.name(), key.getLabel(),
+			return new Item(key.name(), key.getLabel(), key.getKind().name(), key.getMaxLength(),
 				content == null ? key.getDefaultValue() : content.getContent(),
 				key.getDefaultValue(), content != null,
 				content == null ? null : Times.toOffset(content.getUpdatedAt()));

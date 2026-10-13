@@ -159,6 +159,26 @@ class AdminApiIntegrationTest {
 			.andExpect(status().isCreated());
 	}
 
+	@Test
+	void 옵션_선택지는_100개까지() throws Exception {
+		String admin = login("admin", "admin1234");
+		String body = """
+			{"slug":"%s","name":"기종 많은 케이스","price":20000,"categoryCode":"set","rewardRate":0,"visible":true,
+			 "optionGroups":[{"code":"model","label":"기종","choices":[%s]}]}
+			""";
+		java.util.function.IntFunction<String> choices = n -> java.util.stream.IntStream.rangeClosed(1, n)
+			.mapToObj(i -> "{\"code\":\"choice%d\",\"label\":\"기종 %d\",\"priceDelta\":0}".formatted(i, i))
+			.collect(java.util.stream.Collectors.joining(","));
+		mockMvc.perform(post("/api/admin/products").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content(body.formatted("many-models", choices.apply(45))))
+			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.optionGroups[0].choices", hasSize(45)));
+		mockMvc.perform(post("/api/admin/products").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content(body.formatted("too-many-models", choices.apply(101))))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.errors[0].message").value("옵션 선택지는 그룹마다 1~100개까지 넣을 수 있습니다."));
+	}
+
 	private String createProduct(String admin, String slug, int price) throws Exception {
 		String created = mockMvc.perform(post("/api/admin/products").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON)
@@ -283,8 +303,23 @@ class AdminApiIntegrationTest {
 
 		String admin = login("admin", "admin1234");
 		mockMvc.perform(get("/api/admin/site-contents").header(HttpHeaders.AUTHORIZATION, admin))
-			.andExpect(jsonPath("$", hasSize(4)))
-			.andExpect(jsonPath("$[0].customized").value(false));
+			.andExpect(jsonPath("$", hasSize(7)))
+			.andExpect(jsonPath("$[0].customized").value(false))
+			.andExpect(jsonPath("$[?(@.key == 'ABOUT_IMAGE_URL')].kind").value("IMAGE"))
+			.andExpect(jsonPath("$[?(@.key == 'ABOUT_TOP_TEXT')].maxLength").value(3000));
+
+		// 항목마다 길이 제한이 다르다: 메인 설명은 500자, About 글은 3000자까지
+		String long1000 = "가".repeat(1000);
+		mockMvc.perform(put("/api/admin/site-contents/HOME_REVIEW_DESCRIPTION").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"" + long1000 + "\"}"))
+			.andExpect(status().isBadRequest());
+		mockMvc.perform(put("/api/admin/site-contents/ABOUT_TOP_TEXT").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"" + long1000 + "\\n\\n둘째 문단\"}"))
+			.andExpect(status().isOk());
+		mockMvc.perform(get("/api/site-contents"))
+			.andExpect(jsonPath("$.ABOUT_TOP_TEXT").value(long1000 + "\n\n둘째 문단"));
+		mockMvc.perform(delete("/api/admin/site-contents/ABOUT_TOP_TEXT").header(HttpHeaders.AUTHORIZATION, admin))
+			.andExpect(status().isOk());
 
 		mockMvc.perform(put("/api/admin/site-contents/HOME_REVIEW_DESCRIPTION").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"value\":\"  첫 줄\\r\\n둘째 줄  \"}"))

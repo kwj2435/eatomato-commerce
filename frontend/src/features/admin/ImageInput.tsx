@@ -11,7 +11,7 @@ type ImageInputProps = {
   id?: string;
   value: string;
   onChange: (url: string) => void;
-  category: "products" | "banners";
+  category: "products" | "banners" | "contents";
 };
 
 /**

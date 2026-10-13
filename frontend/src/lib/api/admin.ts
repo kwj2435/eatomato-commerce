@@ -142,7 +142,7 @@ export const deleteAdminNotice = (id: string) =>
 
 // ── 이미지 업로드 ──
 
-export async function uploadAdminImage(file: File, category: "products" | "banners"): Promise<string> {
+export async function uploadAdminImage(file: File, category: "products" | "banners" | "contents"): Promise<string> {
   const form = new FormData();
   form.set("file", file);
   const res = await apiFetch<{ url: string }>(`/api/admin/uploads${query({ category })}`, {

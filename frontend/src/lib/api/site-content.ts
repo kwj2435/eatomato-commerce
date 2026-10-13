@@ -8,7 +8,10 @@ export type SiteContentKey =
   | "HOME_BEST_PICKS_DESCRIPTION"
   | "HOME_WHATS_NEW_DESCRIPTION"
   | "HOME_SPECIAL_DESCRIPTION"
-  | "HOME_REVIEW_DESCRIPTION";
+  | "HOME_REVIEW_DESCRIPTION"
+  | "ABOUT_TOP_TEXT"
+  | "ABOUT_IMAGE_URL"
+  | "ABOUT_BOTTOM_TEXT";
 
 export type SiteContents = Record<SiteContentKey, string>;
 
@@ -20,6 +23,10 @@ export async function getSiteContents(): Promise<SiteContents> {
 export type AdminSiteContent = {
   key: SiteContentKey;
   label: string;
+  /** TEXT: 문구, IMAGE: 이미지 주소(업로드) */
+  kind: "TEXT" | "IMAGE";
+  /** 저장할 수 있는 최대 글자 수 */
+  maxLength: number;
   value: string;
   defaultValue: string;
   /** 관리자가 수정했는지. false 면 기본값을 쓰는 중. */

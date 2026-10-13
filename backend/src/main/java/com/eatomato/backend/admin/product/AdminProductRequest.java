@@ -37,7 +37,8 @@ public record AdminProductRequest(
 	public record OptionGroup(
 		@NotBlank @Pattern(regexp = "[a-z0-9-]{1,40}", message = "영문 소문자·숫자·하이픈 1~40자") String code,
 		@NotBlank @Size(max = 60) String label,
-		@Size(min = 1, max = 30) List<@Valid Choice> choices) {
+		// 기종 옵션처럼 선택지가 많은 그룹이 있어 넉넉히 둔다.
+		@Size(min = 1, max = 100, message = "옵션 선택지는 그룹마다 1~100개까지 넣을 수 있습니다.") List<@Valid Choice> choices) {
 	}
 
 	public record Choice(

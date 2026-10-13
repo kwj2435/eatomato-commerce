@@ -110,15 +110,14 @@ export async function apiFetch<T>(path: string, init: ApiInit = {}): Promise<T> 
 
   if (!res.ok) {
     const error = (await res.json().catch(() => null)) as
-      | { code?: string; message?: string }
+      | { code?: string; message?: string; errors?: { field: string; message: string }[] }
       | null;
     // 갱신해도 401 이거나 이용 정지(403 MEMBER_DISABLED)면 세션을 비워 화면이 로그아웃 상태로 돌아가게 한다.
     if (auth && (res.status === 401 || error?.code === "MEMBER_DISABLED")) authBridge?.onUnauthorized();
-    throw new ApiError(
-      res.status,
-      error?.code ?? `HTTP_${res.status}`,
-      error?.message ?? "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
-    );
+    // 입력값 검증 실패면 "요청 값이 올바르지 않습니다" 만으로는 무엇이 틀렸는지 알 수 없어 첫 항목의 이유를 붙인다.
+    const detail = error?.errors?.[0]?.message;
+    const message = error?.message ?? "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+    throw new ApiError(res.status, error?.code ?? `HTTP_${res.status}`, detail ? `${message} (${detail})` : message);
   }
 
   if (res.status === 204) return undefined as T;

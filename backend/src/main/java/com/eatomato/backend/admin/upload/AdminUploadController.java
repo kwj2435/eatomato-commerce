@@ -28,7 +28,7 @@ public class AdminUploadController {
 	@PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@ResponseStatus(HttpStatus.CREATED)
 	public UploadResponse upload(
-		@RequestParam(defaultValue = "products") @Pattern(regexp = "products|banners") String category,
+		@RequestParam(defaultValue = "products") @Pattern(regexp = "products|banners|contents") String category,
 		@RequestPart("file") MultipartFile file) {
 		return new UploadResponse(fileStorage.storeImage(category, file));
 	}

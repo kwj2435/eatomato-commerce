@@ -12,13 +12,18 @@ import {
 } from "@/lib/api/site-content";
 
 import { formatDateTime } from "../format";
+import { ImageInput } from "../ImageInput";
 import { Button, Card, Chip, Notice, PageHeader, textareaClass } from "../ui";
 
-const MAX_LENGTH = 500;
+/** 화면별로 묶어 보인다. 키 접두어로 나눈다. */
+const SECTIONS: { title: string; prefix: string }[] = [
+  { title: "메인", prefix: "HOME_" },
+  { title: "About 페이지", prefix: "ABOUT_" },
+];
 
 /**
- * 사이트 문구 관리. 메인 화면 섹션 설명처럼 코드에 박혀 있던 문구를 여기서 고친다.
- * 줄바꿈은 화면에서도 줄바꿈으로 보이고, 비우면 그 문구 줄이 숨겨진다. 저장 후 1분 안에 반영된다.
+ * 사이트 문구 관리. 메인 화면 섹션 설명과 About 페이지 글·이미지를 여기서 고친다.
+ * 줄바꿈은 화면에서도 줄바꿈으로 보이고, 비우면 그 문구(이미지)가 숨겨진다. 저장 후 1분 안에 반영된다.
  */
 export function AdminSiteContentManager() {
   const [items, setItems] = useState<AdminSiteContent[] | null>(null);
@@ -36,17 +41,28 @@ export function AdminSiteContentManager() {
   return (
     <>
       <PageHeader
-        title="문구"
-        description="메인 화면 등 사이트 곳곳의 설명 문구. 줄바꿈은 그대로 반영되고, 비워 두면 그 문구가 숨겨집니다. 저장 후 1분 안에 반영됩니다."
+        title="문구·About"
+        description="메인 화면 설명 문구와 About 페이지 글·이미지. 줄바꿈은 그대로 반영되고(About 글은 빈 줄로 문단 구분), 비워 두면 숨겨집니다. 저장 후 1분 안에 반영됩니다."
       />
       {error ? <Notice kind="error">{error}</Notice> : null}
       {!items ? (
         <div className="h-60 animate-pulse rounded-lg bg-black/[0.04]" />
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
-          {items.map((item) => (
-            <ContentEditor key={item.key} item={item} onSaved={replace} />
-          ))}
+        <div className="space-y-8">
+          {SECTIONS.map((section) => {
+            const sectionItems = items.filter((item) => item.key.startsWith(section.prefix));
+            if (sectionItems.length === 0) return null;
+            return (
+              <section key={section.prefix}>
+                <h2 className="mb-3 text-[15px] font-bold">{section.title}</h2>
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {sectionItems.map((item) => (
+                    <ContentEditor key={item.key} item={item} onSaved={replace} />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
     </>
@@ -81,25 +97,42 @@ function ContentEditor({ item, onSaved }: { item: AdminSiteContent; onSaved: (ne
       <label htmlFor={`content-${item.key}`} className="sr-only">
         {item.label}
       </label>
-      <textarea
-        id={`content-${item.key}`}
-        rows={4}
-        maxLength={MAX_LENGTH}
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setMessage(null);
-        }}
-        className={textareaClass}
-      />
-      <p className="mt-1 text-right text-[12px] tabular-nums text-ink-subtle">
-        {value.length}/{MAX_LENGTH}
-      </p>
+      {item.kind === "IMAGE" ? (
+        <>
+          <ImageInput
+            id={`content-${item.key}`}
+            value={value}
+            onChange={(next) => {
+              setValue(next);
+              setMessage(null);
+            }}
+            category="contents"
+          />
+          <p className="mt-2 text-[12px] text-ink-subtle">비워 두면 화면에 이미지를 표시하지 않습니다.</p>
+        </>
+      ) : (
+        <>
+          <textarea
+            id={`content-${item.key}`}
+            rows={item.maxLength > 500 ? 12 : 4}
+            maxLength={item.maxLength}
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setMessage(null);
+            }}
+            className={textareaClass}
+          />
+          <p className="mt-1 text-right text-[12px] tabular-nums text-ink-subtle">
+            {value.length}/{item.maxLength}
+          </p>
 
-      <p className="mb-1 mt-3 text-[12px] font-medium text-ink-subtle">미리보기</p>
-      <div className="rounded-md bg-surface-primary px-4 py-3 text-[15px] leading-[24px] tracking-[-0.3px] text-ink-muted">
-        {value.trim() ? <MultilineText text={value.trim()} /> : <span className="text-ink-subtle">(비어 있으면 화면에 표시하지 않습니다)</span>}
-      </div>
+          <p className="mb-1 mt-3 text-[12px] font-medium text-ink-subtle">미리보기</p>
+          <div className="max-h-[320px] overflow-y-auto rounded-md bg-surface-primary px-4 py-3 text-[15px] leading-[24px] tracking-[-0.3px] text-ink-muted">
+            {value.trim() ? <MultilineText text={value.trim()} /> : <span className="text-ink-subtle">(비어 있으면 화면에 표시하지 않습니다)</span>}
+          </div>
+        </>
+      )}
 
       {message ? (
         <div className="mt-3">
