@@ -9,10 +9,6 @@ import { InstagramIcon } from "@/components/ui/icons";
 const POLICY_LINKS = [
   { label: "Terms of Use", href: "/terms" },
   { label: "Privacy Policy", href: "/privacy" },
-  {
-    label: "Confirm Entrepreneur Information",
-    href: "https://www.ftc.go.kr/bizCommPop.do",
-  },
 ];
 
 const COMPANY_INFO = [

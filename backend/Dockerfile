@@ -16,6 +16,8 @@ RUN ./gradlew bootJar --no-daemon -x test
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 ENV TZ=Asia/Seoul
+# 업로드 이미지를 WebP 로 압축하는 cwebp(ImageOptimizer). 없으면 JPEG/PNG 로 저장한다.
+RUN apt-get update && apt-get install -y --no-install-recommends webp && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --uid 1001 app && mkdir -p /app/uploads && chown app /app/uploads
 COPY --from=build /app/build/libs/app.jar app.jar
 USER app
