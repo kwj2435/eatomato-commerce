@@ -7,13 +7,14 @@ import { InstagramIcon } from "@/components/ui/icons";
  * 정책/약관 링크 및 회사 정보. 데이터는 배열로 두어 마크업이 짧고 확장이 쉽다.
  */
 const POLICY_LINKS = [
-  { label: "Terms of Use", href: "/terms" },
-  { label: "Privacy Policy", href: "/privacy" },
+  { label: "이용약관", href: "/terms" },
+  { label: "개인정보처리방침", href: "/privacy" },
 ];
 
 const COMPANY_INFO = [
-  "Company Name : eatomato ｜ Owner : KimYerim ｜ Email : eatomato.design@gmail.com ｜ Business Registration Number : 889-36-01721",
-  "Address : 28, Songdomunhwa-ro 28beon-gil, Yeonsu-gu, Incheon",
+  "상호 : eatomato ｜ 대표 : 김예림 ｜ 사업자등록번호 : 889-36-01721",
+  "대표번호 : 010-3439-3839 ｜ 이메일 : eatomato.design@gmail.com",
+  "주소 : 인천광역시 연수구 송도문화로28번길 28, 202동 3109호(송도동, 송도글로벌캠퍼스푸르지오)",
 ];
 
 /**

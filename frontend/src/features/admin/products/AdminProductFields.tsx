@@ -236,7 +236,10 @@ function move<T>(list: T[], index: number, delta: number): T[] {
   return next;
 }
 
-/** 옵션 그룹 편집기. 그룹마다 선택지 하나를 고르게 되며, 선택지별 추가금을 둘 수 있다. */
+/**
+ * 옵션 그룹 편집기. 그룹마다 선택지 하나를 고르게 되며, 선택지별 추가금을 둘 수 있다.
+ * 그룹·선택지 순서는 ↑↓ 로 바꾼다. 저장하면 백엔드가 받은 배열 순서대로 sortOrder 를 다시 매긴다.
+ */
 function OptionGroupsEditor({
   groups,
   onChange,
@@ -266,7 +269,7 @@ function OptionGroupsEditor({
       <div className="space-y-4">
         {groups.map((group, i) => (
           <div key={i} className="rounded-md border border-black/10 p-3">
-            <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+            <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto_auto_auto]">
               <input
                 aria-label="옵션 그룹 이름"
                 placeholder="그룹 이름 (예: 색상)"
@@ -281,6 +284,12 @@ function OptionGroupsEditor({
                 onChange={(e) => update(i, { ...group, code: toCode(e.target.value) })}
                 className={inputClass}
               />
+              <Button variant="ghost" aria-label="그룹 위로" disabled={i === 0} onClick={() => onChange(move(groups, i, -1))}>
+                ↑
+              </Button>
+              <Button variant="ghost" aria-label="그룹 아래로" disabled={i === groups.length - 1} onClick={() => onChange(move(groups, i, 1))}>
+                ↓
+              </Button>
               <Button variant="ghost" onClick={() => onChange(groups.filter((_, j) => j !== i))}>
                 그룹 삭제
               </Button>
@@ -290,7 +299,7 @@ function OptionGroupsEditor({
                 const setChoice = (next: typeof choice) =>
                   update(i, { ...group, choices: group.choices.map((c, cj) => (cj === ci ? next : c)) });
                 return (
-                  <div key={ci} className="grid gap-2 md:grid-cols-[1.4fr_1fr_120px_auto]">
+                  <div key={ci} className="grid gap-2 md:grid-cols-[1.4fr_1fr_120px_auto_auto_auto]">
                     <input
                       aria-label="선택지 이름"
                       placeholder="선택지 (예: 맥세이프 (+4,000원))"
@@ -312,6 +321,22 @@ function OptionGroupsEditor({
                       onChange={(e) => setChoice({ ...choice, priceDelta: Number(e.target.value) })}
                       className={inputClass}
                     />
+                    <Button
+                      variant="ghost"
+                      aria-label="선택지 위로"
+                      disabled={ci === 0}
+                      onClick={() => update(i, { ...group, choices: move(group.choices, ci, -1) })}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      aria-label="선택지 아래로"
+                      disabled={ci === group.choices.length - 1}
+                      onClick={() => update(i, { ...group, choices: move(group.choices, ci, 1) })}
+                    >
+                      ↓
+                    </Button>
                     <Button
                       variant="ghost"
                       disabled={group.choices.length <= 1}

@@ -7,9 +7,9 @@ import { Container } from "@/components/layout/Container";
  */
 const EFFECTIVE_DATE = "2026년 10월 12일";
 
-type Block = string | { list: string[] } | { table: { head: string[]; rows: string[][] } };
+export type Block = string | { list: string[] } | { table: { head: string[]; rows: string[][] } };
 
-type Section = { title: string; body: Block[] };
+export type Section = { title: string; body: Block[] };
 
 const SECTIONS: Section[] = [
   {
@@ -185,7 +185,7 @@ export function PrivacyPolicy() {
   );
 }
 
-function PolicyBlock({ block }: { block: Block }) {
+export function PolicyBlock({ block }: { block: Block }) {
   if (typeof block === "string") return <p>{block}</p>;
   if ("list" in block) {
     return (
