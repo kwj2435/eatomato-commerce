@@ -32,6 +32,9 @@ public class Banner {
 
 	private String imageUrl;
 
+	/** 모바일 전용 이미지(세로형). null 이면 모바일에서도 imageUrl 을 쓴다. */
+	private String mobileImageUrl;
+
 	/** 스크린리더용 대체 텍스트. 이미지 속 문구를 그대로 적는다. */
 	private String alt;
 
@@ -39,20 +42,23 @@ public class Banner {
 
 	private boolean active;
 
-	public Banner(BannerPlacement placement, String href, String imageUrl, String alt, int sortOrder, boolean active) {
+	public Banner(BannerPlacement placement, String href, String imageUrl, String mobileImageUrl, String alt,
+		int sortOrder, boolean active) {
 		this.placement = placement;
 		this.href = href;
 		this.imageUrl = imageUrl;
+		this.mobileImageUrl = mobileImageUrl;
 		this.alt = alt;
 		this.sortOrder = sortOrder;
 		this.active = active;
 	}
 
-	public void update(BannerPlacement placement, String href, String imageUrl, String alt, int sortOrder,
-		boolean active) {
+	public void update(BannerPlacement placement, String href, String imageUrl, String mobileImageUrl, String alt,
+		int sortOrder, boolean active) {
 		this.placement = placement;
 		this.href = href;
 		this.imageUrl = imageUrl;
+		this.mobileImageUrl = mobileImageUrl;
 		this.alt = alt;
 		this.sortOrder = sortOrder;
 		this.active = active;

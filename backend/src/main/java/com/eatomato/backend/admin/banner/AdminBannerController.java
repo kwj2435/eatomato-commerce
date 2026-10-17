@@ -43,7 +43,7 @@ public class AdminBannerController {
 	public AdminBannerResponse create(@Valid @RequestBody AdminBannerRequest request) {
 		BannerPlacement placement = placement(request);
 		Banner banner = new Banner(placement, href(placement, request.href()), request.imageUrl().trim(),
-			request.alt().trim(), request.sortOrder(), request.active());
+			blankToNull(request.mobileImageUrl()), request.alt().trim(), request.sortOrder(), request.active());
 		return AdminBannerResponse.from(bannerRepository.save(banner));
 	}
 
@@ -52,8 +52,8 @@ public class AdminBannerController {
 	public AdminBannerResponse update(@PathVariable Long id, @Valid @RequestBody AdminBannerRequest request) {
 		Banner banner = find(id);
 		BannerPlacement placement = placement(request);
-		banner.update(placement, href(placement, request.href()), request.imageUrl().trim(), request.alt().trim(),
-			request.sortOrder(), request.active());
+		banner.update(placement, href(placement, request.href()), request.imageUrl().trim(),
+			blankToNull(request.mobileImageUrl()), request.alt().trim(), request.sortOrder(), request.active());
 		return AdminBannerResponse.from(banner);
 	}
 
@@ -81,6 +81,10 @@ public class AdminBannerController {
 				yield value;
 			}
 		};
+	}
+
+	private static String blankToNull(String value) {
+		return value == null || value.isBlank() ? null : value.trim();
 	}
 
 	private Banner find(Long id) {

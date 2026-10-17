@@ -14,11 +14,20 @@ import { Button, Card, Chip, Empty, Field, Notice, PageHeader, inputClass } from
 /** 위치별 안내. 링크 규칙은 백엔드 AdminBannerController 와 같다. */
 const PLACEMENTS: Record<
   BannerPlacement,
-  { label: string; imageHint: string; hrefHint: string | null; defaultHref: string; description: string }
+  {
+    label: string;
+    imageHint: string;
+    /** 모바일 전용 이미지를 받는 위치만 값이 있다. */
+    mobileImageHint: string | null;
+    hrefHint: string | null;
+    defaultHref: string;
+    description: string;
+  }
 > = {
   HERO: {
     label: "메인 상단",
-    imageHint: "권장 1440 × 814",
+    imageHint: "PC · 권장 1440 × 814",
+    mobileImageHint: "모바일 · 권장 1080 × 1440 (3:4 세로형)",
     hrefHint: "예: /products/phone-case",
     defaultHref: "/",
     description: "메인 맨 위 슬라이드. 누르면 입력한 주소로 이동합니다.",
@@ -26,6 +35,7 @@ const PLACEMENTS: Record<
   BEST_PICK: {
     label: "Best Picks",
     imageHint: "권장 1200 × 1200 (정사각형)",
+    mobileImageHint: null,
     hrefHint: null,
     defaultHref: "",
     description: "Best Picks 왼쪽 슬라이드. 이미지만 보이고 링크는 없습니다. 오른쪽 4칸은 BEST 배지를 단 상품이 자동으로 들어갑니다.",
@@ -33,6 +43,7 @@ const PLACEMENTS: Record<
   SPECIAL: {
     label: "Special",
     imageHint: "1·2번째 권장 600 × 900 (세로형), 3번째 1200 × 900 (가로형)",
+    mobileImageHint: null,
     hrefHint: "비우면 공지 목록(/notice). 특정 공지는 예: /notice/12",
     defaultHref: "",
     description: "Special 혜택 배너. 세 장씩 한 줄로 보이고 세 번째는 두 배 너비입니다. 누르면 공지로 이동합니다.",
@@ -68,6 +79,7 @@ export function AdminBannerManager() {
         placement,
         href: guide.defaultHref,
         imageUrl: "",
+        mobileImageUrl: "",
         alt: "",
         active: true,
         sortOrder: (banners?.reduce((max, b) => Math.max(max, b.sortOrder), 0) ?? 0) + 1,
@@ -79,6 +91,7 @@ export function AdminBannerManager() {
     const form = {
       ...editing.form,
       imageUrl: editing.form.imageUrl.trim(),
+      mobileImageUrl: editing.form.mobileImageUrl?.trim() || null,
       href: editing.form.href.trim(),
       alt: editing.form.alt.trim(),
     };
@@ -174,6 +187,7 @@ export function AdminBannerManager() {
                     <p className="truncate text-ink-subtle">
                       순서 {b.sortOrder}
                       {b.href ? ` · ${b.href}` : ""}
+                      {b.mobileImageUrl ? " · 모바일 이미지 있음" : ""}
                     </p>
                   </div>
                   <Chip tone={b.active ? "brand" : "muted"}>{b.active ? "노출" : "비활성"}</Chip>
@@ -186,6 +200,7 @@ export function AdminBannerManager() {
                           placement: b.placement,
                           href: b.href,
                           imageUrl: b.imageUrl,
+                          mobileImageUrl: b.mobileImageUrl ?? "",
                           alt: b.alt,
                           sortOrder: b.sortOrder,
                           active: b.active,
@@ -210,6 +225,18 @@ export function AdminBannerManager() {
               <Field label={`이미지 (${guide.imageHint})`} hint="문구가 필요하면 이미지에 직접 넣어 주세요.">
                 <ImageInput category="banners" value={editing.form.imageUrl} onChange={(url) => setForm({ imageUrl: url })} />
               </Field>
+              {guide.mobileImageHint ? (
+                <Field
+                  label={`이미지 (${guide.mobileImageHint})`}
+                  hint="선택 사항입니다. 비워 두면 모바일에서도 PC 이미지를 써서 좌우가 잘릴 수 있어요."
+                >
+                  <ImageInput
+                    category="banners"
+                    value={editing.form.mobileImageUrl ?? ""}
+                    onChange={(url) => setForm({ mobileImageUrl: url })}
+                  />
+                </Field>
+              ) : null}
               {guide.hrefHint ? (
                 <Field label="클릭 시 이동할 주소" htmlFor="b-href" hint={guide.hrefHint}>
                   <input id="b-href" value={editing.form.href} onChange={(e) => setForm({ href: e.target.value })} className={inputClass} />

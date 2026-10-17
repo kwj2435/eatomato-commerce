@@ -10,6 +10,8 @@ export type HeroBanner = {
   /** 링크가 없는 배너(Best Picks 이미지)는 비어 있다. */
   href?: string;
   imageUrl?: string;
+  /** 모바일 전용 이미지(세로형). 없으면 모바일에서도 imageUrl 을 쓴다. 상단 슬라이드(HERO)만 쓴다. */
+  mobileImageUrl?: string;
   /** 스크린리더용 대체 텍스트. 이미지 속 문구를 그대로 적는다. */
   alt: string;
 };

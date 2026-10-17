@@ -151,6 +151,8 @@ export type AdminBanner = {
   /** BEST_PICK 은 빈 문자열(링크 없음). */
   href: string;
   imageUrl: string;
+  /** 모바일 전용 이미지. 비어 있으면 모바일에서도 imageUrl 을 쓴다. */
+  mobileImageUrl: string | null;
   alt: string;
   sortOrder: number;
   active: boolean;

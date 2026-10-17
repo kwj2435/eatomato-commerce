@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -26,6 +26,9 @@ const DEFAULT_INTERVAL = 5000;
  * 사용자가 dot 을 누르면 타이머를 리셋해 UX 를 자연스럽게 만든다.
  *
  * 문구는 배너 이미지에 직접 넣는다(화면에 따로 캡션을 그리지 않는다).
+ *
+ * 모바일(md 미만)은 3:4 세로 영역이다. 관리자가 모바일 이미지를 올렸으면 <picture> 로 그 이미지만 받고,
+ * 없으면 PC 이미지를 꽉 채워(object-cover) 좌우가 잘린다.
  *
  * 접근성:
  * - 이미지 속 문구는 alt 로 스크린리더에 전달한다.
@@ -65,7 +68,7 @@ export function HeroBanner({
     return (
       <section
         aria-label="메인 배너"
-        className="flex h-[520px] w-full items-center justify-center bg-surface-hero md:h-[680px] lg:h-[814px]"
+        className="flex aspect-[3/4] w-full items-center justify-center bg-surface-hero md:aspect-auto md:h-[680px] lg:h-[814px]"
       >
         <p className="text-[18px] tracking-[-0.3px] text-ink-placeholder md:text-[24px]">등록된 사진이 없습니다</p>
       </section>
@@ -78,7 +81,7 @@ export function HeroBanner({
     <section
       aria-label="메인 배너"
       aria-roledescription="carousel"
-      className="relative flex h-[520px] w-full items-center justify-center overflow-hidden bg-surface-hero md:h-[680px] lg:h-[814px]"
+      className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden bg-surface-hero md:aspect-auto md:h-[680px] lg:h-[814px]"
     >
       {/* 슬라이드들: 절대 위치로 겹쳐 두고 opacity 로 크로스페이드 */}
       {banners.map((banner, index) => {
@@ -98,16 +101,7 @@ export function HeroBanner({
             )}
           >
             {banner.imageUrl && shouldLoad ? (
-              <Image
-                src={banner.imageUrl}
-                alt={banner.alt}
-                fill
-                priority={index === 0}
-                /* 배너가 화면 끝까지 차므로 뷰포트 폭 그대로 요청한다.
-                   1440px 상한을 남기면 그보다 넓은 화면에서 확대되어 흐려진다. */
-                sizes="100vw"
-                className="object-cover"
-              />
+              <BannerImage banner={banner} imageUrl={banner.imageUrl} preload={index === 0} />
             ) : null}
           </Link>
         );
@@ -135,5 +129,27 @@ export function HeroBanner({
         현재 {currentIndex + 1}번째 배너 · {current.alt}
       </span>
     </section>
+  );
+}
+
+/** md 브레이크포인트(768px)와 같다. 이보다 좁으면 모바일 이미지를 쓴다. */
+const MOBILE_MEDIA = "(max-width: 767px)";
+
+function BannerImage({ banner, imageUrl, preload }: { banner: HeroBannerType; imageUrl: string; preload: boolean }) {
+  /* 배너가 화면 끝까지 차므로 뷰포트 폭 그대로 요청한다.
+     1440px 상한을 남기면 그보다 넓은 화면에서 확대되어 흐려진다. */
+  const common = { fill: true, sizes: "100vw", preload, className: "object-cover" } as const;
+
+  if (!banner.mobileImageUrl) return <Image {...common} src={imageUrl} alt={banner.alt} />;
+
+  const { props: desktop } = getImageProps({ ...common, src: imageUrl, alt: banner.alt });
+  const {
+    props: { srcSet: mobileSrcSet },
+  } = getImageProps({ ...common, src: banner.mobileImageUrl, alt: banner.alt });
+  return (
+    <picture>
+      <source media={MOBILE_MEDIA} srcSet={mobileSrcSet} sizes="100vw" />
+      <img {...desktop} alt={banner.alt} />
+    </picture>
   );
 }

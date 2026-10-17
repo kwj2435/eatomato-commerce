@@ -363,12 +363,17 @@ class AdminApiIntegrationTest {
 		mockMvc.perform(put("/api/admin/banners/" + bannerId).header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
-					{"href":"/products/set","imageUrl":"https://example.com/fall.jpg","alt":"가을 신상","sortOrder":0,"active":true}
+					{"href":"/products/set","imageUrl":"https://example.com/fall.jpg",
+					 "mobileImageUrl":"https://example.com/fall-m.jpg","alt":"가을 신상","sortOrder":0,"active":true}
 					"""))
-			.andExpect(status().isOk());
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.mobileImageUrl").value("https://example.com/fall-m.jpg"));
 		mockMvc.perform(get("/api/banners"))
 			.andExpect(jsonPath("$", hasSize(8)))
 			.andExpect(jsonPath("$[0].alt").value("가을 신상"))
+			.andExpect(jsonPath("$[0].mobileImageUrl").value("https://example.com/fall-m.jpg"))
+			// 모바일 이미지를 따로 올리지 않은 배너는 필드가 없다(프론트가 PC 이미지로 대신한다)
+			.andExpect(jsonPath("$[1].mobileImageUrl").doesNotExist())
 			.andExpect(jsonPath("$[0].captionLines").doesNotExist());
 
 		// 이미지 없는 배너는 받지 않는다(문구를 이미지에 넣으므로)
