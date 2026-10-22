@@ -11,7 +11,8 @@ export function ShippingSection({ lines }: ShippingSectionProps) {
       <h2 className="text-center text-[17px] font-normal tracking-[1.2px] text-brand-secondary md:text-[20px] md:tracking-[1.4px]">
         SHIPPING
       </h2>
-      <div className="mt-10 flex flex-col md:mt-[81px]">
+      {/* 어드민 문구의 "―――" 구분선은 줄바꿈이 안 돼 모바일에서 가로 스크롤을 만들므로 폭에 맞춰 자른다. */}
+      <div className="mt-10 flex flex-col overflow-hidden md:mt-[81px]">
         {lines.map((line, i) => (
           <p
             key={i}
