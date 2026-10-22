@@ -82,7 +82,10 @@ public class ImageOptimizer {
 		}
 	}
 
-	/** 목표 크기의 두 배 이상이면 정수 배로 건너뛰며 읽는다(원본 전체를 메모리에 올리지 않게). */
+	/**
+	 * 목표 크기보다 크면 정수 배로 건너뛰며 읽어 긴 변을 maxSide 의 1~2배로 맞춘다(원본 전체를 메모리에 올리지 않게).
+	 * 예전처럼 두 배 이상일 때만 건너뛰면 6000px 원본을 그대로 펼쳐 힙(256MB)을 넘기고, 최적화 없이 원본이 저장됐다.
+	 */
 	private static BufferedImage read(byte[] bytes, int maxSide) throws IOException {
 		try (ImageInputStream in = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
 			Iterator<ImageReader> readers = ImageIO.getImageReaders(in);
@@ -98,7 +101,7 @@ public class ImageOptimizer {
 					return null;
 				}
 				ImageReadParam param = reader.getDefaultReadParam();
-				int step = Math.max(1, Math.max(width, height) / (maxSide * 2));
+				int step = Math.max(1, Math.max(width, height) / maxSide);
 				param.setSourceSubsampling(step, step, 0, 0);
 				return reader.read(0, param);
 			} finally {
