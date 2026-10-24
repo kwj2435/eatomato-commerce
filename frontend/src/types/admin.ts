@@ -132,8 +132,11 @@ export type AdminOrder = Order & {
   member: { id: string; loginId: string; name: string } | null;
   /** 비회원 주문의 주문자. 회원 주문이면 없다. */
   guest?: { name: string; phone: string; email: string };
-  /** 관리자가 지금 바꿀 수 있는 다음 상태. 비어 있으면 더 바꿀 수 없다. */
+  /** 관리자가 지금 바꿀 수 있는 다음 상태. 비어 있으면 더 바꿀 수 없다. 배송중은 송장이 있어야 바뀐다. */
   nextStatuses: OrderStatus[];
+  /** 택배사·송장번호. 입력 전이면 없다. */
+  courier?: string;
+  trackingNumber?: string;
   payment?: {
     provider: string;
     status: "READY" | "WAITING_FOR_DEPOSIT" | "DONE" | "CANCELED" | "FAILED";

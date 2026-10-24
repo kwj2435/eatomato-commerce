@@ -229,6 +229,9 @@ public class OrderService {
 			cancel(order, adminId, "관리자 취소", refundAccount, false);
 			return;
 		}
+		if (next == OrderStatus.SHIPPING && !order.hasTracking()) {
+			throw new ApiException(ErrorCode.TRACKING_REQUIRED);
+		}
 		OrderStatus before = order.getStatus();
 		order.transitionTo(next);
 		historyRepository.save(new OrderStatusHistory(order.getId(), before, next, adminId, null));

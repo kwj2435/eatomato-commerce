@@ -18,7 +18,7 @@ export default async function HomePage() {
   const [banners, contents] = await Promise.all([listHeroBanners(), getSiteContents()]);
 
   return (
-    <SiteFrame notice="신규가입 시 2,000원 쿠폰과 멤버 전용 혜택을 즐겨보세요.">
+    <SiteFrame notice={contents.HOME_TOP_NOTICE}>
       <HeroBanner banners={banners} />
       <BestPicksSection description={contents.HOME_BEST_PICKS_DESCRIPTION} />
       <WhatsNewSection description={contents.HOME_WHATS_NEW_DESCRIPTION} />

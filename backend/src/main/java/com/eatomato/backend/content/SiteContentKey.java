@@ -14,6 +14,9 @@ import lombok.Getter;
 @Getter
 public enum SiteContentKey {
 
+	HOME_TOP_NOTICE(
+		"메인 · 맨 위 검정 공지 바 (비우면 숨김)",
+		"신규가입 시 2,000원 쿠폰과 멤버 전용 혜택을 즐겨보세요.", Kind.TEXT, 100),
 	HOME_BEST_PICKS_DESCRIPTION(
 		"메인 · Best Picks 설명",
 		"eatomato 가 고른 이번 시즌 추천 아이템."),

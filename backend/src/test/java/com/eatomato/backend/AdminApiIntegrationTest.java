@@ -282,6 +282,18 @@ class AdminApiIntegrationTest {
 			.andExpect(jsonPath("$.content", hasSize(1)))
 			.andExpect(jsonPath("$.content[0].member.loginId").value("orderuser"));
 
+		// 송장 없이는 배송중으로 바꿀 수 없다.
+		mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SHIPPING\"}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("TRACKING_REQUIRED"));
+
+		mockMvc.perform(put("/api/admin/orders/" + orderNumber + "/tracking").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"courier\":\"CJ대한통운\",\"trackingNumber\":\"1234 5678 9012\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.courier").value("CJ대한통운"))
+			.andExpect(jsonPath("$.trackingNumber").value("123456789012"));
+
 		mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SHIPPING\"}"))
 			.andExpect(status().isOk())
@@ -303,7 +315,7 @@ class AdminApiIntegrationTest {
 
 		String admin = login("admin", "admin1234");
 		mockMvc.perform(get("/api/admin/site-contents").header(HttpHeaders.AUTHORIZATION, admin))
-			.andExpect(jsonPath("$", hasSize(7)))
+			.andExpect(jsonPath("$", hasSize(8)))
 			.andExpect(jsonPath("$[0].customized").value(false))
 			.andExpect(jsonPath("$[?(@.key == 'ABOUT_IMAGE_URL')].kind").value("IMAGE"))
 			.andExpect(jsonPath("$[?(@.key == 'ABOUT_TOP_TEXT')].maxLength").value(3000));

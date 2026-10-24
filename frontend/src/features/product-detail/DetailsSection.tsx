@@ -22,7 +22,7 @@ export function DetailsSection({ images }: DetailsSectionProps) {
         {images.map((src, i) => (
           <div
             key={src + i}
-            className="relative aspect-[4/5] w-full overflow-hidden border border-[#B0AAA9]"
+            className="relative aspect-[4/5] w-full overflow-hidden"
           >
             <Image
               src={src}

@@ -114,6 +114,14 @@ export const changeAdminOrderStatus = (orderNumber: string, status: OrderStatus,
     json: { status, refundAccount },
   });
 
+/** 송장 입력·수정. 택배사·송장번호가 있어야 배송중으로 바꿀 수 있다. */
+export const updateAdminOrderTracking = (orderNumber: string, courier: string, trackingNumber: string) =>
+  apiFetch<AdminOrder>(`/api/admin/orders/${orderNumber}/tracking`, {
+    method: "PUT",
+    auth: true,
+    json: { courier, trackingNumber },
+  });
+
 // ── 배너 ──
 
 export const listAdminBanners = () => apiFetch<AdminBanner[]>("/api/admin/banners", { auth: true });

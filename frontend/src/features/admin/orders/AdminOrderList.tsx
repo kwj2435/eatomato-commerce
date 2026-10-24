@@ -13,8 +13,12 @@ import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 
 import { formatDateTime } from "../format";
 import { Button, Card, Empty, Field, Notice, PageHeader, Pagination, inputClass, tableClass, tdClass, thClass } from "../ui";
+import { TrackingForm, hasTracking } from "./TrackingForm";
 
 const STATUSES = Object.keys(ORDER_STATUS_LABELS) as OrderStatus[];
+
+/** 송장을 넣을 수 있는 상태(결제가 끝난 주문). */
+const TRACKABLE: OrderStatus[] = ["PAID", "SHIPPING", "DELIVERED"];
 
 const PAYMENT_LABELS = {
   READY: "결제 전",
@@ -58,6 +62,10 @@ export function AdminOrderList() {
     );
 
   const change = async (order: AdminOrder, next: OrderStatus) => {
+    if (next === "SHIPPING" && !hasTracking(order)) {
+      setError(`주문 ${order.orderNumber}: 택배사와 송장번호를 먼저 저장해 주세요.`);
+      return;
+    }
     // 무통장입금으로 입금까지 받은 주문은 고객 환불 계좌를 받아야 취소(환불)할 수 있다.
     if (next === "CANCELLED" && order.status === "PAID" && order.payment?.virtualAccount) {
       setRefundFor(order);
@@ -79,7 +87,7 @@ export function AdminOrderList() {
     <>
       <PageHeader
         title="주문·결제"
-        description="결제대기 → (무통장입금은 입금대기 →) 결제완료 → 배송중 → 배송완료 순서로만 바뀝니다. 취소는 배송 전까지 가능하며 환불·재고 복원이 함께 됩니다. 무통장입금으로 받은 주문을 취소하면 고객 환불 계좌를 입력합니다."
+        description="결제대기 → (무통장입금은 입금대기 →) 결제완료 → 배송중 → 배송완료 순서로만 바뀝니다. 배송중은 택배사·송장번호를 저장한 주문만 바꿀 수 있습니다. 취소는 배송 전까지 가능하며 환불·재고 복원이 함께 됩니다. 무통장입금으로 받은 주문을 취소하면 고객 환불 계좌를 입력합니다."
         actions={
           <Link
             href="/admin/shipments"
@@ -141,6 +149,7 @@ export function AdminOrderList() {
                   <th className={thClass}>상품</th>
                   <th className={`${thClass} text-right`}>결제금액</th>
                   <th className={thClass}>상태</th>
+                  <th className={thClass}>택배사·송장번호</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,17 +190,28 @@ export function AdminOrderList() {
                           className="h-8 rounded-md border border-black/15 bg-white px-2 text-[13px] disabled:bg-black/[0.03] disabled:text-ink-subtle"
                         >
                           <option value={o.status}>{ORDER_STATUS_LABELS[o.status]}</option>
-                          {o.nextStatuses.map((s) => (
-                            <option key={s} value={s}>
-                              → {ORDER_STATUS_LABELS[s]}
-                            </option>
-                          ))}
+                          {o.nextStatuses.map((s) => {
+                            const needsTracking = s === "SHIPPING" && !hasTracking(o);
+                            return (
+                              <option key={s} value={s} disabled={needsTracking}>
+                                → {ORDER_STATUS_LABELS[s]}
+                                {needsTracking ? " (송장 입력 필요)" : ""}
+                              </option>
+                            );
+                          })}
                         </select>
+                      </td>
+                      <td className={tdClass}>
+                        {TRACKABLE.includes(o.status) ? (
+                          <TrackingForm key={`${o.courier}|${o.trackingNumber}`} order={o} onSaved={replace} />
+                        ) : (
+                          <span className="text-ink-subtle">-</span>
+                        )}
                       </td>
                     </tr>
                     {expanded === o.orderNumber ? (
                       <tr>
-                        <td colSpan={6} className="border-b border-black/5 bg-black/[0.02] px-6 py-3">
+                        <td colSpan={7} className="border-b border-black/5 bg-black/[0.02] px-6 py-3">
                           <div className="mb-3 grid gap-3 text-[13px] md:grid-cols-2">
                             <div>
                               <p className="mb-1 font-bold">배송지</p>

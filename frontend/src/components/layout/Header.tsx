@@ -66,12 +66,13 @@ export function Header() {
 
         {/*
          * 모바일에선 좌우 요소 폭과 무관하게 화면 정중앙에 오도록 절대 위치로 둔다.
-         * 크기는 35px 이 기본이지만, 폭 412px 미만 폰에선 가운데 로고가 우측 아이콘(좌우 여백 20 + 아이콘 90 + 간격 6px)에
+         * 크기는 26px 이 기본이다(모바일 4차 시안: 글자 높이를 우측 아이콘 높이 ≈ 18px 에 맞춤, 글자 높이 ≈ 크기 × 0.68).
+         * 아주 좁은 폰에선 가운데 로고가 우측 아이콘(좌우 여백 20 + 아이콘 90 + 간격 6px)에
          * 닿지 않도록 화면 폭에 비례해 줄인다. "eatomato" 폭 ≈ 글자 크기 × 4.7.
          */}
         <Link
           href="/"
-          className="absolute left-1/2 -translate-x-1/2 font-serif text-[clamp(22px,calc((100vw-232px)/4.7),35px)] font-semibold leading-none text-brand-primary lg:static lg:translate-x-0 lg:text-[35px]"
+          className="absolute left-1/2 -translate-x-1/2 font-serif text-[clamp(22px,calc((100vw-232px)/4.7),26px)] font-semibold leading-none text-brand-primary lg:static lg:translate-x-0 lg:text-[35px]"
         >
           eatomato
         </Link>

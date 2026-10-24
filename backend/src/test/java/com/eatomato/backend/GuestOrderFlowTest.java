@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -120,6 +121,9 @@ class GuestOrderFlowTest {
 		String admin = "Bearer " + JsonPath.read(mockMvc.perform(post("/api/auth/login")
 				.contentType(MediaType.APPLICATION_JSON).content("{\"loginId\":\"admin\",\"password\":\"admin1234\"}"))
 			.andReturn().getResponse().getContentAsString(), "$.accessToken");
+		mockMvc.perform(put("/api/admin/orders/" + orderNumber + "/tracking").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"courier\":\"CJ대한통운\",\"trackingNumber\":\"1234 5678 9012\"}"))
+			.andExpect(status().isOk());
 		for (String next : new String[] {"SHIPPING", "DELIVERED"}) {
 			mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
 					.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"" + next + "\"}"))

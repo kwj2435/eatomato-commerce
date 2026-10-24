@@ -5,8 +5,6 @@ import { Container } from "@/components/layout/Container";
 import { MultilineText } from "@/components/ui/MultilineText";
 import { listFeaturedReviews } from "@/lib/api/reviews";
 
-import { PlaceholderGrid } from "./PlaceholderGrid";
-
 /**
  * "Review" 섹션.
  * 대표 리뷰 4장(사진·글 두 줄·상품 칩)을 노출하고, 누르면 리뷰한 상품 상세로 간다.
@@ -30,9 +28,8 @@ export async function ReviewSection({ description }: { description: string }) {
           </p>
         ) : null}
 
-        {reviews.length === 0 ? (
-          <PlaceholderGrid label="리뷰사진" message="등록된 리뷰가 없습니다." />
-        ) : (
+        {/* 리뷰가 없으면 빈 자리표시 카드를 그리지 않는다(모바일 4차 시안). */}
+        {reviews.length === 0 ? null : (
           <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
             {reviews.map((review) => (
               <li key={review.id}>

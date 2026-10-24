@@ -59,6 +59,15 @@ public class AdminOrderService {
 		return withDetails(List.of(order)).getFirst();
 	}
 
+	/** 송장(택배사·송장번호) 입력·수정. */
+	@Transactional
+	public AdminOrderResponse updateTracking(String orderNumber, String courier, String trackingNumber) {
+		Order order = orderRepository.findByOrderNumber(orderNumber)
+			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_NOT_FOUND));
+		order.updateTracking(courier, trackingNumber);
+		return withDetails(List.of(order)).getFirst();
+	}
+
 	/** 주문 목록에 주문자·결제 정보를 붙인다(회원·결제 조회는 한 번에). */
 	public List<AdminOrderResponse> withDetails(List<Order> orders) {
 		Map<Long, Member> members = memberRepository.findByIdIn(

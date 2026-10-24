@@ -72,7 +72,7 @@ export function ReviewsSection({
       </div>
 
       {reviews.length === 0 ? (
-        <p className="border-y-2 border-brand-primary py-[52px] text-center text-[15px] tracking-[-0.3px] text-[#545454]">
+        <p className="border-t border-brand-divider py-[52px] text-center text-[15px] tracking-[-0.3px] text-[#545454]">
           제품의 첫 후기를 남겨주세요
         </p>
       ) : (
@@ -88,7 +88,7 @@ export function ReviewsSection({
 
 function ReviewRow({ review }: { review: ProductReview }) {
   return (
-    <article className="flex items-start justify-between gap-8 border-t-2 border-brand-primary py-[18px] last:border-b-2 min-h-[135px]">
+    <article className="flex items-start justify-between gap-8 border-t border-brand-divider py-[18px] min-h-[135px]">
       <div className="flex flex-col gap-3.5">
         <div className="flex items-center gap-2.5">
           {review.isBest ? (

@@ -6,6 +6,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -50,6 +51,19 @@ public class AdminOrderController {
 		RefundAccountRequest refund = request.refundAccount();
 		return adminOrderService.changeStatus(adminId, orderNumber, request.status(), refund == null ? null
 			: new PaymentGateway.RefundAccount(refund.bank(), refund.accountNumber(), refund.holderName().trim()));
+	}
+
+	/** 송장 입력·수정. 택배사·송장번호가 있어야 배송중으로 바꿀 수 있다. */
+	@PutMapping("/{orderNumber}/tracking")
+	public AdminOrderResponse updateTracking(@PathVariable String orderNumber, @Valid @RequestBody TrackingRequest request) {
+		return adminOrderService.updateTracking(orderNumber, request.courier().trim(),
+			request.trackingNumber().replaceAll("\\s", ""));
+	}
+
+	/** trackingNumber 는 공백을 빼고 저장한다(숫자·영문·하이픈). */
+	public record TrackingRequest(
+		@NotBlank @Size(max = 30) String courier,
+		@NotBlank @Pattern(regexp = "[0-9A-Za-z\\-\\s]{4,50}") String trackingNumber) {
 	}
 
 	/** refundAccount: 무통장입금으로 입금까지 끝난 주문을 취소할 때만. 고객이 알려 준 환불 계좌. */

@@ -53,6 +53,7 @@ public enum ErrorCode {
 	SOLD_OUT(HttpStatus.CONFLICT, "품절된 상품입니다."),
 	INSUFFICIENT_STOCK(HttpStatus.CONFLICT, "재고가 부족합니다."),
 	INVALID_ORDER_STATUS(HttpStatus.BAD_REQUEST, "지금 상태에서는 바꿀 수 없는 주문 상태입니다."),
+	TRACKING_REQUIRED(HttpStatus.BAD_REQUEST, "택배사와 송장번호를 먼저 입력해 주세요."),
 	PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 주문 금액과 다릅니다."),
 	PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "결제에 실패했습니다. 다시 시도해 주세요."),
 	POINT_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "적립금이 부족합니다."),

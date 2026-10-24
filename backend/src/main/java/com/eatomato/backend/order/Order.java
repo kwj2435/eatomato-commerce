@@ -84,6 +84,11 @@ public class Order {
 
 	private LocalDateTime cancelledAt;
 
+	/** 택배사(예: CJ대한통운). 송장번호와 함께 있어야 배송중으로 바꿀 수 있다. */
+	private String courier;
+
+	private String trackingNumber;
+
 	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("id")
 	private List<OrderItem> items = new ArrayList<>();
@@ -154,6 +159,19 @@ public class Order {
 	public void cancel() {
 		transitionTo(OrderStatus.CANCELLED);
 		this.cancelledAt = Times.now();
+	}
+
+	/** 송장 입력·수정. 결제가 끝난 주문(결제완료·배송중·배송완료)에만 넣을 수 있다. */
+	public void updateTracking(String courier, String trackingNumber) {
+		if (!status.isPaid()) {
+			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
+		}
+		this.courier = courier;
+		this.trackingNumber = trackingNumber;
+	}
+
+	public boolean hasTracking() {
+		return courier != null && !courier.isBlank() && trackingNumber != null && !trackingNumber.isBlank();
 	}
 
 	/** 허용된 방향으로만 바꾼다(OrderStatus.next). */

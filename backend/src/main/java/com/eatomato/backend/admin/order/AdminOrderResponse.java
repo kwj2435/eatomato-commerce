@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * 관리자 주문 한 건: 주문 정보 + 주문자(회원이면 member, 비회원이면 guest) + 배송지 + 결제.
  *
  * @param nextStatuses 관리자가 지금 바꿀 수 있는 다음 상태(허용 전이). 비어 있으면 더 바꿀 수 없다.
+ *                     배송중은 송장(courier·trackingNumber)이 있어야 실제로 바뀐다.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record AdminOrderResponse(
@@ -29,6 +30,8 @@ public record AdminOrderResponse(
 	int pointUsed,
 	int total,
 	int pointsEarned,
+	String courier,
+	String trackingNumber,
 	List<OrderResponse.Item> items,
 	OrderResponse.Shipping shipping,
 	PaymentInfo payment,
@@ -71,6 +74,8 @@ public record AdminOrderResponse(
 			base.pointUsed(),
 			base.total(),
 			base.pointsEarned(),
+			order.getCourier(),
+			order.getTrackingNumber(),
 			base.items(),
 			base.shipping(),
 			PaymentInfo.from(payment, base.payment()),

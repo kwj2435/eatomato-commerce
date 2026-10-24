@@ -11,6 +11,7 @@ import type { AdminOrder } from "@/types/admin";
 import { formatDateTime } from "../format";
 import { Button, Card, Empty, Notice, PageHeader } from "../ui";
 import { downloadCsv, optionText, shipmentCsv, totalQuantity } from "./shipment-csv";
+import { TrackingForm, hasTracking } from "./TrackingForm";
 
 /** 파일 이름용 날짜(20260929). */
 function today(): string {
@@ -21,7 +22,7 @@ function today(): string {
 /**
  * 배송 준비: 결제완료(아직 보내지 않은) 주문을 오래된 순으로 모두 펼쳐 보여준다.
  * 받는 분·주소·상품 수량을 한 화면에서 보고, CSV 로 내려받아 택배 접수에 쓴다.
- * 발송한 주문은 "배송중으로 변경" 을 누르면 목록에서 빠진다.
+ * 발송한 주문은 택배사·송장번호를 저장한 뒤 "배송중으로 변경" 을 누르면 목록에서 빠진다.
  */
 export function AdminShipmentList() {
   const [orders, setOrders] = useState<AdminOrder[] | null>(null);
@@ -82,6 +83,9 @@ export function AdminShipmentList() {
     downloadCsv(`eatomato-배송-${today()}.csv`, shipmentCsv(targets));
   };
 
+  const replace = (updated: AdminOrder) =>
+    setOrders((prev) => prev?.map((o) => (o.orderNumber === updated.orderNumber ? updated : o)) ?? prev);
+
   const ship = async (order: AdminOrder) => {
     if (!window.confirm(`주문 ${order.orderNumber} 을(를) 발송했나요?\n'배송중'으로 바꾸면 이 목록에서 빠집니다.`)) return;
     setError(null);
@@ -103,7 +107,7 @@ export function AdminShipmentList() {
     <>
       <PageHeader
         title="배송 준비"
-        description="결제완료 주문(아직 보내지 않은 주문)을 먼저 결제한 순서로 보여줍니다. 발송한 뒤 '배송중으로 변경'을 누르면 목록에서 빠집니다."
+        description="결제완료 주문(아직 보내지 않은 주문)을 먼저 결제한 순서로 보여줍니다. 발송한 뒤 택배사·송장번호를 저장하고 '배송중으로 변경'을 누르면 목록에서 빠집니다."
         actions={
           <>
             <Button onClick={load}>새로고침</Button>
@@ -149,6 +153,7 @@ export function AdminShipmentList() {
                 checked={selected.has(o.orderNumber)}
                 onToggle={() => toggle(o.orderNumber)}
                 onShip={() => ship(o)}
+                onTrackingSaved={replace}
               />
             ))}
           </div>
@@ -179,11 +184,13 @@ function ShipmentCard({
   checked,
   onToggle,
   onShip,
+  onTrackingSaved,
 }: {
   order: AdminOrder;
   checked: boolean;
   onToggle: () => void;
   onShip: () => void;
+  onTrackingSaved: (updated: AdminOrder) => void;
 }) {
   const s = o.shipping;
   return (
@@ -197,9 +204,18 @@ function ShipmentCard({
           <span className="font-bold tabular-nums">{o.orderNumber}</span>
           <span className="text-ink-subtle">결제 {formatDateTime(o.paidAt ?? o.orderedAt)}</span>
         </label>
-        <Button size="sm" variant="primary" onClick={onShip}>
-          배송중으로 변경
-        </Button>
+        <div className="flex flex-wrap items-start gap-2">
+          <TrackingForm key={`${o.courier}|${o.trackingNumber}`} order={o} onSaved={onTrackingSaved} />
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={onShip}
+            disabled={!hasTracking(o)}
+            title={hasTracking(o) ? undefined : "택배사·송장번호를 먼저 저장해 주세요"}
+          >
+            배송중으로 변경
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
