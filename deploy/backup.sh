@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# DB·업로드 파일 백업. VM 의 root crontab 에서 매일 자정(KST) 돈다.
+# DB·업로드 파일 백업. VM 의 root crontab 에서 12시간마다(00:00·12:00 KST) 돈다.
 #
 #   ./deploy/backup.sh            # /root/backups 에 저장 (+ MEGA_DIR 이 있으면 MEGA 에도 올림)
 #   BACKUP_DIR=/mnt/x ./deploy/backup.sh
