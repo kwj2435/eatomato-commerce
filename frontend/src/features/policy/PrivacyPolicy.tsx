@@ -5,7 +5,7 @@ import { Container } from "@/components/layout/Container";
  * 서비스가 실제로 받는 항목(회원·카카오 로그인·비회원 주문·결제·배송·후기)에 맞춰 적었다.
  * 수집 항목이나 위탁 업체가 바뀌면 이 문서와 시행일(EFFECTIVE_DATE)을 함께 고친다.
  */
-const EFFECTIVE_DATE = "2026년 10월 12일";
+const EFFECTIVE_DATE = "2026년 10월 28일";
 
 export type Block = string | { list: string[] } | { table: { head: string[]; rows: string[][] } };
 
@@ -82,7 +82,7 @@ const SECTIONS: Section[] = [
           rows: [
             ["(주)토스페이먼츠", "결제 처리, 무통장입금(가상계좌) 발급, 결제 취소·환불"],
             ["택배사", "상품 배송"],
-            ["Microsoft Corporation (Azure)", "서비스 운영을 위한 서버·데이터베이스 운영"],
+            ["Vultr Holdings, LLC (Vultr)", "서비스 운영을 위한 서버·데이터베이스 운영"],
           ],
         },
       },
