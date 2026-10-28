@@ -2,8 +2,9 @@ spring:
   application:
     name: eatomato-backend
   datasource:
-    # Azure Database for MySQL(Flexible Server) 는 TLS 접속을 강제한다.
-    url: jdbc:mysql://${DB_HOST:eatomato-db.mysql.database.azure.com}:${DB_PORT:3306}/${DB_NAME:eatomato}?sslMode=REQUIRED&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&createDatabaseIfNotExist=true
+    # TLS 로 접속한다. MySQL 컨테이너는 기동 시 자체 서명 인증서를 만들어 두고,
+    # sslMode=REQUIRED 는 암호화만 요구하고 인증서 검증은 하지 않으므로 그대로 붙는다.
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:eatomato}?sslMode=REQUIRED&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&createDatabaseIfNotExist=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     hikari:

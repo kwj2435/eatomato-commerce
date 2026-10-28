@@ -4,7 +4,7 @@ eatomato 커머스 프론트(`eatomato-commerce`, Next.js 정적 export)의 API 
 프론트 `src/lib/api/*` 가 지금 mock 으로 돌려주는 데이터를 같은 형태(JSON 필드명·타입)로 내려준다.
 
 - Java 21 · Spring Boot 4.1 · Spring Data JPA · Spring Security(JWT, HS256) · Flyway
-- DB: Azure Database for MySQL (`eatomato-db.mysql.database.azure.com`)
+- DB: MySQL 8.4 (VM 에서 `docker-compose.yml` 의 mysql 컨테이너로 같이 뜬다)
 
 ## 실행
 
@@ -12,7 +12,7 @@ eatomato 커머스 프론트(`eatomato-commerce`, Next.js 정적 export)의 API 
 # DB 없이 (H2 인메모리 + 데모 데이터)
 ./gradlew bootRun --args='--spring.profiles.active=local'
 
-# Azure MySQL 로
+# 로컬 MySQL 로
 export DB_USERNAME=... DB_PASSWORD=... JWT_SECRET=$(openssl rand -base64 48)
 ./gradlew bootRun
 
@@ -25,8 +25,8 @@ export DB_USERNAME=... DB_PASSWORD=... JWT_SECRET=$(openssl rand -base64 48)
 ## 배포 (VM)
 
 ```bash
-cp .env.example .env   # 값 채우기
-docker compose up -d --build
+cp .env.example .env   # 값 채우기 (DB_PASSWORD·DB_ROOT_PASSWORD·JWT_SECRET 필수)
+docker compose up -d --build   # mysql → backend 순서로 뜬다
 ```
 
 ## 인증

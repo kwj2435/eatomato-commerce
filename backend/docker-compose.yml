@@ -1,20 +1,59 @@
 # VM 배포용 compose. 접속 정보는 같은 디렉터리의 .env 에서 읽는다(.env.example 참고).
+# ${...} 값도 이 .env 에서 채워진다(compose 가 compose 파일 옆의 .env 를 읽는다).
 name: eatomato-backend
 services:
+  mysql:
+    image: mysql:8.4
+    container_name: eatomato-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?backend/.env 에 DB_ROOT_PASSWORD 가 필요합니다}
+      MYSQL_DATABASE: ${DB_NAME:-eatomato}
+      MYSQL_USER: ${DB_USERNAME:?backend/.env 에 DB_USERNAME 이 필요합니다}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?backend/.env 에 DB_PASSWORD 가 필요합니다}
+      TZ: Asia/Seoul
+    # VM 메모리가 작아(1.6GB, 백엔드·프론트와 나눠 씀) 버퍼·캐시를 작게 잡는다.
+    command:
+      - --innodb-buffer-pool-size=128M
+      - --innodb-log-buffer-size=8M
+      - --performance-schema=OFF
+      - --max-connections=30
+      - --table-open-cache=400
+      - --skip-name-resolve
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    # 외부에 포트를 열지 않는다. 백엔드는 compose 네트워크(mysql:3306)로만 붙는다.
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # 초기화 중 임시 서버는 TCP 를 열지 않으므로 127.0.0.1 로 확인해야 실제 기동 완료를 잡는다.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+    mem_limit: 512m
+
   backend:
     build: .
     image: eatomato-backend
     container_name: eatomato-backend
     env_file: .env
+    depends_on:
+      mysql:
+        condition: service_healthy
     ports:
       # 외부에는 호스트 nginx 의 /api, /uploads 로만 노출한다.
       - "127.0.0.1:8080:8080"
     volumes:
       - uploads:/app/uploads
     environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
       UPLOAD_DIR: /app/uploads
     restart: unless-stopped
     mem_limit: 450m
 
 volumes:
+  mysql-data:
   uploads:
