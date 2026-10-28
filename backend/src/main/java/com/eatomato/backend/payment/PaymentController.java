@@ -14,8 +14,6 @@ import com.eatomato.backend.global.config.AppProperties;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.global.security.CurrentMemberId;
-import com.eatomato.backend.order.Order;
-import com.eatomato.backend.order.OrderRepository;
 import com.eatomato.backend.order.OrderService;
 import com.eatomato.backend.order.dto.OrderResponse;
 
@@ -33,7 +31,6 @@ public class PaymentController {
 
 	private final PaymentService paymentService;
 	private final OrderService orderService;
-	private final OrderRepository orderRepository;
 	private final AppProperties properties;
 	private final PaymentGateway paymentGateway;
 
@@ -62,10 +59,7 @@ public class PaymentController {
 		if ("DONE".equals(request.status())) {
 			return paymentService.confirm(null, request.orderNumber(), request.paymentKey(), request.amount());
 		}
-		Order order = orderRepository.findByOrderNumber(request.orderNumber())
-			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_NOT_FOUND));
-		orderService.cancel(order, null, "PG 취소 알림");
-		return OrderResponse.from(order);
+		return orderService.cancelByWebhook(request.orderNumber());
 	}
 
 	private void requireWebhookSecret(String secret) {

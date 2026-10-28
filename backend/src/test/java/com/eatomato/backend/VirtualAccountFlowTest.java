@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,6 +98,12 @@ class VirtualAccountFlowTest {
 	void setUp() {
 		jdbc.update("update product set stock_quantity = 5 where id = 10");
 		gateway.cancels.clear();
+	}
+
+	/** 컨텍스트(H2)를 다른 테스트와 같이 쓰므로, 재고 제한을 남겨 두면 상품 10을 주문하는 테스트가 실행 순서에 따라 깨진다. */
+	@AfterEach
+	void tearDown() {
+		jdbc.update("update product set stock_quantity = null where id = 10");
 	}
 
 	private String signup(String loginId) throws Exception {

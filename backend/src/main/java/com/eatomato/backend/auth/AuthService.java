@@ -115,8 +115,10 @@ public class AuthService {
 	 * 카카오 로그인·가입.
 	 *
 	 * 1) 카카오 회원번호로 연결된 회원이 있으면 그 회원으로 로그인
-	 * 2) 없으면 카카오가 확인한 이메일과 같은 기존 회원에 카카오를 연결(자동 연결)
-	 * 3) 그것도 없으면 새로 가입. 비밀번호는 임의 값이라 이 계정은 카카오로만 로그인한다.
+	 * 2) 없는데 카카오 이메일과 같은 이메일의 기존 회원이 있으면 거절한다. 이메일 가입은 이메일 인증을 하지 않아
+	 *    남의 이메일로 먼저 가입해 둔 계정일 수 있고, 거기에 자동으로 연결하면 그 계정 주인이 카카오 사용자의
+	 *    주문·배송지를 보게 된다.
+	 * 3) 둘 다 아니면 새로 가입. 비밀번호는 임의 값이라 이 계정은 카카오로만 로그인한다.
 	 */
 	@Transactional
 	public TokenResponse loginWithKakao(KakaoUser kakao) {
@@ -126,16 +128,16 @@ public class AuthService {
 				throw new ApiException(ErrorCode.KAKAO_EMAIL_REQUIRED);
 			}
 			String email = kakao.email().trim();
-			member = memberRepository.findByEmail(email).orElse(null);
-			if (member == null) {
-				String name = email.substring(0, email.indexOf('@'));
-				member = memberRepository.save(new Member(
-					generateLoginId(email),
-					passwordEncoder.encode(UUID.randomUUID().toString()),
-					email,
-					name.length() > 50 ? name.substring(0, 50) : name));
-				couponService.issueSignupCoupons(member.getId());
+			if (memberRepository.findByEmail(email).isPresent()) {
+				throw new ApiException(ErrorCode.KAKAO_EMAIL_ALREADY_REGISTERED);
 			}
+			String name = email.substring(0, email.indexOf('@'));
+			member = memberRepository.save(new Member(
+				generateLoginId(email),
+				passwordEncoder.encode(UUID.randomUUID().toString()),
+				email,
+				name.length() > 50 ? name.substring(0, 50) : name));
+			couponService.issueSignupCoupons(member.getId());
 			member.linkKakao(kakao.id());
 		}
 		if (!member.isEnabled()) {

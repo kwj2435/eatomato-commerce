@@ -9,12 +9,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
-	/** 결제가 끝난 주문 중 아직 후기를 쓰지 않은 상품. */
+	/** 배송이 시작된 주문(OrderStatus.REVIEWABLE_STATES) 중 아직 후기를 쓰지 않은 상품. */
 	@Query("""
 		select oi from OrderItem oi join oi.order o
 		where o.memberId = :memberId
-		  and o.status in (com.eatomato.backend.order.OrderStatus.PAID,
-		    com.eatomato.backend.order.OrderStatus.SHIPPING, com.eatomato.backend.order.OrderStatus.DELIVERED)
+		  and o.status in (com.eatomato.backend.order.OrderStatus.SHIPPING,
+		    com.eatomato.backend.order.OrderStatus.DELIVERED)
 		  and oi.reviewed = false
 		order by o.orderedAt desc, oi.id
 		""")

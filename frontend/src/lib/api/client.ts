@@ -11,14 +11,12 @@
  *
  * 서버(운영 standalone)에서의 GET 은 60초 동안 캐시하고 그 뒤 백그라운드로 다시 받는다(ISR).
  * 관리자 화면의 변경이 스토어프론트에 최대 1분 늦게 반영되는 이유가 이것이다.
- * GitHub Pages 정적 export 빌드에서는 어차피 빌드 시점 한 번뿐이라 붙이지 않는다.
  */
 
 const DEV_API_BASE_URL = "http://localhost:8080";
 
 /** 서버 렌더 데이터 재검증 주기(초). */
 const SERVER_REVALIDATE_SECONDS = 60;
-const STATIC_EXPORT = process.env.GITHUB_PAGES === "true";
 
 const BROWSER_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -90,7 +88,7 @@ export async function apiFetch<T>(path: string, init: ApiInit = {}): Promise<T> 
   const onServer = typeof window === "undefined";
   const send = () =>
     fetch(`${baseUrl()}${path}`, {
-      ...(onServer && !auth && !STATIC_EXPORT && !rest.cache
+      ...(onServer && !auth && !rest.cache
         ? { next: { revalidate: SERVER_REVALIDATE_SECONDS } }
         : {}),
       ...rest,

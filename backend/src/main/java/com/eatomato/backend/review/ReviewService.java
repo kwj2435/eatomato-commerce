@@ -67,6 +67,11 @@ public class ReviewService {
 
 		OrderItem orderItem = orderItemRepository.findByIdAndOrderMemberId(orderItemId, memberId)
 			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_ITEM_NOT_REVIEWABLE));
+		// 화면 목록(findReviewable)과 같은 조건을 저장 때도 확인한다. 결제대기·결제완료 주문에 후기를 쓰고
+		// 취소하면 적립금만 남기 때문이다.
+		if (!orderItem.getOrder().getStatus().isReviewable()) {
+			throw new ApiException(ErrorCode.ORDER_ITEM_NOT_REVIEWABLE);
+		}
 		if (orderItem.isReviewed()) {
 			throw new ApiException(ErrorCode.REVIEW_ALREADY_WRITTEN);
 		}

@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -33,6 +34,9 @@ class ApiIntegrationTest {
 
 	@Autowired
 	MockMvc mockMvc;
+
+	@Autowired
+	JdbcTemplate jdbc;
 
 	@Test
 	void 카탈로그_조회() throws Exception {
@@ -234,6 +238,19 @@ class ApiIntegrationTest {
 
 		mockMvc.perform(get("/api/cart").header(HttpHeaders.AUTHORIZATION, token))
 			.andExpect(jsonPath("$.items", hasSize(0)));
+
+		// 결제완료는 아직 취소할 수 있어 후기를 못 쓴다(후기 적립 → 취소 반복 방지).
+		String orderItemIdBeforeShipping = JsonPath.read(order, "$.items[0].id");
+		mockMvc.perform(get("/api/me/reviewable-products").header(HttpHeaders.AUTHORIZATION, token))
+			.andExpect(jsonPath("$", hasSize(0)));
+		mockMvc.perform(multipart("/api/reviews")
+				.header(HttpHeaders.AUTHORIZATION, token)
+				.param("orderItemId", orderItemIdBeforeShipping)
+				.param("rating", "5")
+				.param("content", "받기 전 후기"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("ORDER_ITEM_NOT_REVIEWABLE"));
+		jdbc.update("update orders set status = 'SHIPPING' where order_number = ?", orderNumber);
 
 		String reviewable = mockMvc.perform(get("/api/me/reviewable-products").header(HttpHeaders.AUTHORIZATION, token))
 			.andExpect(jsonPath("$", hasSize(1)))

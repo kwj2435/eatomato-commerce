@@ -70,14 +70,15 @@ class KakaoLoginTest {
 	}
 
 	@Test
-	void 같은_이메일의_기존_회원에_자동으로_연결() throws Exception {
+	void 같은_이메일의_기존_회원이_있으면_자동_연결하지_않고_거절() throws Exception {
+		// 이메일 가입은 이메일 인증이 없어, 남이 먼저 그 이메일로 가입해 둔 계정일 수 있다.
 		mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"password\":\"password123\",\"email\":\"linkme@example.com\",\"name\":\"기존회원\"}"))
 			.andExpect(status().isCreated());
 		given(kakaoOAuthClient.fetchUser("code-3", REDIRECT)).willReturn(new KakaoUser(2002L, "linkme@example.com", true));
 		mockMvc.perform(post("/api/auth/kakao").contentType(MediaType.APPLICATION_JSON).content(loginBody("code-3")))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.member.name").value("기존회원"));
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("KAKAO_EMAIL_ALREADY_REGISTERED"));
 	}
 
 	@Test

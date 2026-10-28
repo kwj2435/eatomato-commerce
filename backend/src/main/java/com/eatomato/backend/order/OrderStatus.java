@@ -22,8 +22,14 @@ public enum OrderStatus {
 	DELIVERED,
 	CANCELLED;
 
-	/** 매출·판매량·후기 작성에 잡히는 상태(결제가 끝난 주문). */
+	/** 매출·판매량에 잡히는 상태(결제가 끝난 주문). */
 	public static final Set<OrderStatus> PAID_STATES = EnumSet.of(PAID, SHIPPING, DELIVERED);
+
+	/**
+	 * 후기를 쓸 수 있는 상태. 후기 적립금을 주므로 더는 취소할 수 없는(배송이 시작된) 주문만 받는다.
+	 * 결제완료(PAID)를 넣으면 후기 적립 → 주문 취소를 반복해 적립금을 쌓을 수 있다.
+	 */
+	public static final Set<OrderStatus> REVIEWABLE_STATES = EnumSet.of(SHIPPING, DELIVERED);
 
 	public Set<OrderStatus> next() {
 		return switch (this) {
@@ -50,5 +56,9 @@ public enum OrderStatus {
 
 	public boolean isPaid() {
 		return PAID_STATES.contains(this);
+	}
+
+	public boolean isReviewable() {
+		return REVIEWABLE_STATES.contains(this);
 	}
 }

@@ -166,6 +166,40 @@ class CheckoutFlowTest {
 	}
 
 	@Test
+	void 같은_주문에_취소가_동시에_와도_한_번만_처리된다() throws Exception {
+		String admin = admin();
+		setStock(admin, 11, 5);
+		String user = signup("concurrentcancel");
+		addToCart(user, 11, 2);
+		String orderNumber = JsonPath.read(order(user, "21986"), "$.orderNumber");
+		org.assertj.core.api.Assertions.assertThat(stockOf(11)).isEqualTo(3);
+
+		int threads = 5;
+		java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(threads);
+		java.util.concurrent.CountDownLatch start = new java.util.concurrent.CountDownLatch(1);
+		java.util.List<java.util.concurrent.Future<Integer>> results = new java.util.ArrayList<>();
+		for (int i = 0; i < threads; i++) {
+			results.add(pool.submit(() -> {
+				start.await();
+				return mockMvc.perform(post("/api/orders/" + orderNumber + "/cancel").header(HttpHeaders.AUTHORIZATION, user))
+					.andReturn().getResponse().getStatus();
+			}));
+		}
+		start.countDown();
+		java.util.List<Integer> statuses = new java.util.ArrayList<>();
+		for (java.util.concurrent.Future<Integer> result : results) {
+			statuses.add(result.get(30, java.util.concurrent.TimeUnit.SECONDS));
+		}
+		pool.shutdown();
+
+		// 하나만 취소되고 나머지는 이미 취소된 주문이라 거절된다. 재고는 정확히 한 번(2개)만 돌아온다.
+		org.assertj.core.api.Assertions.assertThat(statuses).filteredOn(code -> code == 200).hasSize(1);
+		org.assertj.core.api.Assertions.assertThat(statuses).filteredOn(code -> code == 400).hasSize(threads - 1);
+		org.assertj.core.api.Assertions.assertThat(stockOf(11)).isEqualTo(5);
+		setStock(admin, 11, null);
+	}
+
+	@Test
 	void 결제대기_30분이_지나면_자동_취소되고_재고가_돌아온다() throws Exception {
 		String admin = admin();
 		setStock(admin, 9, 5);

@@ -33,6 +33,8 @@ import com.eatomato.backend.product.Product;
 import com.eatomato.backend.product.ProductRepository;
 import com.eatomato.backend.shipping.ShippingPolicyService;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -61,6 +63,7 @@ public class OrderService {
 	private final ShippingPolicyService shippingPolicyService;
 	private final CouponService couponService;
 	private final PointService pointService;
+	private final EntityManager entityManager;
 
 	@Transactional
 	public OrderResponse create(Long memberId, CreateOrderRequest request) {
@@ -163,6 +166,7 @@ public class OrderService {
 	/** 고객 취소 공통(회원·비회원). 주문 주인인지는 부르는 쪽이 확인한다. */
 	@Transactional
 	public OrderResponse cancelByCustomer(Order order) {
+		lock(order);
 		Payment payment = paymentRepository.findByOrder(order).orElse(null);
 		if (order.getStatus() == OrderStatus.PAID && payment != null && payment.isVirtualAccount()) {
 			throw new ApiException(ErrorCode.CANCEL_VIA_CUSTOMER_SERVICE);
@@ -187,6 +191,7 @@ public class OrderService {
 	@Transactional
 	public void cancel(Order order, Long changedBy, String reason, PaymentGateway.RefundAccount refundAccount,
 		boolean canceledAtGateway) {
+		lock(order);
 		OrderStatus before = order.getStatus();
 		if (!before.isCancellable()) {
 			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
@@ -222,6 +227,7 @@ public class OrderService {
 	@Transactional
 	public void changeStatusByAdmin(Order order, OrderStatus next, Long adminId,
 		PaymentGateway.RefundAccount refundAccount) {
+		lock(order);
 		if (!order.getStatus().nextByAdmin().contains(next)) {
 			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
 		}
@@ -250,7 +256,13 @@ public class OrderService {
 	public void expireUnpaidOrders() {
 		List<Order> expired = orderRepository.findByStatusAndOrderedAtBefore(OrderStatus.PENDING_PAYMENT,
 			Times.now().minus(PAYMENT_TIMEOUT));
-		expired.forEach(order -> cancel(order, null, "결제 시간 초과"));
+		// 조회한 뒤 그사이 결제가 승인됐을 수 있어, 잠근 뒤 다시 확인하고 취소한다.
+		expired.forEach(order -> {
+			lock(order);
+			if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
+				cancel(order, null, "결제 시간 초과");
+			}
+		});
 		if (!expired.isEmpty()) {
 			log.info("결제대기 만료 취소: {}건", expired.size());
 		}
@@ -260,8 +272,12 @@ public class OrderService {
 			Times.now());
 		overdue.stream()
 			.map(Payment::getOrder)
-			.filter(order -> order.getStatus() == OrderStatus.AWAITING_DEPOSIT)
-			.forEach(order -> cancel(order, null, "입금 기한 만료"));
+			.forEach(order -> {
+				lock(order);
+				if (order.getStatus() == OrderStatus.AWAITING_DEPOSIT) {
+					cancel(order, null, "입금 기한 만료");
+				}
+			});
 		if (!overdue.isEmpty()) {
 			log.info("입금 기한 만료 취소: {}건", overdue.size());
 		}
@@ -294,6 +310,28 @@ public class OrderService {
 		Map<Long, Integer> quantities = new LinkedHashMap<>();
 		order.getItems().forEach(item -> quantities.merge(item.getProductId(), item.getQuantity(), Integer::sum));
 		return quantities;
+	}
+
+	/**
+	 * 주문 행을 잠그고(SELECT ... FOR UPDATE) 최신 상태로 다시 읽는다. 상태를 바꾸는 곳(결제 승인·입금·취소·관리자 변경)은
+	 * 상태를 확인하기 전에 이걸 부른다. 같은 주문에 요청이 동시에 와도 하나씩 처리되어, 취소가 겹쳐 적립금·재고가
+	 * 두 번 돌아가거나 승인과 취소가 엇갈려 덮어쓰지 않는다. 같은 트랜잭션에서 다시 불러도 된다.
+	 */
+	@Transactional
+	public void lock(Order order) {
+		// refresh(order, PESSIMISTIC_WRITE) 를 한 번에 부르면 Hibernate 7 이 items 를 다시 읽다가 NPE 를 낸다.
+		// 행 잠금(SELECT ... FOR UPDATE)을 먼저 걸고, 잠근 뒤의 값으로 다시 읽는다.
+		entityManager.lock(order, LockModeType.PESSIMISTIC_WRITE);
+		entityManager.refresh(order);
+	}
+
+	/** 일반 PG 웹훅의 취소 알림. 주문 조회부터 같은 트랜잭션에서 해 잠금이 걸리게 한다. */
+	@Transactional
+	public OrderResponse cancelByWebhook(String orderNumber) {
+		Order order = orderRepository.findByOrderNumber(orderNumber)
+			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_NOT_FOUND));
+		cancel(order, null, "PG 취소 알림");
+		return OrderResponse.from(order);
 	}
 
 	private Order findMine(Long memberId, String orderNumber) {

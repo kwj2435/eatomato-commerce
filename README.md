@@ -4,7 +4,7 @@ eatomato 커머스 모노레포. 서비스 주소: https://eatomato.kr
 
 | 폴더 | 내용 |
 |---|---|
-| [`frontend/`](frontend) | Next.js 프론트(스토어 + 관리자 `/admin`). 운영은 standalone Node 서버, GitHub Pages 는 정적 export |
+| [`frontend/`](frontend) | Next.js 프론트(스토어 + 관리자 `/admin`). 운영은 standalone Node 서버 |
 | [`backend/`](backend) | Spring Boot API 서버 (Java 21, MySQL 8.4 컨테이너). API 목록은 `backend/README.md` |
 | [`deploy/`](deploy) | VM 배포·백업 스크립트(`deploy.sh`, `backup.sh`), 호스트 nginx 설정 (HTTPS 종료, `/api`·`/uploads` → 백엔드, 나머지 → 프론트) |
 
@@ -28,4 +28,3 @@ MEGA `/eatomato-backups`(30일치)에 남긴다. MEGA 는 MEGAcmd 로 올리며,
 관리자 화면(`https://eatomato.kr/admin`)에서 바꾼 상품·배너·공지는 재배포 없이 최대 1분 안에 스토어에 반영된다
 (프론트 서버가 60초마다 백엔드에서 다시 받는다).
 
-GitHub Pages 배포(`.github/workflows/deploy.yml`)는 `frontend/` 가 바뀐 커밋에서만 돌고, API 는 `https://eatomato.kr` 을 쓴다.

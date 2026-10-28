@@ -48,6 +48,8 @@ public class PaymentService {
 			? orderRepository.findByOrderNumber(orderNumber)
 			: orderRepository.findByOrderNumberAndMemberId(orderNumber, memberId))
 			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_NOT_FOUND));
+		// PG 승인 호출 동안 잠금을 쥐고 있어, 그사이 들어온 취소·만료는 승인이 끝난 뒤의 상태를 보고 판단한다.
+		orderService.lock(order);
 		Payment payment = paymentRepository.findByOrder(order)
 			.orElseThrow(() -> new ApiException(ErrorCode.ORDER_NOT_FOUND));
 
@@ -111,6 +113,7 @@ public class PaymentService {
 	public void handleDeposit(String orderNumber, String secret, String status) {
 		Order order = orderRepository.findByOrderNumber(orderNumber)
 			.orElseThrow(() -> new ApiException(ErrorCode.INVALID_WEBHOOK));
+		orderService.lock(order);
 		Payment payment = paymentRepository.findByOrder(order)
 			.orElseThrow(() -> new ApiException(ErrorCode.INVALID_WEBHOOK));
 		if (payment.getSecret() == null || secret == null || !MessageDigest.isEqual(
@@ -147,6 +150,7 @@ public class PaymentService {
 		if (payment == null || !paymentKey.equals(payment.getPaymentKey())) {
 			return;
 		}
+		orderService.lock(order);
 		if (!order.getStatus().isCancellable()) {
 			if (order.getStatus() != OrderStatus.CANCELLED) {
 				log.warn("PG 에서 취소됐지만 주문 상태가 {} 라 자동 취소하지 않음: 주문 {}", order.getStatus(), orderNumber);
