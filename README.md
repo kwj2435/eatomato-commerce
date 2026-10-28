@@ -21,8 +21,9 @@ VM 에서 저장소 루트에서 `./deploy/deploy.sh` 를 실행한다(git pull 
 백엔드는 `backend/.env` 가 필요하다(`.env.example` 참고). DB·계정은 mysql 컨테이너가 처음 뜰 때 이 값으로 만들고,
 스키마는 백엔드가 기동하며 Flyway 로 만든다. 데이터는 Docker 볼륨(`eatomato-backend_mysql-data`, `eatomato-backend_uploads`)에 있다.
 
-백업: root crontab 이 매일 `./deploy/backup.sh` 로 DB 덤프와 업로드 파일을 `/root/backups` 에 14일치 남긴다.
-VM 디스크에만 있으므로 가끔 로컬로 내려받아 둔다(`scp root@158.247.230.110:/root/backups/* .`).
+백업: root crontab 이 매일 자정(KST) `./deploy/backup.sh` 로 DB 덤프와 업로드 파일을 `/root/backups`(14일치)와
+MEGA `/eatomato-backups`(30일치)에 남긴다. MEGA 는 MEGAcmd 로 올리며, 세션이 끊기면 VM 에서 `mega-login` 을 다시 한다.
+복구: `gunzip -c db-*.sql.gz | docker exec -i eatomato-mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot'`.
 
 관리자 화면(`https://eatomato.kr/admin`)에서 바꾼 상품·배너·공지는 재배포 없이 최대 1분 안에 스토어에 반영된다
 (프론트 서버가 60초마다 백엔드에서 다시 받는다).
