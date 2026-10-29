@@ -33,7 +33,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 업로드 이미지를 웹용으로 줄이고 압축한다.
  *
- * - 긴 변이 maxSide 를 넘으면 비율을 유지해 줄인다. 큰 원본은 읽을 때부터 건너뛰며(subsampling) 읽어 메모리를 아낀다.
+ * - 긴 변이 maxSide 를 넘으면 비율을 유지해 줄인다. 큰 원본은 읽을 때부터 건너뛰며(subsampling) 읽어 메모리를 아끼되,
+ *   건너뛰기는 픽셀을 버리는 방식이라 글자·경계가 계단처럼 깨지므로 목표의 2배 이상 크기로만 읽고 나머지는 보간으로 줄인다.
  * - 휴대폰 사진의 EXIF 회전 정보를 실제 픽셀에 반영한다(다시 저장하면 EXIF 가 빠지므로).
  * - cwebp 가 있으면 WebP(투명 배경 유지)로, 없으면 투명 이미지는 PNG, 나머지는 JPEG 로 저장한다.
  * - 읽을 수 없는 형식(GIF 애니메이션·HEIC·WebP 원본 등)이거나 결과가 원본보다 작지 않으면 empty → 원본을 그대로 저장한다.
@@ -43,9 +44,16 @@ import lombok.extern.slf4j.Slf4j;
 public class ImageOptimizer {
 
 	private static final float JPEG_QUALITY = 0.85f;
-	private static final String WEBP_QUALITY = "82";
-	/** 읽기 전에 막는 원본 크기(가로×세로). 이보다 크면 최적화하지 않고 원본을 둔다. */
-	private static final long MAX_SOURCE_PIXELS = 200_000_000L;
+	/** 배너 글자·토마토 빨강 경계가 뭉개지지 않게 품질을 높이고 -sharp_yuv 로 색 경계를 살린다. */
+	private static final String WEBP_QUALITY = "90";
+	/**
+	 * 읽기 전에 막는 원본 크기(가로×세로). 이보다 크면 최적화하지 않고 원본을 둔다.
+	 * 건너뛰며 읽으므로 메모리는 원본이 아니라 READ_PIXEL_BUDGET 을 따른다. 디자인 툴에서 큰 배율로 내보낸
+	 * 배너(12756×17008 등)도 줄일 수 있게 넉넉히 둔다.
+	 */
+	private static final long MAX_SOURCE_PIXELS = 400_000_000L;
+	/** 건너뛰며 읽은 중간 이미지의 최대 픽셀 수. 힙(256MB)에서 중간 사본 몇 장이 함께 떠도 넘치지 않는 크기. */
+	private static final long READ_PIXEL_BUDGET = 12_000_000L;
 	/**
 	 * 이만큼(비율) 이상 픽셀이 반쯤 넘게 투명해야 투명 이미지로 본다.
 	 * 사진을 PNG 로 내보내면 가장자리에 0.1% 안팎의 반투명 픽셀이 섞이는데, 이런 건 불투명 사진으로 다룬다.
@@ -83,8 +91,9 @@ public class ImageOptimizer {
 	}
 
 	/**
-	 * 목표 크기보다 크면 정수 배로 건너뛰며 읽어 긴 변을 maxSide 의 1~2배로 맞춘다(원본 전체를 메모리에 올리지 않게).
-	 * 예전처럼 두 배 이상일 때만 건너뛰면 6000px 원본을 그대로 펼쳐 힙(256MB)을 넘기고, 최적화 없이 원본이 저장됐다.
+	 * 목표 크기보다 크면 정수 배로 건너뛰며 읽는다(원본 전체를 메모리에 올리지 않게).
+	 * 긴 변을 maxSide 의 2배 이상으로 남겨 resize 의 보간이 실제 축소를 맡게 하고, 중간 이미지가
+	 * READ_PIXEL_BUDGET 을 넘으면 그만큼 더 건너뛴다. 6000px 원본을 그대로 펼치면 힙(256MB)을 넘긴다.
 	 */
 	private static BufferedImage read(byte[] bytes, int maxSide) throws IOException {
 		try (ImageInputStream in = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
@@ -101,13 +110,20 @@ public class ImageOptimizer {
 					return null;
 				}
 				ImageReadParam param = reader.getDefaultReadParam();
-				int step = Math.max(1, Math.max(width, height) / maxSide);
+				int step = Math.max(1, Math.max(width, height) / (maxSide * 2));
+				while ((long) ceilDiv(width, step) * ceilDiv(height, step) > READ_PIXEL_BUDGET) {
+					step++;
+				}
 				param.setSourceSubsampling(step, step, 0, 0);
 				return reader.read(0, param);
 			} finally {
 				reader.dispose();
 			}
 		}
+	}
+
+	private static int ceilDiv(int value, int divisor) {
+		return (value + divisor - 1) / divisor;
 	}
 
 	private static int orientationOf(byte[] bytes) {
@@ -239,7 +255,7 @@ public class ImageOptimizer {
 		Path webp = dir.resolve("out.webp");
 		try {
 			Files.write(png, encodePng(image));
-			Process process = new ProcessBuilder("cwebp", "-quiet", "-q", WEBP_QUALITY, "-m", "4", "-metadata", "none",
+			Process process = new ProcessBuilder("cwebp", "-quiet", "-q", WEBP_QUALITY, "-m", "6", "-sharp_yuv", "-metadata", "none",
 				png.toString(), "-o", webp.toString())
 				.redirectErrorStream(true)
 				.redirectOutput(ProcessBuilder.Redirect.DISCARD)
