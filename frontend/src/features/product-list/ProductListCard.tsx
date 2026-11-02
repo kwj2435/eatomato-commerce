@@ -93,7 +93,7 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
 }
 
 const BADGE_STYLES: Record<ProductBadge, string> = {
-  SALE: "bg-brand-badge text-white",
+  SALE: "bg-black text-white",
   BEST: "bg-brand-badge text-white",
   NEW: "bg-brand-badge text-white",
 };

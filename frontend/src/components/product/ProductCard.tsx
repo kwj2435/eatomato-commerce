@@ -76,7 +76,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
 const BADGE_STYLES: Record<ProductBadge, string> = {
   NEW: "bg-brand-badge text-ink-inverse",
   BEST: "bg-brand-badge text-ink-inverse",
-  SALE: "bg-brand-badge text-ink-inverse",
+  SALE: "bg-black text-ink-inverse",
 };
 
 function BadgeGroup({ badges }: { badges: ProductBadge[] }) {
