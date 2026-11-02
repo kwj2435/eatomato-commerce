@@ -93,20 +93,20 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
 }
 
 const BADGE_STYLES: Record<ProductBadge, string> = {
-  SALE: "bg-[#EEAB99] text-white",
-  BEST: "bg-[#EEAB99] text-white",
+  SALE: "bg-brand-badge text-white",
+  BEST: "bg-brand-badge text-white",
   NEW: "bg-brand-badge text-white",
 };
 
 function BadgeStack({ badges }: { badges: ProductBadge[] }) {
   return (
-    <div className="pointer-events-none absolute left-[11px] top-[10px] z-10 flex flex-col items-start gap-0.5">
+    <div className="pointer-events-none absolute left-1.5 top-1.5 z-10 flex flex-col items-start gap-px sm:left-[11px] sm:top-[10px] sm:gap-0.5">
       {/* 배지 문구 길이와 무관하게 박스 크기를 통일하기 위해 고정 폭 + 가운데 정렬 */}
       {badges.map((badge) => (
         <span
           key={badge}
           className={cn(
-            "w-[58px] py-1 text-center text-[14px] font-medium leading-[18px] tracking-[-0.2px]",
+            "w-[38px] py-px text-center text-[10px] font-medium leading-[14px] tracking-[-0.2px] sm:w-[58px] sm:py-1 sm:text-[14px] sm:leading-[18px]",
             BADGE_STYLES[badge],
           )}
         >
