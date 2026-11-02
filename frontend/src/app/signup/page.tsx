@@ -1,19 +1,6 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { SiteFrame } from "@/components/layout/SiteFrame";
-import { SignupForm } from "@/features/auth/SignupForm";
-
-export const metadata: Metadata = {
-  title: "회원가입",
-  description: "eatomato 회원가입",
-};
-
+/** 이메일 회원가입은 받지 않는다. 카카오·네이버로 로그인하면 처음일 때 자동으로 가입된다. 예전 주소는 로그인으로 보낸다. */
 export default function SignupPage() {
-  return (
-    <SiteFrame>
-      <div className="pb-[112px] pt-[27px]">
-        <SignupForm />
-      </div>
-    </SiteFrame>
-  );
+  redirect("/login/");
 }

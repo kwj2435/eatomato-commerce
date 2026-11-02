@@ -64,11 +64,11 @@ public class SecurityConfig {
 			.headers(headers -> headers.httpStrictTransportSecurity(hsts -> hsts.disable()))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/kakao",
+				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/kakao", "/api/auth/naver",
 					"/api/auth/refresh", "/api/auth/logout", "/api/payments/webhook", "/api/payments/toss/webhook").permitAll()
 				// 비회원 장바구니·주문. 주문 조회·취소·결제 승인은 주문 비밀번호로 확인한다(GuestOrderService).
 				.requestMatchers(HttpMethod.POST, "/api/guest/**").permitAll()
-				.requestMatchers(HttpMethod.GET, "/api/auth/kakao/authorize").permitAll()
+				.requestMatchers(HttpMethod.GET, "/api/auth/kakao/authorize", "/api/auth/naver/authorize").permitAll()
 				.requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
 				.requestMatchers("/error").permitAll()
 				// 관리자 권한은 토큰의 roles 클레임이 아니라 AdminAccessInterceptor 가 요청마다 DB 로 판단한다.

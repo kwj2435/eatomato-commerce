@@ -34,6 +34,8 @@ management:
         include: health
 
 app:
+  # 이메일(아이디·비밀번호) 회원가입. 운영은 끄고 카카오·네이버로만 가입한다. 기존 회원의 이메일 로그인은 그대로 된다.
+  email-signup-enabled: ${EMAIL_SIGNUP_ENABLED:false}
   jwt:
     # HS256 서명 키. 32바이트 이상의 임의 문자열이어야 한다.
     secret: ${JWT_SECRET}
@@ -53,6 +55,10 @@ app:
     rest-api-key: ${KAKAO_REST_API_KEY:}
     client-secret: ${KAKAO_CLIENT_SECRET:}
     redirect-uris: ${KAKAO_REDIRECT_URIS:https://eatomato.kr/login/kakao/,http://localhost:3000/login/kakao/}
+  naver:
+    client-id: ${NAVER_CLIENT_ID:}
+    client-secret: ${NAVER_CLIENT_SECRET:}
+    redirect-uris: ${NAVER_REDIRECT_URIS:https://eatomato.kr/login/naver/,http://localhost:3000/login/naver/}
   payment:
     # mock: 결제가 항상 성공했다고 본다(개발용). toss: 토스페이먼츠 결제위젯.
     provider: ${PAYMENT_PROVIDER:mock}
@@ -84,6 +90,8 @@ spring:
     password:
 
 app:
+  # 로컬·테스트는 이메일 가입으로 회원을 만든다
+  email-signup-enabled: true
   jwt:
     secret: local-development-secret-key-must-be-32-bytes-or-more
   admin:

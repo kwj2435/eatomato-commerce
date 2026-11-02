@@ -12,10 +12,13 @@
 export function KakaoLoginButton({
   onClick,
   disabled,
+  wide = false,
   className = "",
 }: {
   onClick: () => void;
   disabled?: boolean;
+  /** true 면 폭 상한 없이 부모 폭을 채운다(로그인 카드). */
+  wide?: boolean;
   className?: string;
 }) {
   return (
@@ -23,7 +26,7 @@ export function KakaoLoginButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`mx-auto flex h-12 w-full max-w-[264px] items-center justify-center gap-2 rounded-[12px] bg-[#FEE500] transition-opacity hover:opacity-90 disabled:opacity-60 ${className}`}
+      className={`mx-auto flex w-full items-center ${wide ? "h-[52px]" : "h-12 max-w-[264px]"} justify-center gap-2 rounded-[12px] bg-[#FEE500] transition-opacity hover:opacity-90 disabled:opacity-60 ${className}`}
       style={{ fontFamily: "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" }}
     >
       <svg width="18" height="18" viewBox="61.5225 16.5225 12.9555 12.9555" aria-hidden focusable="false">

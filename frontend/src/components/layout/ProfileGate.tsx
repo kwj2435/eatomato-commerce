@@ -8,7 +8,7 @@ import { useAuthStore, useIsLoggedIn } from "@/lib/store/auth-store";
 import { useHydrated } from "@/lib/store/use-hydrated";
 
 /** 추가 정보 입력 없이도 머물 수 있는 화면. */
-const ALLOWED = ["/signup/profile", "/login", "/signup", "/login/kakao"];
+const ALLOWED = ["/signup/profile", "/login", "/signup", "/login/kakao", "/login/naver"];
 
 let refreshed = false;
 

@@ -19,6 +19,8 @@ import com.eatomato.backend.auth.dto.SignupRequest;
 import com.eatomato.backend.auth.dto.TokenResponse;
 import com.eatomato.backend.auth.kakao.KakaoLoginRequest;
 import com.eatomato.backend.auth.kakao.KakaoOAuthClient;
+import com.eatomato.backend.auth.naver.NaverLoginRequest;
+import com.eatomato.backend.auth.naver.NaverOAuthClient;
 import com.eatomato.backend.global.config.AppProperties;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
@@ -37,12 +39,16 @@ public class AuthController {
 
 	private final AuthService authService;
 	private final KakaoOAuthClient kakaoOAuthClient;
+	private final NaverOAuthClient naverOAuthClient;
 	private final AppProperties properties;
 
-	/** 가입과 동시에 로그인 토큰을 내려준다. */
+	/** 가입과 동시에 로그인 토큰을 내려준다. 운영은 꺼 두고(app.email-signup-enabled) 소셜 가입만 받는다. */
 	@PostMapping("/signup")
 	@ResponseStatus(HttpStatus.CREATED)
 	public TokenResponse signup(@Valid @RequestBody SignupRequest request) {
+		if (!properties.emailSignupEnabled()) {
+			throw new ApiException(ErrorCode.EMAIL_SIGNUP_DISABLED);
+		}
 		return authService.signup(request);
 	}
 
@@ -95,6 +101,38 @@ public class AuthController {
 		}
 		if (kakao.redirectUris() == null || !kakao.redirectUris().contains(redirectUri)) {
 			throw new ApiException(ErrorCode.KAKAO_INVALID_REDIRECT);
+		}
+	}
+
+	/**
+	 * 네이버 로그인 시작. 브라우저를 네이버 로그인·동의 화면으로 보낸다(302).
+	 *
+	 * @param state 프론트가 만든 난수. 콜백에서 같은 값인지 확인해 CSRF 를 막는다.
+	 */
+	@GetMapping("/naver/authorize")
+	public ResponseEntity<Void> naverAuthorize(
+		@RequestParam String redirectUri,
+		@RequestParam @NotBlank @Size(max = 100) String state) {
+		requireNaverRedirect(redirectUri);
+		return ResponseEntity.status(HttpStatus.FOUND)
+			.location(URI.create(naverOAuthClient.authorizeUrl(redirectUri, state)))
+			.build();
+	}
+
+	/** 네이버 콜백: 인가 코드로 로그인(없으면 가입). */
+	@PostMapping("/naver")
+	public TokenResponse naverLogin(@Valid @RequestBody NaverLoginRequest request) {
+		requireNaverRedirect(request.redirectUri());
+		return authService.loginWithNaver(naverOAuthClient.fetchUser(request.code(), request.state()));
+	}
+
+	private void requireNaverRedirect(String redirectUri) {
+		AppProperties.Naver naver = properties.naver();
+		if (naver == null || !naver.configured()) {
+			throw new ApiException(ErrorCode.NAVER_NOT_CONFIGURED);
+		}
+		if (naver.redirectUris() == null || !naver.redirectUris().contains(redirectUri)) {
+			throw new ApiException(ErrorCode.NAVER_INVALID_REDIRECT);
 		}
 	}
 }

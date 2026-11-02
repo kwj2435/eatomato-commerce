@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app")
-public record AppProperties(Jwt jwt, Cors cors, Upload upload, Seed seed, Admin admin, Kakao kakao, Payment payment,
+public record AppProperties(boolean emailSignupEnabled, Jwt jwt, Cors cors, Upload upload, Seed seed, Admin admin, Kakao kakao, Naver naver, Payment payment,
 	LoginLimit loginLimit) {
 
 	public record Jwt(String secret, Duration accessTokenTtl, Duration refreshTokenTtl) {
@@ -29,6 +29,13 @@ public record AppProperties(Jwt jwt, Cors cors, Upload upload, Seed seed, Admin 
 
 		public boolean configured() {
 			return restApiKey != null && !restApiKey.isBlank();
+		}
+	}
+
+	public record Naver(String clientId, String clientSecret, List<String> redirectUris) {
+
+		public boolean configured() {
+			return clientId != null && !clientId.isBlank() && clientSecret != null && !clientSecret.isBlank();
 		}
 	}
 

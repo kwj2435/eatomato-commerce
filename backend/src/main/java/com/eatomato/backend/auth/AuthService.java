@@ -20,6 +20,7 @@ import com.eatomato.backend.auth.dto.LoginRequest;
 import com.eatomato.backend.auth.dto.SignupRequest;
 import com.eatomato.backend.auth.dto.TokenResponse;
 import com.eatomato.backend.auth.kakao.KakaoUser;
+import com.eatomato.backend.auth.naver.NaverUser;
 import com.eatomato.backend.auth.limit.LoginAttemptLimiter;
 import com.eatomato.backend.auth.token.RefreshTokenService;
 import com.eatomato.backend.coupon.CouponService;
@@ -139,6 +140,42 @@ public class AuthService {
 				name.length() > 50 ? name.substring(0, 50) : name));
 			couponService.issueSignupCoupons(member.getId());
 			member.linkKakao(kakao.id());
+		}
+		if (!member.isEnabled()) {
+			throw new ApiException(ErrorCode.MEMBER_DISABLED);
+		}
+		return issueToken(member);
+	}
+
+	/**
+	 * 네이버 로그인·가입. 기존 회원 처리는 카카오와 같다(같은 이메일의 기존 회원에 자동 연결하지 않음).
+	 * 처음 가입하면 네이버가 준 이름·휴대전화번호를 회원 정보에 넣는다.
+	 */
+	@Transactional
+	public TokenResponse loginWithNaver(NaverUser naver) {
+		Member member = memberRepository.findByNaverId(naver.id()).orElse(null);
+		if (member == null) {
+			if (naver.email() == null || naver.email().isBlank()) {
+				throw new ApiException(ErrorCode.NAVER_EMAIL_REQUIRED);
+			}
+			String email = naver.email().trim();
+			if (memberRepository.findByEmail(email).isPresent()) {
+				throw new ApiException(ErrorCode.NAVER_EMAIL_ALREADY_REGISTERED);
+			}
+			String name = naver.name() != null && !naver.name().isBlank()
+				? naver.name().trim()
+				: email.substring(0, email.indexOf('@'));
+			member = memberRepository.save(new Member(
+				generateLoginId(email),
+				passwordEncoder.encode(UUID.randomUUID().toString()),
+				email,
+				name.length() > 50 ? name.substring(0, 50) : name));
+			couponService.issueSignupCoupons(member.getId());
+			member.linkNaver(naver.id());
+			String[] phone = naver.mobile() == null ? new String[0] : naver.mobile().replaceAll("[^0-9-]", "").split("-");
+			if (phone.length == 3) {
+				member.changePhone(phone[0], phone[1], phone[2]);
+			}
 		}
 		if (!member.isEnabled()) {
 			throw new ApiException(ErrorCode.MEMBER_DISABLED);

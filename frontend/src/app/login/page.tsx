@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <SiteFrame>
-      <div className="pb-[112px] pt-[27px]">
+      <div className="pb-[112px] pt-10 md:pt-[60px]">
         <LoginForm />
       </div>
     </SiteFrame>

@@ -67,6 +67,9 @@ public class Member {
 	/** 카카오 회원번호. 카카오로 가입·연결한 회원만 있다. */
 	private Long kakaoId;
 
+	/** 네이버 회원 식별자. 네이버로 가입·연결한 회원만 있다. */
+	private String naverId;
+
 	@Enumerated(EnumType.STRING)
 	private MemberRole role;
 
@@ -161,6 +164,10 @@ public class Member {
 
 	public void linkKakao(Long kakaoId) {
 		this.kakaoId = kakaoId;
+	}
+
+	public void linkNaver(String naverId) {
+		this.naverId = naverId;
 	}
 
 	public boolean isAdmin() {
