@@ -29,6 +29,8 @@ import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.member.Member;
 import com.eatomato.backend.member.MemberRepository;
+import com.eatomato.backend.member.MemberWithdrawalService;
+import com.eatomato.backend.member.WithdrawnSocialAccount;
 import com.eatomato.backend.member.dto.MemberResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,7 @@ public class AuthService {
 
 	private final MemberRepository memberRepository;
 	private final CouponService couponService;
+	private final MemberWithdrawalService memberWithdrawalService;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtEncoder jwtEncoder;
 	private final AppProperties properties;
@@ -138,7 +141,10 @@ public class AuthService {
 				passwordEncoder.encode(UUID.randomUUID().toString()),
 				email,
 				name.length() > 50 ? name.substring(0, 50) : name));
-			couponService.issueSignupCoupons(member.getId());
+			// 탈퇴 후 같은 계정으로 다시 가입하면 신규가입 쿠폰을 또 주지 않는다.
+			if (!memberWithdrawalService.wasWithdrawn(WithdrawnSocialAccount.KAKAO, String.valueOf(kakao.id()))) {
+				couponService.issueSignupCoupons(member.getId());
+			}
 			member.linkKakao(kakao.id());
 		}
 		if (!member.isEnabled()) {
@@ -170,7 +176,9 @@ public class AuthService {
 				passwordEncoder.encode(UUID.randomUUID().toString()),
 				email,
 				name.length() > 50 ? name.substring(0, 50) : name));
-			couponService.issueSignupCoupons(member.getId());
+			if (!memberWithdrawalService.wasWithdrawn(WithdrawnSocialAccount.NAVER, naver.id())) {
+				couponService.issueSignupCoupons(member.getId());
+			}
 			member.linkNaver(naver.id());
 			String[] phone = naver.mobile() == null ? new String[0] : naver.mobile().replaceAll("[^0-9-]", "").split("-");
 			if (phone.length == 3) {

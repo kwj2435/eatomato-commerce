@@ -272,7 +272,8 @@ class CheckoutFlowTest {
 		String user = signup("profile1");
 		mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, user))
 			.andExpect(jsonPath("$.profileComplete").value(false));
-		String profile = "{\"nickname\":\"%s\",\"zipCode\":\"21986\",\"roadAddress\":\"인천 연수구 송도문화로 28\",\"detailAddress\":\"101호\"}";
+		String profile = "{\"nickname\":\"%s\",\"zipCode\":\"21986\",\"roadAddress\":\"인천 연수구 송도문화로 28\",\"detailAddress\":\"101호\","
+			+ "\"agreeTerms\":true,\"agreePrivacy\":true,\"ageOver14\":true}";
 		mockMvc.perform(put("/api/me/profile").header(HttpHeaders.AUTHORIZATION, user)
 				.contentType(MediaType.APPLICATION_JSON).content(profile.formatted("토마토러버")))
 			.andExpect(status().isOk())
@@ -287,6 +288,15 @@ class CheckoutFlowTest {
 		mockMvc.perform(put("/api/me/profile").header(HttpHeaders.AUTHORIZATION, other)
 				.contentType(MediaType.APPLICATION_JSON).content(profile.formatted("a")))
 			.andExpect(status().isBadRequest());
+		// 약관 필수 동의가 하나라도 빠지면 저장하지 않는다.
+		mockMvc.perform(put("/api/me/profile").header(HttpHeaders.AUTHORIZATION, other)
+				.contentType(MediaType.APPLICATION_JSON).content(profile.formatted("토마토팬").replace("\"ageOver14\":true", "\"ageOver14\":false")))
+			.andExpect(status().isBadRequest());
+		mockMvc.perform(put("/api/me/profile").header(HttpHeaders.AUTHORIZATION, other)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"nickname\":\"토마토팬\",\"zipCode\":\"21986\",\"roadAddress\":\"인천 연수구 송도문화로 28\"}"))
+			.andExpect(status().isBadRequest());
+		mockMvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, other))
+			.andExpect(jsonPath("$.profileComplete").value(false));
 	}
 
 	@Test

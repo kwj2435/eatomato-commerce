@@ -76,6 +76,12 @@ public class Member {
 	/** false 면 이용 정지. 로그인과 API 이용이 막힌다. */
 	private boolean enabled;
 
+	/** 가입 약관(이용약관·개인정보 수집·이용·만 14세 이상) 필수 동의 시각. */
+	private LocalDateTime termsAgreedAt;
+
+	/** 탈퇴 시각. 탈퇴하면 회원 정보를 지우고 enabled 를 끈다. */
+	private LocalDateTime withdrawnAt;
+
 	private LocalDateTime createdAt;
 
 	private LocalDateTime updatedAt;
@@ -106,11 +112,47 @@ public class Member {
 	}
 
 	/**
-	 * 가입 후 추가 정보(닉네임·주소)를 다 넣었는지. 관리자 계정은 확인하지 않는다.
+	 * 가입 후 추가 정보(닉네임·주소)와 약관 필수 동의를 마쳤는지. 관리자 계정은 확인하지 않는다.
 	 * 프론트는 false 면 추가 정보 입력 화면으로 보낸다.
 	 */
 	public boolean isProfileComplete() {
-		return isAdmin() || (hasText(nickname) && hasText(zipCode) && hasText(roadAddress));
+		return isAdmin() || (hasText(nickname) && hasText(zipCode) && hasText(roadAddress) && termsAgreedAt != null);
+	}
+
+	/** 약관 필수 동의를 기록한다. 이미 동의했으면 처음 동의한 시각을 그대로 둔다. */
+	public void agreeTerms() {
+		if (termsAgreedAt == null) {
+			termsAgreedAt = Times.now();
+		}
+	}
+
+	public boolean isWithdrawn() {
+		return withdrawnAt != null;
+	}
+
+	/**
+	 * 탈퇴: 개인정보를 지우고 이용을 막는다. 행은 주문·결제 기록이 참조하므로 지우지 않는다.
+	 * 아이디·이메일은 유일해야 해서 회원 번호로 바꾸고, 소셜 연결을 끊어 같은 계정으로 다시 가입할 수 있게 한다.
+	 */
+	public void withdraw() {
+		this.loginId = "withdrawn_" + id;
+		this.email = "withdrawn_" + id + "@withdrawn.invalid";
+		this.name = "탈퇴회원";
+		this.nickname = null;
+		this.phoneFirst = null;
+		this.phoneMiddle = null;
+		this.phoneLast = null;
+		this.zipCode = null;
+		this.roadAddress = null;
+		this.detailAddress = null;
+		this.birthDate = null;
+		this.gender = null;
+		this.marketingEmail = false;
+		this.marketingSms = false;
+		this.kakaoId = null;
+		this.naverId = null;
+		this.enabled = false;
+		this.withdrawnAt = Times.now();
 	}
 
 	private static boolean hasText(String value) {

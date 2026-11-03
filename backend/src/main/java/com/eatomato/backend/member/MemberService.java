@@ -68,6 +68,7 @@ public class MemberService {
 		changeNickname(member, request.nickname());
 		member.changeAddress(request.zipCode(), request.roadAddress().trim(),
 			request.detailAddress() == null ? "" : request.detailAddress().trim());
+		member.agreeTerms();
 		return MemberResponse.from(member);
 	}
 

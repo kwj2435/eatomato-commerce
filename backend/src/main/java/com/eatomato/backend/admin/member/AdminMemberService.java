@@ -56,6 +56,10 @@ public class AdminMemberService {
 	@Transactional
 	public AdminMemberDetail update(Long adminId, Long id, AdminMemberUpdateRequest request) {
 		Member member = find(id);
+		if (member.isWithdrawn()) {
+			// 탈퇴 회원을 다시 켜거나 권한을 주면 정보가 지워진 계정이 되살아난다.
+			throw new ApiException(ErrorCode.WITHDRAWN_MEMBER);
+		}
 		boolean changesAccess = request.role() != null || request.enabled() != null;
 		if (changesAccess && adminId.equals(id)) {
 			// 마지막 관리자가 스스로 권한을 내려 관리자 화면에 아무도 못 들어오는 상황을 막는다.

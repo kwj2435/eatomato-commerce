@@ -62,4 +62,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	List<Order> findTop5ByOrderByOrderedAtDescIdDesc();
 
 	List<Order> findByStatusAndOrderedAtBefore(OrderStatus status, LocalDateTime before);
+
+	boolean existsByMemberIdAndStatusIn(Long memberId, Collection<OrderStatus> statuses);
 }

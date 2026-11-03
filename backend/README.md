@@ -63,6 +63,7 @@ docker compose up -d --build   # mysql → backend 순서로 뜬다
 | GET | `/api/auth/naver/authorize?redirectUri=&state=` | 네이버 인가 화면으로 302 | 네이버 로그인 버튼 |
 | POST | `/api/auth/naver` | 네이버 인가 코드로 로그인·가입 `{code, state, redirectUri}` → 토큰 | `/login/naver/` |
 | GET · PATCH | `/api/me` 🔒 | 회원 정보 조회 / 수정 (null 필드는 유지) | `getMyMember` · `updateMyMember` |
+| DELETE | `/api/me` 🔒 | 회원 탈퇴 → 204. 회원 정보를 지우고 비활성화(주문 기록은 남김). 진행 중 주문 409 `WITHDRAW_ORDER_IN_PROGRESS`, 관리자 400 `WITHDRAW_ADMIN` | `/mypage/withdraw` |
 | GET | `/api/cart` 🔒 | 장바구니 + 요약(선택 항목 합산, 배송비) | `cart-store` |
 | POST | `/api/cart/items` 🔒 | 담기 `{productId, options:{groupId:choiceId}, quantity}` | `addItem` |
 | PATCH | `/api/cart/items/{id}` 🔒 | 수량·선택 변경 `{quantity?, selected?}` | `updateQuantity` · `toggleSelected` |
@@ -81,7 +82,7 @@ docker compose up -d --build   # mysql → backend 순서로 뜬다
 | POST | `/api/orders/{orderNumber}/cancel` 🔒 | 고객 취소(결제대기·결제완료). 환불·재고 복원 | 마이페이지 |
 | GET | `/api/orders` · `/api/orders/{orderNumber}` 🔒 | 주문 내역 | 마이페이지 주문 내역 |
 | GET | `/api/shipping-policy` | 배송비 정책 `{baseFee, freeThreshold, remoteAreaFee}` | 상세·장바구니·주문서 |
-| PUT | `/api/me/profile` 🔒 | 가입 후 추가 정보 `{nickname, zipCode, roadAddress, detailAddress}` | 추가 정보 입력 |
+| PUT | `/api/me/profile` 🔒 | 가입 후 추가 정보·약관 필수 동의 `{nickname, zipCode, roadAddress, detailAddress, agreeTerms, agreePrivacy, ageOver14}` (동의는 모두 true) | 추가 정보 입력 |
 | GET | `/api/me/reviewable-products` 🔒 | 후기 작성 가능 상품 | `listReviewableProducts` |
 | POST | `/api/reviews` 🔒 | 후기 저장 (multipart: `orderItemId`, `rating`, `content`, `photos`≤5) | `ReviewWriteForm` |
 | GET | `/api/me/reviews` 🔒 | 내가 쓴 후기 | 마이페이지 내가 쓴 글 |

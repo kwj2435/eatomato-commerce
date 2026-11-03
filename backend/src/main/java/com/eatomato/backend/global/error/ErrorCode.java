@@ -28,6 +28,9 @@ public enum ErrorCode {
 	NAVER_EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 이 이메일로 가입된 계정이 있습니다. 처음 가입할 때 쓴 방법(카카오 또는 네이버)으로 로그인해 주세요."),
 	MEMBER_DISABLED(HttpStatus.FORBIDDEN, "이용이 정지된 계정입니다. 고객센터로 문의해 주세요."),
 	CANNOT_CHANGE_SELF(HttpStatus.BAD_REQUEST, "본인 계정의 권한·이용 상태는 바꿀 수 없습니다."),
+	WITHDRAWN_MEMBER(HttpStatus.BAD_REQUEST, "탈퇴한 회원은 바꿀 수 없습니다."),
+	WITHDRAW_ADMIN(HttpStatus.BAD_REQUEST, "관리자 계정은 탈퇴할 수 없습니다. 다른 관리자에게 권한 해제를 요청해 주세요."),
+	WITHDRAW_ORDER_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 주문(결제·입금 대기, 배송 준비·배송 중)이 있어 탈퇴할 수 없습니다. 주문이 끝난 뒤 다시 시도해 주세요."),
 
 	MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원을 찾을 수 없습니다."),
 	DUPLICATE_LOGIN_ID(HttpStatus.CONFLICT, "이미 사용 중인 아이디입니다."),
