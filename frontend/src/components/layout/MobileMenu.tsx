@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 
 import { ChevronDownIcon, MenuIcon } from "@/components/ui/icons";
+import { useIsLoggedIn } from "@/lib/store/auth-store";
+import { useHydrated } from "@/lib/store/use-hydrated";
 import { cn } from "@/lib/utils/cn";
 
 export type MobileNavItem = {
@@ -29,6 +31,8 @@ export function MobileMenu({ items }: MobileMenuProps) {
   const panelId = useId();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const hydrated = useHydrated();
+  const loggedIn = useIsLoggedIn();
 
   useEffect(() => {
     if (!open) return;
@@ -152,6 +156,32 @@ export function MobileMenu({ items }: MobileMenuProps) {
               );
             })}
           </ul>
+
+          {/* 계정 바로가기. 로그인 여부는 하이드레이션 뒤에 알 수 있어 그 전에는 그리지 않는다. */}
+          {hydrated ? (
+            <ul className="mt-auto flex flex-col gap-3 border-t border-black/10 pt-6 text-[15px] text-ink-muted">
+              {loggedIn ? (
+                <>
+                  <li>
+                    <Link href="/mypage" onClick={close} className="hover:text-black">
+                      마이페이지
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/mypage/profile" onClick={close} className="hover:text-black">
+                      회원 정보 수정
+                    </Link>
+                  </li>
+                </>
+              ) : (
+                <li>
+                  <Link href="/login" onClick={close} className="hover:text-black">
+                    로그인
+                  </Link>
+                </li>
+              )}
+            </ul>
+          ) : null}
         </nav>
       </div>
     </>

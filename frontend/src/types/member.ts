@@ -26,7 +26,11 @@ export type Member = {
   marketingChannels: MarketingChannel[];
   /** 권한. ADMIN 이면 관리자 화면(/admin)에 들어갈 수 있다. */
   role: MemberRole;
+  /** 연결된 소셜 로그인. 아이디·비밀번호 계정(관리자 등)은 null. 마이페이지에 아이디 대신 보인다. */
+  loginProvider?: LoginProvider | null;
 };
+
+export type LoginProvider = "kakao" | "naver";
 
 export type MemberRole = "USER" | "ADMIN";
 

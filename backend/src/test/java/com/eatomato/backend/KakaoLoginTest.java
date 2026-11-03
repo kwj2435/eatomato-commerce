@@ -59,6 +59,7 @@ class KakaoLoginTest {
 		String first = mockMvc.perform(post("/api/auth/kakao").contentType(MediaType.APPLICATION_JSON).content(loginBody("code-1")))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.member.email").value("kakao.new@example.com"))
+			.andExpect(jsonPath("$.member.loginProvider").value("kakao"))
 			.andReturn().getResponse().getContentAsString();
 		String loginId = com.jayway.jsonpath.JsonPath.read(first, "$.member.id");
 

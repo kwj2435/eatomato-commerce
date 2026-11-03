@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import { ChevronDownIcon } from "@/components/ui/icons";
 import { searchPostcode } from "@/components/address/postcode";
@@ -10,6 +10,9 @@ import { errorMessage } from "@/lib/api/client";
 import { updateMyMember } from "@/lib/api/member";
 import { logout, useAuthStore } from "@/lib/store/auth-store";
 import { cn } from "@/lib/utils/cn";
+
+import { LoginProviderBadge } from "./LoginProviderBadge";
+import { markProfileSaved } from "./profile-saved";
 import {
   GENDER_OPTIONS,
   MARKETING_CHANNEL_OPTIONS,
@@ -32,12 +35,16 @@ type MemberInfoFormProps = {
 };
 
 /**
- * 회원 정보 폼 (시안 7p 우측 컬럼).
+ * 회원 정보 수정 폼(/mypage/profile).
+ *
+ * - 맨 위: 마이페이지로 돌아가는 머리줄. 저장하지 않은 변경이 있으면 나가기 전에 한 번 묻는다(탭 닫기·새로고침 포함).
+ * - "로그인" 칸: 회원이 정한 적 없는 자동 아이디 대신 연결된 소셜 로그인(네이버·카카오)을 잠가서 보여 준다.
+ *   소셜 계정이 아니면(관리자 등) 아이디를 보여 준다. 등급은 마이페이지 맨 위 요약에 있다.
+ * - 저장하면 마이페이지로 돌아가 "저장했습니다" 를 보여 준다. 로그아웃·회원 탈퇴는 저장 버튼 아래.
  *
  * 상태 관리:
  * - 서버에서 받은 `member` 를 초기값으로 삼는 controlled input 묶음이다.
- * - 아이디/등급/우편번호/기본주소는 시안에서 readonly 이므로 상태로 들지 않고 prop 을 그대로 쓴다.
- *   (우편번호·기본주소는 주소 검색이 붙으면 그때 상태로 승격시킨다.)
+ * - 우편번호·기본주소는 주소 검색으로만 바뀐다(직접 입력은 막는다).
  *
  * 저장은 `PATCH /api/me`, 로그아웃은 서버에서 리프레시 토큰을 폐기하고 메인으로 보낸다.
  * 주소는 우편번호 검색(카카오 우편번호 서비스)으로 채운다.
@@ -62,8 +69,25 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
   );
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [pending, setPending] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const setMember = useAuthStore((s) => s.setMember);
   const router = useRouter();
+
+  const snapshot = JSON.stringify([email, name, phone, nickname, zipCode, roadAddress, addressDetail, birthYear, birthMonth, birthDay, gender, [...marketing].sort()]);
+  const [initialSnapshot] = useState(snapshot);
+  const dirty = snapshot !== initialSnapshot && !leaving;
+
+  // 저장하지 않고 탭을 닫거나 새로고침하면 브라우저가 한 번 묻는다.
+  useEffect(() => {
+    if (!dirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  const confirmLeave = (e: React.MouseEvent) => {
+    if (dirty && !window.confirm("저장하지 않은 변경 사항이 있어요. 저장하지 않고 나갈까요?")) e.preventDefault();
+  };
 
   const yearOptions = useMemo(() => {
     const thisYear = new Date().getFullYear();
@@ -134,7 +158,9 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
         marketingChannels: marketing,
       });
       setMember(updated);
-      setStatus({ kind: "success", message: "변경 사항을 저장했습니다." });
+      setLeaving(true);
+      markProfileSaved();
+      router.push("/mypage");
     } catch (error) {
       setStatus({ kind: "error", message: errorMessage(error) });
     } finally {
@@ -143,30 +169,37 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
   };
 
   const handleLogout = () => {
+    if (dirty && !window.confirm("저장하지 않은 변경 사항이 있어요. 저장하지 않고 로그아웃할까요?")) return;
+    setLeaving(true);
     logout();
     router.push("/");
   };
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="mt-[35px] block w-full text-right text-[12px] leading-4 tracking-[-0.2px] text-[#BCB3B0] transition-colors hover:text-ink-muted"
-      >
-        로그아웃
-      </button>
+      <div className="-mx-5 flex h-[50px] items-center gap-1 border-b border-[#E3D6D3] px-3 md:mx-0 md:h-auto md:border-0 md:px-0 md:pb-2">
+        <Link href="/mypage" onClick={confirmLeave} aria-label="마이페이지로 돌아가기" className="-ml-1 p-1.5 text-black hover:opacity-70">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </Link>
+        <h1 className="text-[16px] font-bold tracking-[-0.3px] text-black md:text-[22px]">회원 정보 수정</h1>
+      </div>
 
-      <form onSubmit={handleSubmit} noValidate>
-        <Field label="아이디" htmlFor={id("id")}>
-          <input
-            id={id("id")}
-            type="text"
-            value={member.id}
-            readOnly
-            className={cn(inputClass, readonlyClass)}
-          />
-        </Field>
+      <form onSubmit={handleSubmit} noValidate className="pt-1 md:pt-2">
+        {member.loginProvider ? (
+          <div className="mt-4">
+            <p className={fieldLabelClass}>로그인</p>
+            <div className={cn(readonlyInputClass, "mt-[9px] flex items-center justify-between gap-3")}>
+              <LoginProviderBadge provider={member.loginProvider} suffix="로그인 중" />
+              <span className="text-[11.5px] text-[#9C918E]">변경 불가</span>
+            </div>
+          </div>
+        ) : (
+          <Field label="아이디" htmlFor={id("id")}>
+            <input id={id("id")} type="text" value={member.id} readOnly className={readonlyInputClass} />
+          </Field>
+        )}
 
         <Field label="이메일" htmlFor={id("email")}>
           <input
@@ -179,6 +212,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
           />
         </Field>
 
+        <div className="grid grid-cols-2 gap-3">
         <Field label="이름" htmlFor={id("name")}>
           <input
             id={id("name")}
@@ -200,16 +234,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
             className={inputClass}
           />
         </Field>
-
-        <Field label="등급" htmlFor={id("grade")}>
-          <input
-            id={id("grade")}
-            type="text"
-            value={member.grade}
-            readOnly
-            className={cn(inputClass, readonlyClass)}
-          />
-        </Field>
+        </div>
 
         <Field label="휴대폰 번호" htmlFor={id("tel1")}>
           <input
@@ -222,7 +247,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
             onChange={(e) => setPhonePart("first", e.target.value)}
             className={cn(inputClass, "flex-1")}
           />
-          <span className="w-6 flex-none text-center text-[13px] text-black">
+          <span className="w-5 flex-none text-center text-[13px] text-black">
             -
           </span>
           <input
@@ -234,7 +259,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
             onChange={(e) => setPhonePart("middle", e.target.value)}
             className={cn(inputClass, "flex-1")}
           />
-          <span className="w-6 flex-none text-center text-[13px] text-black">
+          <span className="w-5 flex-none text-center text-[13px] text-black">
             -
           </span>
           <input
@@ -248,13 +273,13 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
           />
         </Field>
 
-        <Field label="우편번호" htmlFor={id("zip")} rowClassName="gap-[11px]">
+        <Field label="주소" htmlFor={id("zip")} rowClassName="flex items-center gap-2">
           <input
             id={id("zip")}
             type="text"
             value={zipCode}
             readOnly
-            className={cn(inputClass, readonlyClass, "flex-1")}
+            className={cn(readonlyInputClass, "flex-1")}
           />
           <button
             type="button"
@@ -269,27 +294,27 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
                 setStatus({ kind: "error", message: errorMessage(e) });
               }
             }}
-            className="h-[42px] w-[131px] flex-none border border-brand-deep text-[12px] font-bold tracking-[-0.2px] text-black transition-colors hover:bg-brand-deep hover:text-white"
+            className="h-[42px] w-[104px] flex-none border border-brand-deep bg-white text-[12px] font-bold tracking-[-0.2px] text-black transition-colors hover:bg-brand-deep hover:text-white"
           >
-            검색하기
+            주소 검색
           </button>
         </Field>
 
         {/* 주소만 입력 행이 둘(기본 주소 readonly + 상세 주소)이라 Field 대신 직접 구성한다. */}
-        <div className="mt-4">
-          <label htmlFor={id("addr")} className={fieldLabelClass}>
-            주소
+        <div>
+          <label htmlFor={id("addr")} className="sr-only">
+            기본 주소
           </label>
-          <div className="mt-[9px] flex items-center">
+          <div className="mt-2 flex items-center">
             <input
               id={id("addr")}
               type="text"
               value={roadAddress}
               readOnly
-              className={cn(inputClass, readonlyClass)}
+              className={readonlyInputClass}
             />
           </div>
-          <div className="mt-[9px] flex items-center">
+          <div className="mt-2 flex items-center">
             <input
               type="text"
               autoComplete="address-line2"
@@ -306,8 +331,8 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
          * 항목이 100/12/31개로 많아 스크롤·키보드 타이핑 탐색·모바일 네이티브 피커가
          * 커스텀 리스트박스보다 확실히 낫기 때문이다. 시안도 화살표만 커스텀한 네이티브 select 다.
          */}
-        <Field label="생년월일" htmlFor={id("year")} rowClassName="flex-wrap gap-6 gap-y-[9px]">
-          <SelectBox className="w-[157px]">
+        <Field label="생년월일" htmlFor={id("year")} rowClassName="grid grid-cols-3 gap-2">
+          <SelectBox>
             <select
               id={id("year")}
               aria-label="생년"
@@ -322,13 +347,13 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
               <option value="">연도</option>
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
-                  {year}
+                  {year}년
                 </option>
               ))}
             </select>
           </SelectBox>
 
-          <SelectBox className="w-[106px]">
+          <SelectBox>
             <select
               aria-label="생월"
               value={birthMonth ?? ""}
@@ -342,13 +367,13 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
               <option value="">월</option>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
                 <option key={month} value={month}>
-                  {month}
+                  {month}월
                 </option>
               ))}
             </select>
           </SelectBox>
 
-          <SelectBox className="w-[105px]">
+          <SelectBox>
             <select
               aria-label="생일"
               value={birthDay ?? ""}
@@ -360,7 +385,7 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
               <option value="">일</option>
               {dayOptions.map((day) => (
                 <option key={day} value={day}>
-                  {day}
+                  {day}일
                 </option>
               ))}
             </select>
@@ -392,17 +417,11 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
           ))}
         </ChoiceField>
 
-        <div className="mt-[13px] flex items-center justify-center gap-6">
-          <Link href="/mypage/withdraw" className={subLinkClass}>
-            탈퇴하기
-          </Link>
-        </div>
-
-        <div className="mt-[26px] flex justify-center">
+        <div className="mt-7">
           <button
             type="submit"
             disabled={pending}
-            className="h-[49px] w-[210px] bg-brand-deep text-[13px] font-bold tracking-[-0.2px] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="h-[50px] w-full bg-brand-deep text-[14px] font-bold tracking-[-0.2px] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {pending ? "저장 중…" : "변경 사항 저장하기"}
           </button>
@@ -420,6 +439,16 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
             {status.message}
           </p>
         ) : null}
+
+        <div className="mt-7 flex items-center justify-center gap-5 border-t border-[#ECDEDB] pt-4 text-[13px] tracking-[-0.2px]">
+          <button type="button" onClick={handleLogout} className="text-ink-muted hover:text-black hover:underline">
+            로그아웃
+          </button>
+          <span aria-hidden className="h-3 w-px bg-[#D9CDCA]" />
+          <Link href="/mypage/withdraw" onClick={confirmLeave} className={subLinkClass}>
+            회원 탈퇴
+          </Link>
+        </div>
       </form>
     </>
   );
@@ -428,19 +457,20 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
 // ────────────────────────────────────────────────────────────────
 // 시안 `.input` / `.select` / `.member__link` 규격. 여러 필드가 공유하므로 상수로 뺀다.
 
-const inputClass =
-  "h-[42px] w-full min-w-0 border border-brand-deep bg-transparent px-3.5 text-[13px] tracking-[-0.2px] text-black outline-none placeholder:text-[#A6A2A7] focus:border-brand-secondary";
+const inputBase = "h-[42px] w-full min-w-0 border px-3.5 text-[13px] tracking-[-0.2px] outline-none";
 
-const readonlyClass = "cursor-default bg-[#FBF1F1] focus:border-brand-deep";
+const inputClass = `${inputBase} border-brand-deep bg-white text-black placeholder:text-[#A6A2A7] focus:border-brand-secondary`;
+
+/** 바꿀 수 없는 칸(로그인 방식·우편번호·기본 주소). 회색으로 수정 가능한 칸과 구분한다. */
+const readonlyInputClass = `${inputBase} cursor-default border-[#E0D6D3] bg-[#F1EBE9] text-[#6B6361]`;
 
 const selectClass =
-  "h-[42px] w-full appearance-none border border-brand-deep bg-transparent pl-4 pr-7 text-[13px] tracking-[-0.2px] text-black outline-none focus:border-brand-secondary";
+  "h-[42px] w-full appearance-none border border-brand-deep bg-white pl-3 pr-7 text-[13px] tracking-[-0.2px] text-black outline-none focus:border-brand-secondary";
 
 const fieldLabelClass =
   "block text-[12px] leading-[18px] tracking-[-0.2px] text-black";
 
-const subLinkClass =
-  "text-[12px] leading-[17px] tracking-[-0.2px] text-[#A6A2A7] underline-offset-2 transition-colors hover:text-ink-muted hover:underline";
+const subLinkClass = "text-ink-subtle underline-offset-2 transition-colors hover:text-ink-muted hover:underline";
 
 type FieldProps = {
   label: string;
@@ -460,7 +490,7 @@ function Field({ label, htmlFor, rowClassName, children }: FieldProps) {
       >
         {label}
       </label>
-      <div className={cn("mt-[9px] flex items-center", rowClassName)}>
+      <div className={cn("mt-[9px]", rowClassName ?? "flex items-center")}>
         {children}
       </div>
     </div>
@@ -492,7 +522,7 @@ function ChoiceField({
  * 라디오/체크박스 한 칸.
  *
  * 네이티브 input 을 유지한 채(그룹 키보드 탐색·폼 시맨틱을 그대로 얻는다)
- * `appearance-none` 위에 시안의 파란 체크/도트를 CSS 로 그린다.
+ * `appearance-none` 위에 체크/도트를 CSS 로 그린다(브랜드 색. 시안 원본의 파란색은 쓰지 않는다).
  * components/ui/Checkbox 는 button 기반이라 라디오 그룹과 form 제출에 맞지 않아 재사용하지 않았다.
  */
 function Choice({
@@ -516,15 +546,15 @@ function Choice({
         checked={checked}
         onChange={onChange}
         className={cn(
-          "relative h-[13px] w-[13px] flex-none appearance-none border border-[#A09A9A] bg-transparent outline-none",
+          "relative h-[15px] w-[15px] flex-none appearance-none border border-[#A09A9A] bg-white outline-none",
           "before:absolute before:content-['']",
-          "focus-visible:ring-2 focus-visible:ring-[#0070F5]/40",
+          "focus-visible:ring-2 focus-visible:ring-brand-deep/40",
           type === "radio"
-            ? "rounded-full checked:border-2 checked:border-[#0070F5] checked:bg-white before:inset-px before:rounded-full checked:before:bg-[#0070F5]"
-            : "rounded-[2px] checked:border-[#0070F5] checked:bg-[#0070F5] before:left-[2px] before:top-0 before:h-[3px] before:w-[6px] before:-rotate-45 checked:before:border-b-[1.6px] checked:before:border-l-[1.6px] checked:before:border-white",
+            ? "rounded-full checked:border-2 checked:border-brand-deep checked:bg-white before:inset-[2px] before:rounded-full checked:before:bg-brand-deep"
+            : "rounded-[2px] checked:border-brand-deep checked:bg-brand-deep before:left-[3px] before:top-[3px] before:h-[4px] before:w-[8px] before:-rotate-45 checked:before:border-b-[1.6px] checked:before:border-l-[1.6px] checked:before:border-white",
         )}
       />
-      <span className="text-[12px] tracking-[-0.2px] text-black">{label}</span>
+      <span className="text-[13px] tracking-[-0.2px] text-black">{label}</span>
     </label>
   );
 }
@@ -538,9 +568,9 @@ function SelectBox({
   children: React.ReactNode;
 }) {
   return (
-    <span className={cn("relative h-[42px] flex-none", className)}>
+    <span className={cn("relative block h-[42px] min-w-0", className)}>
       {children}
-      <ChevronDownIcon className="pointer-events-none absolute right-[9px] top-[19px] text-black" />
+      <ChevronDownIcon className="pointer-events-none absolute right-[10px] top-[18px] text-black" />
     </span>
   );
 }

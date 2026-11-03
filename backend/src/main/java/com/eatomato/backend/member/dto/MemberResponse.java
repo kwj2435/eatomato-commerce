@@ -24,7 +24,9 @@ public record MemberResponse(
 	String gender,
 	List<String> marketingChannels,
 	/** "USER" | "ADMIN". 프론트가 관리자 메뉴 노출 여부를 판단한다. */
-	String role
+	String role,
+	/** 연결된 소셜 로그인 "kakao" | "naver". 아이디·비밀번호로 만든 계정(관리자 등)은 null. 마이페이지에 아이디 대신 보인다. */
+	String loginProvider
 ) {
 
 	public record Phone(String first, String middle, String last) {
@@ -59,7 +61,15 @@ public record MemberResponse(
 				member.getBirthDate().getMonthValue(), member.getBirthDate().getDayOfMonth()),
 			member.getGender() == null ? null : member.getGender().value(),
 			channels,
-			member.getRole().name());
+			member.getRole().name(),
+			loginProvider(member));
+	}
+
+	private static String loginProvider(Member member) {
+		if (member.getNaverId() != null) {
+			return "naver";
+		}
+		return member.getKakaoId() != null ? "kakao" : null;
 	}
 
 	private static String orEmpty(String value) {

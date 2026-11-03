@@ -46,6 +46,12 @@ export type VirtualAccount = {
 };
 
 /** 결제수단(PG 가 알려 준 한글 이름: 카드, 가상계좌 등)과 무통장입금 계좌. */
+/** 관리자가 넣은 택배사·송장번호. */
+export type OrderTracking = {
+  courier: string;
+  trackingNumber: string;
+};
+
 export type OrderPayment = {
   method?: string;
   virtualAccount?: VirtualAccount;
@@ -73,4 +79,6 @@ export type Order = {
   shipping?: OrderShipping;
   items: OrderItem[];
   payment?: OrderPayment;
+  /** 송장을 넣기 전이면 없다. */
+  tracking?: OrderTracking;
 };

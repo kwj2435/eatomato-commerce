@@ -1,59 +1,47 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 type HistorySectionProps = {
+  /** 맨 위 요약 숫자에서 이 섹션으로 내려오는 앵커. */
+  id: string;
   title: string;
-  /** 내역이 없을 때 본문 중앙에 표시할 문구. */
-  emptyMessage: string;
-  /**
-   * 제목과 본문 사이 우측 정렬 보조 영역.
-   * 시안에서는 "주문 내역"에만 (후기 쓰러 가기 / 적립금 뱃지) 가 붙는다.
-   */
-  utility?: ReactNode;
-  /**
-   * 실제 내역 목록. 넘기지 않으면 empty state 를 렌더링한다.
-   * 주문/쿠폰 API 가 붙으면 이 자리에 목록·테이블을 그대로 꽂으면 된다.
-   */
+  /** 제목 오른쪽 보조 문구·링크(예: "사용 가능 1장"). */
+  aside?: ReactNode;
+  /** 내역이 없을 때 보일 한 줄 안내. children 을 넘기면 쓰지 않는다. */
+  emptyMessage?: string;
+  /** 빈 상태에서 다음에 할 일(예: 쇼핑하러 가기). */
+  emptyAction?: { href: string; label: string };
+  /** 실제 내역. 넘기지 않으면 빈 상태를 그린다. */
   children?: ReactNode;
 };
 
 /**
- * 마이페이지 좌측 내역 블록.
- *
- * 시안 7p 의 다섯 블록(주문/내가 쓴 글/쿠폰/적립금/재입고 알림)이 제목 + 보조영역 + 본문의
- * 동일한 골격을 공유하므로 하나의 컴포넌트로 묶었다.
- *
- * 본문 상단 여백이 두 가지인 이유:
- * 보조영역이 있는 블록은 그 영역이 이미 간격을 만들어 15px, 없는 블록은 제목 바로 아래라 37px.
- * 시안의 `.history--first` 규칙을 순서(index)가 아니라 `utility` 유무에서 파생시켜
- * 블록 순서가 바뀌어도 간격이 어긋나지 않게 했다.
+ * 마이페이지 내역 블록(주문·쿠폰·적립금·후기). 제목 + 보조 문구 + 본문의 같은 골격을 쓴다.
+ * 빈 상태는 예전 200px 빈 칸 대신 한 줄 안내(+ 다음 행동 링크)만 둔다.
  */
-export function HistorySection({
-  title,
-  emptyMessage,
-  utility,
-  children,
-}: HistorySectionProps) {
-  const isEmpty = !children;
-
+export function HistorySection({ id, title, aside, emptyMessage, emptyAction, children }: HistorySectionProps) {
   return (
-    <section>
-      <h2 className="text-[16px] font-bold leading-[22px] tracking-[-0.2px] text-black">
-        {title}
-      </h2>
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id={`${id}-title`} className="text-[16px] font-bold tracking-[-0.2px] text-black md:text-[18px]">
+          {title}
+        </h2>
+        {aside ? <span className="min-w-0 truncate text-[12px] text-ink-subtle md:text-[13px]">{aside}</span> : null}
+      </div>
 
-      {utility ? (
-        <div className="mt-[35px] flex items-center justify-end gap-1.5">
-          {utility}
-        </div>
-      ) : null}
-
-      <div className={utility ? "mt-[15px]" : "mt-[37px]"}>
-        {isEmpty ? (
-          <p className="flex h-[200px] items-center justify-center text-[13px] tracking-[-0.2px] text-black">
-            {emptyMessage}
-          </p>
-        ) : (
-          children
+      <div className="mt-3">
+        {children ?? (
+          <div className="border border-dashed border-[#D9CDCA] px-4 py-5 text-center text-[13px] text-ink-subtle">
+            <p>{emptyMessage}</p>
+            {emptyAction ? (
+              <Link
+                href={emptyAction.href}
+                className="mt-2 inline-block border-b border-black text-[12.5px] font-medium text-black hover:opacity-70"
+              >
+                {emptyAction.label}
+              </Link>
+            ) : null}
+          </div>
         )}
       </div>
     </section>

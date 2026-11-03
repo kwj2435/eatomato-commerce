@@ -14,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
  * 주문. cancellable 이면 고객이 직접 취소할 수 있다(결제대기·입금대기·결제완료).
  * 무통장입금으로 입금까지 끝난 주문은 환불 계좌가 필요해 고객이 직접 취소할 수 없다(고객센터로 안내).
- * payment 는 결제수단과 무통장입금 계좌(입금 안내용)다.
+ * payment 는 결제수단과 무통장입금 계좌(입금 안내용)다. tracking 은 관리자가 넣은 택배사·송장번호다.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record OrderResponse(
@@ -32,8 +32,17 @@ public record OrderResponse(
 	boolean cancellable,
 	Shipping shipping,
 	List<Item> items,
-	PaymentInfo payment
+	PaymentInfo payment,
+	/** 택배사·송장번호. 관리자가 입력하기 전이면 내려주지 않는다. */
+	Tracking tracking
 ) {
+
+	public record Tracking(String courier, String trackingNumber) {
+
+		static Tracking from(Order order) {
+			return order.hasTracking() ? new Tracking(order.getCourier(), order.getTrackingNumber()) : null;
+		}
+	}
 
 	/** 결제수단과 무통장입금 계좌. 승인 전이면 method 가 비어 있다. */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
@@ -118,6 +127,7 @@ public record OrderResponse(
 			order.getStatus().isCancellable() && !paidByVirtualAccount,
 			Shipping.from(order.getShippingAddress()),
 			order.getItems().stream().map(Item::from).toList(),
-			PaymentInfo.from(payment));
+			PaymentInfo.from(payment),
+			Tracking.from(order));
 	}
 }

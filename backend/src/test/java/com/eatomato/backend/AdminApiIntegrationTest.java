@@ -288,11 +288,18 @@ class AdminApiIntegrationTest {
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("TRACKING_REQUIRED"));
 
+		// 송장을 넣기 전에는 고객 주문에 송장이 없다.
+		mockMvc.perform(get("/api/orders/" + orderNumber).header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(jsonPath("$.tracking").doesNotExist());
 		mockMvc.perform(put("/api/admin/orders/" + orderNumber + "/tracking").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"courier\":\"CJ대한통운\",\"trackingNumber\":\"1234 5678 9012\"}"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.courier").value("CJ대한통운"))
 			.andExpect(jsonPath("$.trackingNumber").value("123456789012"));
+		// 고객도 마이페이지에서 택배사·송장번호를 본다.
+		mockMvc.perform(get("/api/orders/" + orderNumber).header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(jsonPath("$.tracking.courier").value("CJ대한통운"))
+			.andExpect(jsonPath("$.tracking.trackingNumber").value("123456789012"));
 
 		mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SHIPPING\"}"))
