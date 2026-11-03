@@ -9,6 +9,7 @@ type DetailsSectionProps = {
 /**
  * DETAILS 섹션.
  * 시안은 세로로 큰 상세 이미지(6~10장) 를 여러 장 나열한다.
+ * PC 에서 1200px 로 꽉 채우면 한 장이 약 1,500px 라 스크롤이 너무 길어, 쇼핑몰 상세 폭(860px)으로 줄여 가운데 둔다.
  * scroll-margin 을 두어 앵커 이동 시 상단 헤더에 가려지지 않도록 한다.
  */
 export function DetailsSection({ images }: DetailsSectionProps) {
@@ -18,7 +19,7 @@ export function DetailsSection({ images }: DetailsSectionProps) {
         DETAILS
       </h2>
 
-      <div className="mt-[38px] flex flex-col gap-[30px] md:gap-[125px]">
+      <div className="mx-auto mt-[38px] flex w-full max-w-[860px] flex-col gap-[30px] md:gap-[90px]">
         {images.map((src, i) => (
           <div
             key={src + i}
@@ -28,7 +29,7 @@ export function DetailsSection({ images }: DetailsSectionProps) {
               src={src}
               alt={`상세 이미지 ${i + 1}`}
               fill
-              sizes="(min-width: 1200px) 1200px, 100vw"
+              sizes="(min-width: 920px) 860px, 100vw"
               className="object-cover"
             />
           </div>

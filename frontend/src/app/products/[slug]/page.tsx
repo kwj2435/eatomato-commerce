@@ -73,7 +73,7 @@ export default async function ProductRoute({ params }: PageProps) {
   const [product, shippingPolicy] = await Promise.all([getProductDetail(slug), getShippingPolicy()]);
   if (product) {
     return (
-      <SiteFrame>
+      <SiteFrame bottomBarSpace>
         <ProductDetailView product={product} shippingPolicy={shippingPolicy} />
       </SiteFrame>
     );

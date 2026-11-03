@@ -4,6 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { ProfileGate } from "@/components/layout/ProfileGate";
 import { TopBar } from "@/components/layout/TopBar";
+import { cn } from "@/lib/utils/cn";
 
 type SiteFrameProps = {
   children: ReactNode;
@@ -12,6 +13,8 @@ type SiteFrameProps = {
    * 지정하지 않으면 TopBar 를 렌더링하지 않는다(비-메인 페이지의 기본 동작).
    */
   notice?: string;
+  /** 화면 아래 고정 구매 바가 있는 페이지(상품 상세). 바에 푸터가 가려지지 않게 그 높이만큼 아래 여백을 둔다. */
+  bottomBarSpace?: boolean;
 };
 
 /**
@@ -30,9 +33,14 @@ type SiteFrameProps = {
  *   RootLayout 한 곳에서 결정하기 어렵다.
  * - 명시적 컴포지션으로 각 페이지 코드에서 셸 구성이 즉시 보이도록 하기 위함이다.
  */
-export function SiteFrame({ children, notice }: SiteFrameProps) {
+export function SiteFrame({ children, notice, bottomBarSpace }: SiteFrameProps) {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-surface-primary">
+    <div
+      className={cn(
+        "flex min-h-screen w-full flex-col bg-surface-primary",
+        bottomBarSpace && "pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-[76px]",
+      )}
+    >
       {notice ? <TopBar message={notice} /> : null}
       <Header />
       <ProfileGate />
