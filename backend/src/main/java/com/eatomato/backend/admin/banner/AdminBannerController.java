@@ -23,7 +23,7 @@ import com.eatomato.backend.global.error.ErrorCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-/** 메인 배너(상단·Best Picks·Special) 관리. 위치마다 sortOrder 오름차순으로 보이고, active=false 는 메인에서 빠진다. */
+/** 메인 배너(상단·The Tomato Edit·Best Picks·Special) 관리. 위치마다 sortOrder 오름차순으로 보이고, active=false 는 메인에서 빠진다. */
 @RestController
 @RequestMapping("/api/admin/banners")
 @RequiredArgsConstructor
@@ -68,13 +68,13 @@ public class AdminBannerController {
 		return request.placement() == null ? BannerPlacement.HERO : request.placement();
 	}
 
-	/** BEST_PICK 은 링크가 없고, SPECIAL 은 비우면 공지 목록으로 보낸다. */
+	/** HERO·EDIT 는 링크가 필수, BEST_PICK 은 링크가 없고, SPECIAL 은 비우면 공지 목록으로 보낸다. */
 	private static String href(BannerPlacement placement, String href) {
 		String value = href == null ? "" : href.trim();
 		return switch (placement) {
 			case BEST_PICK -> "";
 			case SPECIAL -> value.isEmpty() ? "/notice" : value;
-			case HERO -> {
+			case HERO, EDIT -> {
 				if (value.isEmpty()) {
 					throw new ApiException(ErrorCode.BANNER_HREF_REQUIRED);
 				}

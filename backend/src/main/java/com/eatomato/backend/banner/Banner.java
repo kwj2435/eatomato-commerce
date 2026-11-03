@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 메인 배너(상단 슬라이드·Best Picks·Special). 문구는 이미지에 직접 넣고, 그 문구를 alt 에 적어 스크린리더가 읽게 한다.
+ * 메인 배너(상단 슬라이드·The Tomato Edit·Best Picks·Special). 문구는 이미지에 직접 넣고, 그 문구를 alt 에 적어 스크린리더가 읽게 한다.
  * 링크가 없는 배너(BEST_PICK)는 href 가 빈 문자열이다.
  */
 @Entity

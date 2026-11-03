@@ -6,6 +6,7 @@ import { apiFetch } from "./client";
  */
 export type SiteContentKey =
   | "HOME_TOP_NOTICE"
+  | "HOME_EDIT_DESCRIPTION"
   | "HOME_BEST_PICKS_DESCRIPTION"
   | "HOME_WHATS_NEW_DESCRIPTION"
   | "HOME_SPECIAL_DESCRIPTION"

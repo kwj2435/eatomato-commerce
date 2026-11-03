@@ -1,8 +1,8 @@
 /** 배너가 메인의 어느 자리에 보이는지. 백엔드 BannerPlacement 와 같다. */
-export type BannerPlacement = "HERO" | "BEST_PICK" | "SPECIAL";
+export type BannerPlacement = "HERO" | "EDIT" | "BEST_PICK" | "SPECIAL";
 
 /**
- * 메인 배너 한 장(상단 슬라이드·Best Picks·Special 공통).
+ * 메인 배너 한 장(상단 슬라이드·The Tomato Edit·Best Picks·Special 공통).
  * 클릭 시 관련 제품/카테고리/공지로 이동한다. 문구는 이미지에 직접 넣는다.
  */
 export type HeroBanner = {

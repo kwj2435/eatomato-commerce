@@ -1,6 +1,7 @@
 import { SiteFrame } from "@/components/layout/SiteFrame";
 import { BestPicksSection } from "@/features/home/BestPicksSection";
 import { HeroBanner } from "@/features/home/HeroBanner";
+import { TomatoEditSection } from "@/features/home/TomatoEditSection";
 import { ReviewSection } from "@/features/home/ReviewSection";
 import { SpecialSection } from "@/features/home/SpecialSection";
 import { WhatsNewSection } from "@/features/home/WhatsNewSection";
@@ -20,6 +21,7 @@ export default async function HomePage() {
   return (
     <SiteFrame notice={contents.HOME_TOP_NOTICE}>
       <HeroBanner banners={banners} />
+      <TomatoEditSection description={contents.HOME_EDIT_DESCRIPTION} />
       <BestPicksSection description={contents.HOME_BEST_PICKS_DESCRIPTION} />
       <WhatsNewSection description={contents.HOME_WHATS_NEW_DESCRIPTION} />
       <SpecialSection description={contents.HOME_SPECIAL_DESCRIPTION} />

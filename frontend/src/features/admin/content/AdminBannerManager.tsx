@@ -32,6 +32,14 @@ const PLACEMENTS: Record<
     defaultHref: "/",
     description: "메인 맨 위 슬라이드. 누르면 입력한 주소로 이동합니다.",
   },
+  EDIT: {
+    label: "The Tomato Edit",
+    imageHint: "권장 900 × 1200 (3:4 세로형)",
+    mobileImageHint: null,
+    hrefHint: "SHOP NOW 를 누르면 갈 주소. 예: /products/phone-case",
+    defaultHref: "",
+    description: "메인 상단 슬라이드 바로 아래 카드. 순서대로 EDIT 01·02·03 이 붙고, PC 는 한 줄에 세 장, 모바일은 옆으로 넘겨 봅니다. 누르면 입력한 주소로 이동합니다.",
+  },
   BEST_PICK: {
     label: "Best Picks",
     imageHint: "권장 1200 × 1200 (정사각형)",
@@ -50,10 +58,13 @@ const PLACEMENTS: Record<
   },
 };
 
-const PLACEMENT_ORDER: BannerPlacement[] = ["HERO", "BEST_PICK", "SPECIAL"];
+/** 링크가 꼭 있어야 하는 위치. 백엔드 AdminBannerController.href 와 같다. */
+const needsHref = (p: BannerPlacement) => p === "HERO" || p === "EDIT";
+
+const PLACEMENT_ORDER: BannerPlacement[] = ["HERO", "EDIT", "BEST_PICK", "SPECIAL"];
 
 /**
- * 메인 배너 관리(상단 슬라이드·Best Picks·Special). 위치마다 "순서" 숫자가 작은 것부터 보이고, 비활성 배너는 메인에서 빠진다.
+ * 메인 배너 관리(상단 슬라이드·The Tomato Edit·Best Picks·Special). 위치마다 "순서" 숫자가 작은 것부터 보이고, 비활성 배너는 메인에서 빠진다.
  * 문구는 이미지에 직접 넣으므로 이미지가 필수이고, 이미지 속 문구는 대체 텍스트(alt)에 적는다.
  */
 export function AdminBannerManager() {
@@ -95,10 +106,10 @@ export function AdminBannerManager() {
       href: editing.form.href.trim(),
       alt: editing.form.alt.trim(),
     };
-    if (!form.imageUrl || !form.alt || (form.placement === "HERO" && !form.href)) {
+    if (!form.imageUrl || !form.alt || (needsHref(form.placement) && !form.href)) {
       setMessage({
         kind: "error",
-        text: form.placement === "HERO" ? "이미지, 링크, 대체 텍스트를 모두 입력해 주세요." : "이미지와 대체 텍스트를 입력해 주세요.",
+        text: needsHref(form.placement) ? "이미지, 링크, 대체 텍스트를 모두 입력해 주세요." : "이미지와 대체 텍스트를 입력해 주세요.",
       });
       return;
     }

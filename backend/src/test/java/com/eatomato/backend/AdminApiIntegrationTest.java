@@ -315,7 +315,7 @@ class AdminApiIntegrationTest {
 
 		String admin = login("admin", "admin1234");
 		mockMvc.perform(get("/api/admin/site-contents").header(HttpHeaders.AUTHORIZATION, admin))
-			.andExpect(jsonPath("$", hasSize(8)))
+			.andExpect(jsonPath("$", hasSize(9)))
 			.andExpect(jsonPath("$[0].customized").value(false))
 			.andExpect(jsonPath("$[?(@.key == 'ABOUT_IMAGE_URL')].kind").value("IMAGE"))
 			.andExpect(jsonPath("$[?(@.key == 'ABOUT_TOP_TEXT')].maxLength").value(3000));
@@ -418,6 +418,23 @@ class AdminApiIntegrationTest {
 					{"placement":"SPECIAL","imageUrl":"https://example.com/sale.jpg","alt":"시즌 할인","sortOrder":0,"active":true}
 					"""))
 			.andExpect(status().isCreated());
+		// The Tomato Edit 카드는 메인 상단처럼 링크가 필요하다
+		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"placement":"EDIT","imageUrl":"https://example.com/edit.jpg","alt":"에디트","sortOrder":0,"active":true}
+					"""))
+			.andExpect(status().isBadRequest());
+		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"placement":"EDIT","href":"/products/phone-case","imageUrl":"https://example.com/edit.jpg","alt":"에디트",
+					 "sortOrder":0,"active":true}
+					"""))
+			.andExpect(status().isCreated());
+		mockMvc.perform(get("/api/banners").param("placement", "EDIT"))
+			.andExpect(jsonPath("$", hasSize(1)))
+			.andExpect(jsonPath("$[0].href").value("/products/phone-case"));
 		mockMvc.perform(get("/api/banners").param("placement", "BEST_PICK"))
 			.andExpect(jsonPath("$", hasSize(1)))
 			.andExpect(jsonPath("$[0].href").doesNotExist());
