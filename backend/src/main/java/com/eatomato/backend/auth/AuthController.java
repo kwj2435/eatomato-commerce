@@ -42,19 +42,25 @@ public class AuthController {
 	private final NaverOAuthClient naverOAuthClient;
 	private final AppProperties properties;
 
-	/** 가입과 동시에 로그인 토큰을 내려준다. 운영은 꺼 두고(app.email-signup-enabled) 소셜 가입만 받는다. */
+	/** 가입과 동시에 로그인 토큰을 내려준다. 운영은 꺼 두고(app.password-auth-enabled) 소셜 가입만 받는다. */
 	@PostMapping("/signup")
 	@ResponseStatus(HttpStatus.CREATED)
 	public TokenResponse signup(@Valid @RequestBody SignupRequest request) {
-		if (!properties.emailSignupEnabled()) {
+		if (!properties.passwordAuthEnabled()) {
 			throw new ApiException(ErrorCode.EMAIL_SIGNUP_DISABLED);
 		}
 		return authService.signup(request);
 	}
 
-	/** 클라이언트 IP 는 nginx 가 넘긴 X-Forwarded-For 를 ForwardedHeaderFilter 가 반영한 값이다. */
+	/**
+	 * 아이디(또는 이메일)·비밀번호 로그인. 운영은 꺼 두고(app.password-auth-enabled) 카카오·네이버로만 로그인한다.
+	 * 클라이언트 IP 는 nginx 가 넘긴 X-Forwarded-For 를 ForwardedHeaderFilter 가 반영한 값이다.
+	 */
 	@PostMapping("/login")
 	public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+		if (!properties.passwordAuthEnabled()) {
+			throw new ApiException(ErrorCode.PASSWORD_LOGIN_DISABLED);
+		}
 		return authService.login(request, servletRequest.getRemoteAddr());
 	}
 

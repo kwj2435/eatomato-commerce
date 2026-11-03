@@ -4,7 +4,6 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +11,6 @@ import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
 import com.eatomato.backend.member.dto.MemberResponse;
 import com.eatomato.backend.member.dto.MemberUpdateRequest;
-import com.eatomato.backend.member.dto.PasswordChangeRequest;
 import com.eatomato.backend.member.dto.ProfileRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -23,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 public class MemberService {
 
 	private final MemberRepository memberRepository;
-	private final PasswordEncoder passwordEncoder;
 
 	public MemberResponse getMe(Long memberId) {
 		return MemberResponse.from(find(memberId));
@@ -80,15 +77,6 @@ public class MemberService {
 			throw new ApiException(ErrorCode.DUPLICATE_NICKNAME);
 		}
 		member.changeNickname(trimmed);
-	}
-
-	@Transactional
-	public void changePassword(Long memberId, PasswordChangeRequest request) {
-		Member member = find(memberId);
-		if (!passwordEncoder.matches(request.currentPassword(), member.getPasswordHash())) {
-			throw new ApiException(ErrorCode.INVALID_PASSWORD);
-		}
-		member.changePasswordHash(passwordEncoder.encode(request.newPassword()));
 	}
 
 	private Member find(Long memberId) {

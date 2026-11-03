@@ -393,9 +393,6 @@ export function MemberInfoForm({ member }: MemberInfoFormProps) {
         </ChoiceField>
 
         <div className="mt-[13px] flex items-center justify-center gap-6">
-          <Link href="/mypage/password" className={subLinkClass}>
-            비밀번호 변경하기
-          </Link>
           <Link href="/mypage/withdraw" className={subLinkClass}>
             탈퇴하기
           </Link>

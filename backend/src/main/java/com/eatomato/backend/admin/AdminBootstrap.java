@@ -20,6 +20,9 @@ import lombok.extern.slf4j.Slf4j;
  *
  * 관리자 권한은 관리자 화면에서만 줄 수 있어, 맨 처음 한 명은 환경 변수(ADMIN_LOGIN_ID / ADMIN_PASSWORD)로 만든다.
  * 계정이 이미 있으면 권한만 ADMIN 으로 올리고 비밀번호는 건드리지 않는다(관리자가 바꾼 비밀번호를 덮어쓰지 않도록).
+ *
+ * 비밀번호 로그인이 꺼져 있으면(운영) 이 계정으로 들어올 수 없으므로 만들지도, 다시 켜지도 않는다.
+ * 그래야 운영에서 정리(비활성화)한 예전 관리자 계정이 재기동 때 되살아나지 않는다.
  */
 @Slf4j
 @Component
@@ -34,7 +37,8 @@ public class AdminBootstrap implements ApplicationRunner {
 	@Transactional
 	public void run(ApplicationArguments args) {
 		AppProperties.Admin admin = properties.admin();
-		if (admin == null || !StringUtils.hasText(admin.loginId()) || !StringUtils.hasText(admin.password())) {
+		if (!properties.passwordAuthEnabled()
+			|| admin == null || !StringUtils.hasText(admin.loginId()) || !StringUtils.hasText(admin.password())) {
 			return;
 		}
 		Member member = memberRepository.findByLoginId(admin.loginId()).orElseGet(() -> {

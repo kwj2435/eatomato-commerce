@@ -54,14 +54,15 @@ docker compose up -d --build   # mysql → backend 순서로 뜬다
 | GET | `/api/reviews/featured?limit=4` | 메인 대표 리뷰 카드(사진·글·별점·상품명·상품 이미지) | `listFeaturedReviews` |
 | GET | `/api/notices?query=` | 공지 목록 (고정 → 등록일 내림차순, 제목 검색) | `listNotices` |
 | GET | `/api/notices/ids` · `/api/notices/{id}` | 공지 id 목록 / 단건 | `listNoticeIds` · `getNotice` |
-| POST | `/api/auth/signup` | 가입 `{loginId,password,email,name}` → 토큰 | |
-| POST | `/api/auth/login` | 로그인 `{loginId(아이디 또는 이메일),password}` → 토큰 | `LoginForm` |
+| POST | `/api/auth/signup` | 가입 `{loginId,password,email,name}` → 토큰. `app.password-auth-enabled` 가 켜진 local·테스트에서만 (운영 403) | |
+| POST | `/api/auth/login` | 로그인 `{loginId(아이디 또는 이메일),password}` → 토큰. local·테스트에서만 (운영 403 `PASSWORD_LOGIN_DISABLED`) | |
 | POST | `/api/auth/refresh` | 토큰 갱신 `{refreshToken}` → 새 토큰 한 쌍 | `auth-store` |
 | POST | `/api/auth/logout` | 리프레시 토큰 폐기 `{refreshToken}` → 204 | 로그아웃 |
 | GET | `/api/auth/kakao/authorize?redirectUri=&state=` | 카카오 인가 화면으로 302 | 카카오 로그인 버튼 |
 | POST | `/api/auth/kakao` | 카카오 인가 코드로 로그인·가입 `{code, redirectUri}` → 토큰 | `/login/kakao/` |
+| GET | `/api/auth/naver/authorize?redirectUri=&state=` | 네이버 인가 화면으로 302 | 네이버 로그인 버튼 |
+| POST | `/api/auth/naver` | 네이버 인가 코드로 로그인·가입 `{code, state, redirectUri}` → 토큰 | `/login/naver/` |
 | GET · PATCH | `/api/me` 🔒 | 회원 정보 조회 / 수정 (null 필드는 유지) | `getMyMember` · `updateMyMember` |
-| PUT | `/api/me/password` 🔒 | 비밀번호 변경 | |
 | GET | `/api/cart` 🔒 | 장바구니 + 요약(선택 항목 합산, 배송비) | `cart-store` |
 | POST | `/api/cart/items` 🔒 | 담기 `{productId, options:{groupId:choiceId}, quantity}` | `addItem` |
 | PATCH | `/api/cart/items/{id}` 🔒 | 수량·선택 변경 `{quantity?, selected?}` | `updateQuantity` · `toggleSelected` |

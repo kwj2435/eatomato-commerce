@@ -34,8 +34,9 @@ management:
         include: health
 
 app:
-  # 이메일(아이디·비밀번호) 회원가입. 운영은 끄고 카카오·네이버로만 가입한다. 기존 회원의 이메일 로그인은 그대로 된다.
-  email-signup-enabled: ${EMAIL_SIGNUP_ENABLED:false}
+  # 아이디·비밀번호 계정(이메일 가입·비밀번호 로그인·첫 관리자 생성). 운영은 끄고 카카오·네이버로만 가입·로그인한다.
+  # 테스트(local 프로필)는 이 방식으로 회원을 만들어 쓴다.
+  password-auth-enabled: ${PASSWORD_AUTH_ENABLED:false}
   jwt:
     # HS256 서명 키. 32바이트 이상의 임의 문자열이어야 한다.
     secret: ${JWT_SECRET}
@@ -74,6 +75,7 @@ app:
     window: 15m
   admin:
     # 기동 시 이 계정을 관리자로 만든다(없으면 생성, 있으면 권한만 부여 — 비밀번호는 바꾸지 않는다).
+    # password-auth-enabled 가 꺼져 있으면 쓰지 않는다. 운영 관리자는 카카오·네이버 계정에 관리자 화면에서 권한을 준다.
     login-id: ${ADMIN_LOGIN_ID:}
     password: ${ADMIN_PASSWORD:}
     email: ${ADMIN_EMAIL:}
@@ -90,8 +92,8 @@ spring:
     password:
 
 app:
-  # 로컬·테스트는 이메일 가입으로 회원을 만든다
-  email-signup-enabled: true
+  # 로컬·테스트는 아이디·비밀번호로 회원을 만들고 로그인한다
+  password-auth-enabled: true
   jwt:
     secret: local-development-secret-key-must-be-32-bytes-or-more
   admin:

@@ -146,10 +146,6 @@ public class Member {
 		this.marketingSms = sms;
 	}
 
-	public void changePasswordHash(String passwordHash) {
-		this.passwordHash = passwordHash;
-	}
-
 	public void changeGrade(String grade) {
 		this.grade = grade;
 	}

@@ -6,7 +6,7 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "app")
-public record AppProperties(boolean emailSignupEnabled, Jwt jwt, Cors cors, Upload upload, Seed seed, Admin admin, Kakao kakao, Naver naver, Payment payment,
+public record AppProperties(boolean passwordAuthEnabled, Jwt jwt, Cors cors, Upload upload, Seed seed, Admin admin, Kakao kakao, Naver naver, Payment payment,
 	LoginLimit loginLimit) {
 
 	public record Jwt(String secret, Duration accessTokenTtl, Duration refreshTokenTtl) {
