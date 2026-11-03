@@ -1,3 +1,4 @@
+import { CATEGORIES } from "@/features/product-list/categories";
 import type { AdminProduct, AdminProductInput } from "@/types/admin";
 import type { ProductBadge } from "@/types/product";
 
@@ -72,6 +73,7 @@ const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export function validateProduct(form: AdminProductInput): string | null {
   if (!form.name.trim()) return "상품명을 입력해 주세요.";
   if (!SLUG_PATTERN.test(form.slug)) return "URL(slug)은 영문 소문자·숫자·하이픈으로 입력해 주세요.";
+  if (Object.hasOwn(CATEGORIES, form.slug)) return "카테고리 주소와 같은 URL(slug)은 쓸 수 없습니다.";
   if (form.salePrice !== null && form.salePrice >= form.price) return "할인가는 정상가보다 낮아야 합니다.";
   return null;
 }

@@ -160,6 +160,10 @@ public class AdminProductService {
 		if (duplicate) {
 			throw new ApiException(ErrorCode.DUPLICATE_SLUG);
 		}
+		// 상품 상세와 카테고리 목록이 같은 /products/{slug} 주소를 나눠 쓰므로, 카테고리 코드와 같으면 상품 페이지에 갈 수 없다.
+		if (categoryRepository.existsById(request.slug())) {
+			throw new ApiException(ErrorCode.RESERVED_SLUG);
+		}
 
 		Category category = categoryRepository.findById(request.categoryCode())
 			.orElseThrow(() -> new ApiException(ErrorCode.INVALID_CATEGORY));

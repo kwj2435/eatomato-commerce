@@ -41,6 +41,7 @@ public enum ErrorCode {
 	INVALID_OPTION(HttpStatus.BAD_REQUEST, "상품 옵션을 모두 올바르게 선택해 주세요."),
 	PRODUCT_UNAVAILABLE(HttpStatus.BAD_REQUEST, "판매가 중지된 상품이 포함되어 있습니다. 장바구니에서 삭제해 주세요."),
 	DUPLICATE_SLUG(HttpStatus.CONFLICT, "이미 사용 중인 상품 URL(slug)입니다."),
+	RESERVED_SLUG(HttpStatus.BAD_REQUEST, "카테고리 주소와 같은 상품 URL(slug)은 쓸 수 없습니다."),
 	INVALID_PRODUCT(HttpStatus.BAD_REQUEST, "상품 정보를 확인해 주세요."),
 	BANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "배너를 찾을 수 없습니다."),
 	BANNER_HREF_REQUIRED(HttpStatus.BAD_REQUEST, "메인 상단 배너는 클릭 시 이동할 주소가 필요합니다."),
