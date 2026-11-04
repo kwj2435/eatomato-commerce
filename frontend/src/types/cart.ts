@@ -10,6 +10,8 @@ export type CartItem = {
   name: string;
   option?: string;
   unitPrice: number;
+  /** 할인 전 단가(정가 + 옵션 추가금). 할인 중인 상품만 온다. */
+  listPrice?: number;
   imageUrl?: string;
   quantity: number;
   /** 개별 선택 체크박스 상태. 결제 요약은 선택된 항목만 합산한다. */
@@ -28,6 +30,10 @@ export type CartSummary = {
   shippingFee: number;
   total: number;
   freeShippingRemainder: number;
+  /** 선택 항목의 할인 금액 합. 할인 전 상품 금액은 subtotal + discount. */
+  discount: number;
+  /** 선택 항목을 주문하면 받을 적립금(회원만 적립된다). */
+  rewardPoints: number;
 };
 
 export type Cart = {

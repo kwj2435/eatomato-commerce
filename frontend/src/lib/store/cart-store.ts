@@ -41,6 +41,8 @@ type CartState = {
   load: () => Promise<void>;
   addItem: (input: AddCartItemInput) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
+  /** 선택된 줄을 모두 지운다. */
+  removeSelected: () => Promise<void>;
   updateQuantity: (id: string, quantity: number) => Promise<void>;
   toggleSelected: (id: string) => Promise<void>;
   toggleAllSelected: (selected: boolean) => Promise<void>;
@@ -54,6 +56,8 @@ const EMPTY_SUMMARY: CartSummary = {
   shippingFee: 0,
   total: 0,
   freeShippingRemainder: 0,
+  discount: 0,
+  rewardPoints: 0,
 };
 
 export const useCartStore = create<CartState>()((set, get) => {
@@ -123,6 +127,22 @@ export const useCartStore = create<CartState>()((set, get) => {
       hasSession()
         ? apply(await removeCartItem(id))
         : updateGuest((lines) => lines.filter((line) => line.id !== id)),
+
+    removeSelected: async () => {
+      const ids = get().items.filter((it) => it.selected).map((it) => it.id);
+      if (ids.length === 0) return;
+      if (!hasSession()) return updateGuest((lines) => lines.filter((line) => !ids.includes(line.id)));
+      // 한꺼번에 지우는 API 가 없어 한 줄씩 지운다. 마지막 응답이 최종 장바구니다.
+      // 중간에 실패하면 이미 지워진 줄이 화면에 남지 않도록 서버 장바구니를 다시 불러온다.
+      let cart: Cart | null = null;
+      try {
+        for (const id of ids) cart = await removeCartItem(id);
+      } catch (error) {
+        await get().load().catch(() => {});
+        throw error;
+      }
+      if (cart) apply(cart);
+    },
 
     updateQuantity: async (id, quantity) => {
       const next = Math.min(MAX_QUANTITY, Math.max(1, quantity));
