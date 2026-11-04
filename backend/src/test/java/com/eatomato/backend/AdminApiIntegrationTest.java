@@ -322,9 +322,12 @@ class AdminApiIntegrationTest {
 
 		String admin = login("admin", "admin1234");
 		mockMvc.perform(get("/api/admin/site-contents").header(HttpHeaders.AUTHORIZATION, admin))
-			.andExpect(jsonPath("$", hasSize(9)))
+			.andExpect(jsonPath("$", hasSize(10)))
 			.andExpect(jsonPath("$[0].customized").value(false))
 			.andExpect(jsonPath("$[?(@.key == 'ABOUT_IMAGE_URL')].kind").value("IMAGE"))
+			// 사진 옆 이미지는 기본값이 비어 있다(비우면 글만 보인다).
+			.andExpect(jsonPath("$[?(@.key == 'ABOUT_STORY_IMAGE_URL')].kind").value("IMAGE"))
+			.andExpect(jsonPath("$[?(@.key == 'ABOUT_STORY_IMAGE_URL')].value").value(""))
 			.andExpect(jsonPath("$[?(@.key == 'ABOUT_TOP_TEXT')].maxLength").value(3000));
 
 		// 항목마다 길이 제한이 다르다: 메인 설명은 500자, About 글은 3000자까지

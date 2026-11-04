@@ -32,16 +32,22 @@ public enum SiteContentKey {
 	HOME_REVIEW_DESCRIPTION(
 		"메인 · Review 설명",
 		"실제로 함께한 순간들을 모았습니다."),
+	// About 은 2026-11 개편으로 배치가 바뀌었다. 운영 문구를 옮기지 않아도 되게 키 이름은 그대로 두고 쓰임만 바꿨다.
+	// 상단 글: 빈 줄로 나눈 문단을 순서대로 [큰 소개 문장 / 소개 / 인용 문구 / 사진 옆 글...] 에 놓는다.
+	// 하단 글: 맨 위 슬로건(첫 줄 큰 제목, 다음 줄부터 설명).
 	ABOUT_TOP_TEXT(
-		"About · 상단 글 (빈 줄로 문단 구분)",
+		"About · 소개 글 (빈 줄로 문단 구분: 1문단 큰 소개 문장 / 2문단 소개 / 3문단 인용 문구, 첫 줄이 크게 / 4문단부터 사진 옆 글)",
 		Defaults.ABOUT_TEXT, Kind.TEXT, 3000),
 	ABOUT_IMAGE_URL(
-		"About · 가운데 이미지",
+		"About · 맨 위 큰 이미지 (가로 사진 권장)",
 		"https://images.unsplash.com/photo-1571680322279-a226e6a4cc2a?w=1440&h=1430&fit=crop&auto=format&q=75",
 		Kind.IMAGE, 500),
 	ABOUT_BOTTOM_TEXT(
-		"About · 하단 글 (빈 줄로 문단 구분)",
-		Defaults.ABOUT_TEXT, Kind.TEXT, 3000);
+		"About · 맨 위 슬로건 (첫 줄 큰 제목, 다음 줄부터 설명)",
+		Defaults.ABOUT_TEXT, Kind.TEXT, 3000),
+	ABOUT_STORY_IMAGE_URL(
+		"About · 사진 옆 글의 이미지 (비우면 글만 보임)",
+		"", Kind.IMAGE, 500);
 
 	public enum Kind {
 		TEXT, IMAGE
