@@ -13,7 +13,8 @@ export type SiteContentKey =
   | "HOME_REVIEW_DESCRIPTION"
   | "ABOUT_TOP_TEXT"
   | "ABOUT_IMAGE_URL"
-  | "ABOUT_BOTTOM_TEXT";
+  | "ABOUT_BOTTOM_TEXT"
+  | "ABOUT_STORY_IMAGE_URL";
 
 export type SiteContents = Record<SiteContentKey, string>;
 

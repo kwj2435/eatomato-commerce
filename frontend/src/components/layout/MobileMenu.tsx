@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 
+import { NavLink } from "@/components/layout/NavLink";
 import { ChevronDownIcon, MenuIcon } from "@/components/ui/icons";
 import { useIsLoggedIn } from "@/lib/store/auth-store";
 import { useHydrated } from "@/lib/store/use-hydrated";
@@ -128,13 +129,14 @@ export function MobileMenu({ items }: MobileMenuProps) {
                       />
                     </button>
                   ) : (
-                    <Link
+                    <NavLink
                       href={item.href}
                       onClick={close}
                       className={itemClass}
+                      activeClassName="text-brand-primary"
                     >
                       {item.label}
-                    </Link>
+                    </NavLink>
                   )}
 
                   {hasChildren && isExpanded ? (

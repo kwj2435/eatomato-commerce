@@ -36,6 +36,11 @@ export function formatNoticeDate(isoString: string): string {
   return `${get("year")}.${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
 }
 
+/** 공지 날짜만: 2026.10.29 (목록·상세 화면용, 시간은 보이지 않는다). */
+export function formatNoticeDay(isoString: string): string {
+  return formatNoticeDate(isoString).split(" ")[0];
+}
+
 /** 전화번호 표시: 01022223333 → 010-2222-3333 (서버는 숫자만 저장한다). */
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");

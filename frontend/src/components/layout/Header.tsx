@@ -5,6 +5,7 @@ import { HeaderAdminLink } from "@/components/layout/HeaderAdminLink";
 import { HeaderCartLink } from "@/components/layout/HeaderCartLink";
 import { HeaderUserLink } from "@/components/layout/HeaderUserLink";
 import { MobileMenu } from "@/components/layout/MobileMenu";
+import { NavLink } from "@/components/layout/NavLink";
 import { SearchIcon } from "@/components/ui/icons";
 import {
   CATEGORY_LIST,
@@ -135,12 +136,13 @@ function NavItemNode({ item }: { item: NavItem }) {
        * 텍스트와 패널 사이 구간은 li(높이 110px)가 덮는다.
        */}
       <div className="relative">
-        <Link
+        <NavLink
           href={item.href}
           className="text-[16px] font-normal tracking-[-0.2px] text-brand-secondary transition-opacity hover:opacity-70"
+          activeClassName="font-semibold text-brand-primary"
         >
           {item.label}
-        </Link>
+        </NavLink>
 
         {hasChildren && (
           <div
