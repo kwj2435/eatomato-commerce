@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "eatomato 브랜드 소개 — 감각적인 데일리 굿즈 이야기",
 };
 
-/** "잇토마토가 만드는 것" 에 보여 줄 카테고리. 대표 이미지는 각 카테고리의 첫 상품 사진이다. */
+/** "Explore the Collection" 에 보여 줄 카테고리. 대표 이미지는 각 카테고리의 첫 상품 사진이다. */
 const ABOUT_CATEGORIES: CategoryKey[] = ["phone-case", "phone-acc", "set"];
 
 /** 글·이미지는 관리자 화면(문구)에서 고친다. 서버가 60초마다 다시 받아 반영한다. */

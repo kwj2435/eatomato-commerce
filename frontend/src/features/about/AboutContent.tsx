@@ -28,20 +28,18 @@ const INSTAGRAM_URL = "https://www.instagram.com/eatomato__/";
 /**
  * About 페이지 본문.
  *
- * 구성: 슬로건 → 큰 이미지 → 소개(큰 문장 + 문단) → 인용 문구 → 사진 + 글 → 카테고리 → 쇼핑·인스타 CTA.
+ * 구성: 슬로건 → 큰 이미지 → 소개(큰 문장 + 문단) → 사진 + 글 → 카테고리 → 쇼핑·인스타 CTA.
  *
  * 글은 관리자 화면(문구)에서 고친다. 운영 문구를 옮기지 않고 개편하려고 기존 키를 그대로 쓰고,
  * 소개 글은 문단 순서로 자리를 정한다(관리자 화면 라벨에 순서를 적어 두었다).
- * - 1문단: 큰 소개 문장 / 2문단: 소개 / 3문단: 인용 문구(첫 줄이 크게, 다음 줄은 설명) / 4문단부터: 사진 옆 글
+ * - 1문단: 큰 소개 문장 / 2문단: 소개 / 3문단부터: 사진 옆 글
  * 비어 있는 자리는 그리지 않는다.
  */
 export function AboutContent({ slogan, heroImageUrl, introText, storyImageUrl, categories }: AboutContentProps) {
   const [headline, ...sloganRest] = slogan.trim().split("\n").map((line) => line.trim());
   const sloganSub = sloganRest.filter(Boolean).join("\n");
 
-  const [lead, intro, quoteBlock, ...story] = splitParagraphs(introText);
-  const [quote, ...quoteRest] = (quoteBlock ?? "").split("\n").map((line) => line.trim());
-  const quoteCaption = quoteRest.filter(Boolean).join("\n");
+  const [lead, intro, ...story] = splitParagraphs(introText);
   const heroImage = heroImageUrl.trim();
   const storyImage = storyImageUrl.trim();
 
@@ -49,7 +47,7 @@ export function AboutContent({ slogan, heroImageUrl, introText, storyImageUrl, c
     <>
       {headline ? (
         <Container as="section" aria-label="브랜드 슬로건" className="pb-10 pt-12 lg:pb-14 lg:pt-[84px]">
-          <p className="text-[12px] font-semibold tracking-[2.5px] text-brand-deep">ABOUT EATOMATO</p>
+          <p className="text-[12px] font-semibold tracking-[2.5px] text-brand-deep">ABOUT</p>
           <h1 className="mt-3.5 text-balance break-keep font-serif text-[44px] font-semibold leading-[1.08] tracking-[-1px] text-brand-primary md:text-[72px] lg:text-[96px]">
             {headline}
           </h1>
@@ -87,21 +85,6 @@ export function AboutContent({ slogan, heroImageUrl, introText, storyImageUrl, c
         </Container>
       ) : null}
 
-      {quote ? (
-        <section aria-label="브랜드 문장" className="border-y border-[#F0E2DE] bg-surface-elevated">
-          <Container className="py-14 text-center lg:py-[88px]">
-            <blockquote className="text-balance break-keep font-serif text-[22px] font-medium leading-[1.55] tracking-[-0.4px] text-brand-secondary lg:text-[34px]">
-              “{quote}”
-            </blockquote>
-            {quoteCaption ? (
-              <p className="mt-4 break-keep text-[14.5px] leading-[1.6] tracking-[-0.2px] text-ink-muted">
-                <MultilineText text={quoteCaption} />
-              </p>
-            ) : null}
-          </Container>
-        </section>
-      ) : null}
-
       {story.length > 0 ? (
         <Container
           as="section"
@@ -136,7 +119,7 @@ export function AboutContent({ slogan, heroImageUrl, introText, storyImageUrl, c
       {categories.length > 0 ? (
         <Container as="section" aria-labelledby="about-categories-title" className="pb-16">
           <h2 id="about-categories-title" className="mb-[18px] text-[18px] font-bold tracking-[-0.3px] text-ink-primary">
-            잇토마토가 만드는 것
+            Explore the Collection
           </h2>
           <ul className="grid grid-cols-3 gap-3 md:gap-6">
             {categories.map((category) => (
@@ -169,10 +152,8 @@ export function AboutContent({ slogan, heroImageUrl, introText, storyImageUrl, c
       <section aria-label="쇼핑 안내" className="bg-brand-primary text-ink-inverse">
         <Container className="flex flex-wrap items-center justify-between gap-5 py-12">
           <div>
-            <p className="font-serif text-[26px] font-semibold tracking-[-0.5px] lg:text-[34px]">
-              오늘의 토마토를 만나보세요
-            </p>
-            <p className="mt-1.5 text-[14px] opacity-85">새로운 장면은 인스타그램 @eatomato__ 에서도 볼 수 있어요.</p>
+            <p className="text-[26px] font-bold tracking-[-0.6px] lg:text-[32px]">Find Your Favorite</p>
+            <p className="mt-1.5 text-[14px] opacity-85">다양한 제품을 둘러보세요</p>
           </div>
           <div className="flex flex-wrap gap-2.5">
             <Link
