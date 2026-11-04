@@ -202,8 +202,12 @@ class ApiIntegrationTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.items", hasSize(1)))
 			.andExpect(jsonPath("$.items[0].unitPrice").value(23000))
+			// 할인 전: 정가 23,000 + 맥세이프 4,000 = 27,000 → 할인 4,000 × 2 = 8,000. 적립 3%: 46,000 × 3% = 1,380
+			.andExpect(jsonPath("$.items[0].listPrice").value(27000))
 			.andExpect(jsonPath("$.items[0].option").value(startsWith("색상: 크림")))
 			.andExpect(jsonPath("$.summary.subtotal").value(46000))
+			.andExpect(jsonPath("$.summary.discount").value(8000))
+			.andExpect(jsonPath("$.summary.rewardPoints").value(1380))
 			.andExpect(jsonPath("$.summary.shippingFee").value(3000));
 
 		// 같은 옵션은 한 줄로 합쳐진다: 23,000 × 4 = 92,000 → 무료배송

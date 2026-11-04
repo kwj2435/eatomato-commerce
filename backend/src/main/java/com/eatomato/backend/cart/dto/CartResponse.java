@@ -16,6 +16,7 @@ public record CartResponse(List<Item> items, Summary summary, Policy shippingPol
 	/**
 	 * @param available 지금 주문할 수 있는지(판매 중 + 재고 충분). false 면 주문서로 넘길 수 없다.
 	 * @param stock     남은 재고. 재고를 관리하지 않는 상품은 null.
+	 * @param listPrice 할인 전 단가(정가 + 옵션 추가금). 할인 중인 상품만 있고, 아니면 null.
 	 */
 	@JsonInclude(JsonInclude.Include.NON_NULL)
 	public record Item(
@@ -25,6 +26,7 @@ public record CartResponse(List<Item> items, Summary summary, Policy shippingPol
 		String name,
 		String option,
 		int unitPrice,
+		Integer listPrice,
 		String imageUrl,
 		int quantity,
 		boolean selected,
@@ -41,6 +43,7 @@ public record CartResponse(List<Item> items, Summary summary, Policy shippingPol
 				product.getName(),
 				item.getOptionLabel(),
 				item.unitPrice(),
+				item.listUnitPrice() > item.unitPrice() ? item.listUnitPrice() : null,
 				product.getImageUrl(),
 				item.getQuantity(),
 				item.isSelected(),
@@ -49,13 +52,19 @@ public record CartResponse(List<Item> items, Summary summary, Policy shippingPol
 		}
 	}
 
+	/**
+	 * @param discount     선택 항목의 할인 금액 합. 할인 전 상품 금액은 subtotal + discount.
+	 * @param rewardPoints 선택 항목을 주문하면 받을 적립금(회원만 적립된다).
+	 */
 	public record Summary(
 		int itemCount,
 		int selectedCount,
 		int subtotal,
 		int shippingFee,
 		int total,
-		int freeShippingRemainder
+		int freeShippingRemainder,
+		int discount,
+		int rewardPoints
 	) {
 	}
 
@@ -78,7 +87,9 @@ public record CartResponse(List<Item> items, Summary summary, Policy shippingPol
 			subtotal,
 			shippingFee,
 			subtotal + shippingFee,
-			policy.freeShippingRemainder(subtotal));
+			policy.freeShippingRemainder(subtotal),
+			selected.stream().mapToInt(CartItem::lineDiscount).sum(),
+			selected.stream().mapToInt(CartItem::rewardPoints).sum());
 		return new CartResponse(
 			items.stream().map(item -> Item.from(item, idOf.apply(item))).toList(),
 			summary,

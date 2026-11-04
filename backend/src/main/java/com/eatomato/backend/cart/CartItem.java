@@ -78,6 +78,21 @@ public class CartItem {
 		return unitPrice() * quantity;
 	}
 
+	/** 할인 전 단가(정가 + 옵션 추가금). 할인 중이 아니면 unitPrice 와 같다. */
+	public int listUnitPrice() {
+		return product.getPrice() + optionPriceDelta;
+	}
+
+	/** 이 줄의 할인 금액(할인 전 금액 - 판매 금액). */
+	public int lineDiscount() {
+		return (listUnitPrice() - unitPrice()) * quantity;
+	}
+
+	/** 이 줄로 받을 적립금. 주문 적립(Order.rewardPoints)과 같은 계산이다. */
+	public int rewardPoints() {
+		return lineTotal() * product.getRewardRate() / 100;
+	}
+
 	public void increaseQuantity(int amount) {
 		this.quantity = clamp(this.quantity + amount);
 	}
