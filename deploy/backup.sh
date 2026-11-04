@@ -9,9 +9,9 @@
 set -euo pipefail
 
 backup_dir="${BACKUP_DIR:-/root/backups}"
-keep_days="${KEEP_DAYS:-14}"
+keep_days="${KEEP_DAYS:-7}"
 mega_dir="${MEGA_DIR:-}"
-mega_keep_days="${MEGA_KEEP_DAYS:-30}"
+mega_keep_days="${MEGA_KEEP_DAYS:-5}"
 # VM 시계는 UTC 라 파일 이름만 KST 로 맞춘다.
 stamp="$(TZ=Asia/Seoul date +%Y%m%d-%H%M%S)"
 mkdir -p "$backup_dir"
@@ -29,7 +29,8 @@ mv "$db_file.part" "$db_file"
 docker cp eatomato-backend:/app/uploads - | gzip > "$uploads_file.part"
 mv "$uploads_file.part" "$uploads_file"
 
-find "$backup_dir" -maxdepth 1 -name '*.gz' -mtime +"$keep_days" -delete
+# -mtime +N 은 하루 미만을 버려 실제로는 N+1 일이 지나야 지운다. 분 단위로 정확히 N 일을 넘긴 것만 지운다.
+find "$backup_dir" -maxdepth 1 -name '*.gz' -mmin +"$((keep_days * 24 * 60))" -delete
 
 if [[ -n "$mega_dir" ]]; then
   mega-mkdir -p "$mega_dir" 2>/dev/null || true
