@@ -4,6 +4,16 @@ import { Suspense, type ReactNode } from "react";
 
 import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 
+import {
+  BASE_OPEN_GRAPH,
+  DEFAULT_OG_IMAGE,
+  NAVER_SITE_VERIFICATION,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TITLE,
+  SITE_URL,
+} from "@/lib/site";
+
 import "./globals.css";
 
 /**
@@ -22,20 +32,24 @@ const hahmlet = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://eatomato.example.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "eatomato",
+    default: SITE_TITLE,
     template: "%s · eatomato",
   },
-  description:
-    "eatomato — 감각적인 핸드폰 케이스와 굿즈를 만나는 온라인 스토어",
-  openGraph: {
-    title: "eatomato",
-    description:
-      "eatomato — 감각적인 핸드폰 케이스와 굿즈를 만나는 온라인 스토어",
-    type: "website",
-    locale: "ko_KR",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: ["eatomato", "잇토마토", "핸드폰 케이스", "폰케이스", "맥세이프 케이스", "카드 케이스", "그립톡", "토마토"],
+  openGraph: BASE_OPEN_GRAPH,
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE.url],
   },
+  ...(NAVER_SITE_VERIFICATION
+    ? { verification: { other: { "naver-site-verification": NAVER_SITE_VERIFICATION } } }
+    : {}),
 };
 
 /**

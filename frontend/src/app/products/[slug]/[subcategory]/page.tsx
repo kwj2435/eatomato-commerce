@@ -7,6 +7,7 @@ import {
   resolveCategory,
 } from "@/features/product-list/categories";
 import { ProductListView } from "@/features/product-list/ProductListView";
+import { BASE_OPEN_GRAPH, SITE_NAME, SITE_NAME_KO } from "@/lib/site";
 
 /**
  * `/products/[slug]/[subcategory]` — 카테고리 + 서브카테고리 필터 리스트.
@@ -36,6 +37,12 @@ export async function generateMetadata({
   if (!resolved) return { title: "상품을 찾을 수 없습니다" };
   return {
     title: `${resolved.category.label} · ${resolved.subcategory.label}`,
+    alternates: { canonical: `/products/${slug}/${subcategory}/` },
+    openGraph: {
+      ...BASE_OPEN_GRAPH,
+      url: `/products/${slug}/${subcategory}/`,
+      title: `${resolved.category.label} · ${resolved.subcategory.label} · ${SITE_NAME} ${SITE_NAME_KO}`,
+    },
   };
 }
 

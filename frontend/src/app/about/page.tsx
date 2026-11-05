@@ -9,6 +9,7 @@ import type { CategoryKey } from "@/types/product";
 
 export const metadata: Metadata = {
   title: "About",
+  alternates: { canonical: "/about/" },
   description: "eatomato 브랜드 소개 — 감각적인 데일리 굿즈 이야기",
 };
 

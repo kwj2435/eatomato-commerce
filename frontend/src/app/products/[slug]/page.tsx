@@ -13,6 +13,8 @@ import {
   listAllProductSlugs,
 } from "@/lib/api/products";
 import { getShippingPolicy } from "@/lib/api/shipping";
+import { BASE_OPEN_GRAPH, DEFAULT_OG_IMAGE, SITE_NAME, SITE_NAME_KO, SITE_URL, jsonLd } from "@/lib/site";
+import type { ProductDetail } from "@/types/product-detail";
 
 /**
  * `/products/[slug]` — 카테고리 전체 리스트 OR 개별 상품 상세.
@@ -45,10 +47,36 @@ export async function generateMetadata({
   const { slug } = await params;
 
   const asCategory = resolveCategory(slug);
-  if (asCategory) return { title: asCategory.category.label };
+  if (asCategory) {
+    return {
+      title: asCategory.category.label,
+      alternates: { canonical: `/products/${slug}/` },
+      openGraph: { ...BASE_OPEN_GRAPH, url: `/products/${slug}/`, title: `${asCategory.category.label} · ${SITE_NAME} ${SITE_NAME_KO}` },
+    };
+  }
 
   const product = await getProductDetail(slug);
-  if (product) return { title: product.name, description: product.noticeLines[0] };
+  if (product) {
+    const description = productDescription(product);
+    return {
+      title: product.name,
+      description,
+      alternates: { canonical: `/products/${slug}/` },
+      openGraph: {
+        ...BASE_OPEN_GRAPH,
+        url: `/products/${slug}/`,
+        title: `${product.name} · ${SITE_NAME} ${SITE_NAME_KO}`,
+        description,
+        images: product.imageUrl ? [{ url: product.imageUrl, alt: product.name }] : [DEFAULT_OG_IMAGE],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: product.name,
+        description,
+        images: [product.imageUrl ?? DEFAULT_OG_IMAGE.url],
+      },
+    };
+  }
 
   return { title: "상품을 찾을 수 없습니다" };
 }
@@ -74,6 +102,7 @@ export default async function ProductRoute({ params }: PageProps) {
   if (product) {
     return (
       <SiteFrame bottomBarSpace>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product)) }} />
         <ProductDetailView product={product} shippingPolicy={shippingPolicy} />
       </SiteFrame>
     );
@@ -81,4 +110,37 @@ export default async function ProductRoute({ params }: PageProps) {
 
   // 3) 어느 쪽도 아니면 404
   notFound();
+}
+
+/** 검색 결과·공유 미리보기에 쓸 상품 설명. 옵션 요약과 안내 첫 줄을 잇는다. */
+function productDescription(product: ProductDetail): string {
+  const parts = [`${product.name} — 잇토마토(eatomato) 공식몰`, product.option, product.noticeLines[0]];
+  return parts.filter(Boolean).join(" · ").slice(0, 160);
+}
+
+/** 상품 구조화 데이터(이름·사진·가격·재고·후기). 후기가 없으면 평점은 넣지 않는다. */
+function productJsonLd(product: ProductDetail) {
+  const url = `${SITE_URL}/products/${product.slug}/`;
+  const images = [product.imageUrl, ...product.detailImages.slice(0, 3)].filter(Boolean);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    url,
+    image: images,
+    description: productDescription(product),
+    sku: product.slug,
+    brand: { "@type": "Brand", name: SITE_NAME, alternateName: SITE_NAME_KO },
+    offers: {
+      "@type": "Offer",
+      url,
+      priceCurrency: "KRW",
+      price: product.salePrice ?? product.price,
+      availability: product.soldOut ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      seller: { "@type": "Organization", name: SITE_NAME },
+    },
+    ...(product.reviewCount > 0 && product.rating > 0
+      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviewCount } }
+      : {}),
+  };
 }

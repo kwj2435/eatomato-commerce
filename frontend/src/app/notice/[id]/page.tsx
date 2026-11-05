@@ -19,7 +19,7 @@ export async function generateMetadata({
   const notice = await getNotice(id);
 
   return notice
-    ? { title: notice.title, description: notice.body[0] }
+    ? { title: notice.title, description: notice.body[0], alternates: { canonical: `/notice/${id}/` } }
     : { title: "공지사항을 찾을 수 없습니다" };
 }
 
