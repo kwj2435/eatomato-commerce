@@ -33,7 +33,7 @@ export const NAVER_BLOG_URL = "https://blog.naver.com/eatomato_";
  * 네이버 서치어드바이저 소유확인 값(HTML 태그 방식의 content 값).
  * 서치어드바이저에서 받은 값을 넣고 배포하면 `<meta name="naver-site-verification">` 이 붙는다. 비어 있으면 태그를 넣지 않는다.
  */
-export const NAVER_SITE_VERIFICATION = "";
+export const NAVER_SITE_VERIFICATION = "d17949742c243e83f701043aedfaac3a448fff25";
 
 /** JSON-LD `<script>` 본문. `<` 를 이스케이프해 문자열 안의 태그가 HTML 로 해석되지 않게 한다. */
 export function jsonLd(data: object): string {
