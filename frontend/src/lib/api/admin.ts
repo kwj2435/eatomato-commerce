@@ -11,6 +11,7 @@ import type {
   AdminProduct,
   AdminProductInput,
   AdminProductSummary,
+  Analytics,
   Dashboard,
   Page,
 } from "@/types/admin";
@@ -31,6 +32,10 @@ function query(params: Record<string, string | number | undefined>): string {
 }
 
 export const getDashboard = () => apiFetch<Dashboard>("/api/admin/dashboard", { auth: true });
+
+/** 방문자 분석. days: 오늘 포함 며칠(1~90). */
+export const getAnalytics = (days: number) =>
+  apiFetch<Analytics>(`/api/admin/analytics${query({ days })}`, { auth: true });
 
 // ── 상품 ──
 

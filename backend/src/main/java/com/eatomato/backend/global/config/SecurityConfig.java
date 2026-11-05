@@ -66,6 +66,8 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/kakao", "/api/auth/naver",
 					"/api/auth/refresh", "/api/auth/logout", "/api/payments/webhook", "/api/payments/toss/webhook").permitAll()
+				// 스토어 페이지 조회 기록(방문자 분석). 로그인과 무관하게 받는다.
+				.requestMatchers(HttpMethod.POST, "/api/analytics/pageview").permitAll()
 				// 비회원 장바구니·주문. 주문 조회·취소·결제 승인은 주문 비밀번호로 확인한다(GuestOrderService).
 				.requestMatchers(HttpMethod.POST, "/api/guest/**").permitAll()
 				.requestMatchers(HttpMethod.GET, "/api/auth/kakao/authorize", "/api/auth/naver/authorize").permitAll()

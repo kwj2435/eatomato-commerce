@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+
+import { PageViewTracker } from "@/components/analytics/PageViewTracker";
 
 import "./globals.css";
 
@@ -56,7 +58,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
       </head>
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        {children}
+        {/* 방문자 분석용 조회 기록. 화면에는 아무것도 그리지 않는다. */}
+        <Suspense fallback={null}>
+          <PageViewTracker />
+        </Suspense>
+      </body>
     </html>
   );
 }

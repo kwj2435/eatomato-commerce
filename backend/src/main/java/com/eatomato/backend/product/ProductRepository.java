@@ -39,6 +39,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		+ " and lower(concat(p.name, ' ', coalesce(p.optionSummary, ''))) like lower(concat('%', :keyword, '%')) escape '\\'")
 	List<Product> search(@Param("keyword") String keyword, Sort sort);
 
+	/** 방문자 분석: 상품 페이지 주소의 슬러그를 상품 id 로 바꾼다(숨김 상품 포함, 삭제 상품 제외). */
+	@Query("select p.id from Product p where p.slug = :slug and p.deletedAt is null")
+	Optional<Long> findIdBySlug(@Param("slug") String slug);
+
 	// ── 관리자 ──────────────────────────────────────────────
 
 	Optional<Product> findByIdAndDeletedAtIsNull(Long id);

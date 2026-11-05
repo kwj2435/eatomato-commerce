@@ -32,4 +32,16 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 		order by sum(oi.quantity) desc
 		""")
 	List<Object[]> topSellingProducts(org.springframework.data.domain.Pageable pageable);
+
+	/** 상품별 판매 수량 (상품 id, 수량 합). from 이후 주문 중 결제가 끝난 것만(방문자 분석의 조회 대비 판매). */
+	@Query("""
+		select oi.productId, sum(oi.quantity)
+		from OrderItem oi join oi.order o
+		where o.orderedAt >= :from and oi.productId in :productIds
+		  and o.status in (com.eatomato.backend.order.OrderStatus.PAID,
+		    com.eatomato.backend.order.OrderStatus.SHIPPING, com.eatomato.backend.order.OrderStatus.DELIVERED)
+		group by oi.productId
+		""")
+	List<Object[]> paidQuantitiesSince(@Param("from") java.time.LocalDateTime from,
+		@Param("productIds") java.util.Collection<Long> productIds);
 }

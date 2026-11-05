@@ -35,6 +35,46 @@ export type Dashboard = {
   soldOutProducts: number;
 };
 
+// ── 방문자 분석 ──────────────────────────────────────────
+
+export type VisitTotals = { visitors: number; sessions: number; pageViews: number };
+
+export type PageType =
+  | "HOME" | "CATEGORY" | "PRODUCT" | "SEARCH" | "CART" | "CHECKOUT" | "MYPAGE" | "NOTICE" | "LOGIN" | "OTHER";
+
+/**
+ * 방문자 = 서로 다른 브라우저 수, 방문 = 30분 넘게 쉬지 않고 이어진 조회 묶음, 조회 = 페이지를 연 횟수.
+ * 관리자 화면·관리자 계정·검색 로봇은 세지 않는다.
+ */
+export type Analytics = {
+  days: number;
+  today: VisitTotals;
+  /** 어제 같은 시각까지. */
+  yesterdaySameTime: VisitTotals;
+  range: VisitTotals;
+  /** 최근 5분 안에 페이지를 연 방문자 수. */
+  liveVisitors: number;
+  /** 오래된 날부터, 빈 날도 0 으로 채워져 온다. */
+  daily: Array<{ date: string } & VisitTotals>;
+  /** 오늘 0~23시. */
+  hourlyToday: Array<{ hour: number; visitors: number; pageViews: number }>;
+  topPages: Array<{ path: string; pageType: PageType; productName: string | null; views: number; visitors: number }>;
+  topProducts: Array<{
+    productId: string;
+    slug: string;
+    name: string;
+    imageUrl: string | null;
+    views: number;
+    visitors: number;
+    /** 기간 안에 결제가 끝난 주문의 판매 수량. */
+    purchased: number;
+  }>;
+  /** key 가 null 이면 직접 방문. count 는 방문 수. */
+  referrers: Array<{ key: string | null; count: number }>;
+  /** key: MOBILE·TABLET·DESKTOP, count 는 방문자 수. */
+  devices: Array<{ key: string; count: number }>;
+};
+
 // ── 상품 ──────────────────────────────────────────────────
 
 export type AdminProductSummary = {
