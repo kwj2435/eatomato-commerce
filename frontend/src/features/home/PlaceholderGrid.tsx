@@ -7,7 +7,7 @@ export function PlaceholderGrid({ label, message }: { label: string; message: st
   return (
     <>
       <p className="sr-only">{message}</p>
-      <ul aria-hidden className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
+      <ul aria-hidden className="mt-6 grid grid-cols-2 gap-[13px] md:mt-10 md:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
           <li key={i} className="flex aspect-[3/4] w-full items-center justify-center bg-surface-elevated">
             <span className="text-[28px] font-normal tracking-[-0.6px] text-ink-placeholder md:text-[40px]">{label}</span>

@@ -107,6 +107,8 @@ export type AdminProductInput = {
   slug: string;
   name: string;
   optionSummary: string;
+  /** 한글 검색어(쉼표 구분). 스토어 검색에만 쓰고 화면에는 안 보인다. */
+  searchKeywords: string;
   price: number;
   salePrice: number | null;
   imageUrl: string;
@@ -127,10 +129,11 @@ export type AdminProductInput = {
 
 export type AdminProduct = Omit<
   AdminProductInput,
-  "optionSummary" | "imageUrl" | "hoverImageUrl" | "subcategoryCode" | "noticeText" | "shippingText"
+  "optionSummary" | "searchKeywords" | "imageUrl" | "hoverImageUrl" | "subcategoryCode" | "noticeText" | "shippingText"
 > & {
   id: string;
   optionSummary: string | null;
+  searchKeywords: string | null;
   imageUrl: string | null;
   hoverImageUrl: string | null;
   subcategoryCode: string | null;

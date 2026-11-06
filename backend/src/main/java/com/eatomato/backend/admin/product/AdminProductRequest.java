@@ -16,6 +16,8 @@ public record AdminProductRequest(
 	@Size(max = 80) String slug,
 	@NotBlank @Size(max = 200) String name,
 	@Size(max = 100) String optionSummary,
+	/** 한글 검색어(쉼표 구분). 스토어 검색에만 쓰고 화면에는 보이지 않는다. */
+	@Size(max = 500) String searchKeywords,
 	@Min(0) @Max(100_000_000) int price,
 	@Min(0) @Max(100_000_000) Integer salePrice,
 	@Size(max = 500) String imageUrl,

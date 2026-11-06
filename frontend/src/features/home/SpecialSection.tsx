@@ -2,9 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
-import { MultilineText } from "@/components/ui/MultilineText";
 import { listHeroBanners } from "@/lib/api/banners";
 import { cn } from "@/lib/utils/cn";
+
+import { SectionHeading } from "./SectionHeading";
 
 /**
  * "Special" 섹션. 관리자가 올린 혜택 배너(배너 관리 > Special)를 세 장씩 보인다.
@@ -17,16 +18,9 @@ export async function SpecialSection({ description }: { description: string }) {
   return (
     <section aria-labelledby="special-title" className="pt-14 md:pt-[94px]">
       <Container>
-        <h2 id="special-title" className="text-[22px] font-medium tracking-[-0.2px] text-black md:text-[25px]">
-          Special
-        </h2>
-        {description ? (
-          <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
-            <MultilineText text={description} />
-          </p>
-        ) : null}
+        <SectionHeading id="special-title" title="Special" description={description} />
 
-        <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4 md:gap-4">
+        <ul className="mt-6 grid grid-cols-2 gap-[13px] md:mt-10 md:grid-cols-4 md:gap-4">
           {banners.length === 0
             ? Array.from({ length: 3 }, (_, i) => (
                 <li key={i} aria-hidden className={cn(tileClass(i), "flex items-center justify-center bg-surface-elevated")}>

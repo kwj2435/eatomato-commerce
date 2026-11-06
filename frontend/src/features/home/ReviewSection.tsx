@@ -2,12 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
-import { MultilineText } from "@/components/ui/MultilineText";
 import { listFeaturedReviews } from "@/lib/api/reviews";
+
+import { SectionHeading } from "./SectionHeading";
 
 /**
  * "Review" 섹션.
  * 대표 리뷰 4장(사진·글 두 줄·상품 칩)을 노출하고, 누르면 리뷰한 상품 상세로 간다.
+ * 아직 리뷰가 없으면 포토후기 이벤트 배너를 보인다.
  */
 /** @param description 섹션 설명. 관리자 화면(문구)에서 고친다. 비어 있으면 설명 줄을 그리지 않는다. */
 export async function ReviewSection({ description }: { description: string }) {
@@ -16,21 +18,13 @@ export async function ReviewSection({ description }: { description: string }) {
   return (
     <section aria-labelledby="review-title" className="pt-14 md:pt-[94px]">
       <Container>
-        <h2
-          id="review-title"
-          className="text-[22px] font-medium tracking-[-0.2px] text-black md:text-[25px]"
-        >
-          Review
-        </h2>
-        {description ? (
-          <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
-            <MultilineText text={description} />
-          </p>
-        ) : null}
+        <SectionHeading id="review-title" title="Review" description={description} />
 
-        {/* 리뷰가 없으면 빈 자리표시 카드를 그리지 않는다(모바일 4차 시안). */}
-        {reviews.length === 0 ? null : (
-          <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
+        {/* 리뷰가 없으면 빈 자리 대신 후기 이벤트를 알린다(제안서 04). 후기가 생기면 자동으로 실제 후기로 바뀐다. */}
+        {reviews.length === 0 ? (
+          <ReviewEventBanner />
+        ) : (
+          <ul className="mt-6 grid grid-cols-2 gap-[13px] md:mt-10 md:grid-cols-4">
             {reviews.map((review) => (
               <li key={review.id}>
                 <Link
@@ -82,5 +76,35 @@ export async function ReviewSection({ description }: { description: string }) {
         )}
       </Container>
     </section>
+  );
+}
+
+/** 후기가 하나도 없을 때 보이는 포토후기 이벤트 안내. 후기는 마이페이지 주문 내역에서 쓴다. */
+function ReviewEventBanner() {
+  return (
+    <div className="mt-6 grid overflow-hidden bg-brand-highlight md:mt-10 md:grid-cols-[1.5fr_1fr]">
+      <div className="flex flex-col justify-center px-6 py-8 md:px-12 md:py-12">
+        <p className="text-[11px] font-semibold tracking-[1.6px] text-brand-primary md:text-[12px]">PHOTO REVIEW EVENT</p>
+        <p className="mt-2 text-[21px] font-semibold tracking-[-0.4px] text-black md:mt-3 md:text-[28px]">첫 후기를 남겨주세요</p>
+        <p className="mt-2 text-[13px] leading-[21px] tracking-[-0.3px] text-ink-muted md:mt-3 md:text-[15.5px] md:leading-[25px]">
+          포토후기를 남기고 베스트리뷰로 선정되면,
+          <br />
+          잇토마토가 준비한 선물을 보내드려요
+        </p>
+        <Link
+          href="/mypage"
+          className="mt-5 inline-flex h-11 w-fit items-center bg-black px-5 text-[13px] font-medium tracking-[-0.2px] text-white transition-colors hover:bg-brand-secondary md:mt-7 md:h-12 md:px-6 md:text-[14px]"
+        >
+          후기 남기러 가기
+        </Link>
+      </div>
+      <div aria-hidden className="hidden items-center justify-center bg-brand-badge/45 md:flex">
+        <span className="text-center font-serif text-[40px] leading-[1.1] tracking-[1px] text-brand-secondary">
+          REVIEW
+          <br />
+          EVENT
+        </span>
+      </div>
+    </div>
   );
 }

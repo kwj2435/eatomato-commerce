@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { PriceRow, cardBadges } from "@/components/product/PriceRow";
 import { SoldOutOverlay } from "@/components/product/SoldOutOverlay";
 import { cn } from "@/lib/utils/cn";
-import { formatKRW } from "@/lib/utils/format";
 import type { Product, ProductBadge } from "@/types/product";
 
 type ProductListCardProps = {
@@ -15,14 +15,14 @@ type ProductListCardProps = {
  * 상품 리스트 페이지 전용 카드.
  *
  * 메인 페이지의 `ProductCard` 와 다르게:
- * - 상품명이 17px/600 으로 더 굵고, SALE/BEST 배지가 더 크다(14px).
+ * - 상품명이 17px/600 으로 더 굵고, NEW/BEST 배지가 더 크다(14px).
+ * - SALE 배지 대신 가격 옆에 할인율을 보인다(PriceRow). 배지는 NEW → BEST 순서 고정.
  * - hover 시 썸네일이 서브 이미지로 교체된다(모든 카드 공통 규칙).
  *
  * 카드 전체가 링크. 배지는 `pointer-events-none` 으로 링크 클릭 히트 영역을 방해하지 않는다.
  */
 export function ProductListCard({ product, className }: ProductListCardProps) {
-  const hasDiscount = product.salePrice !== undefined;
-  const displayPrice = product.salePrice ?? product.price;
+  const badges = cardBadges(product.badges);
 
   return (
     <article className={cn("flex flex-col", className)}>
@@ -31,7 +31,7 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
         className="group flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
       >
         <div className="relative aspect-[3/4] w-full overflow-hidden">
-          {product.badges?.length ? <BadgeStack badges={product.badges} /> : null}
+          {badges.length ? <BadgeStack badges={badges} /> : null}
           {product.soldOut ? <SoldOutOverlay /> : null}
 
           {/* 기본 이미지 레이어 */}
@@ -41,7 +41,7 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
                 src={product.imageUrl}
                 alt={product.name}
                 fill
-                sizes="(min-width: 1200px) 392px, (min-width: 768px) 40vw, 90vw"
+                sizes="(min-width: 1200px) 292px, (min-width: 768px) 25vw, 50vw"
                 className="object-cover"
               />
             ) : (
@@ -58,7 +58,7 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
                 src={product.hoverImageUrl}
                 alt={`${product.name} 서브 이미지`}
                 fill
-                sizes="(min-width: 1200px) 392px, (min-width: 768px) 40vw, 90vw"
+                sizes="(min-width: 1200px) 292px, (min-width: 768px) 25vw, 50vw"
                 className="object-cover"
               />
             ) : (
@@ -78,24 +78,16 @@ export function ProductListCard({ product, className }: ProductListCardProps) {
               {product.option}
             </p>
           ) : null}
-          <p className="flex items-center gap-1.5 text-[12.5px] leading-5 tracking-[-0.2px]">
-            <span className="text-ink-muted">{formatKRW(displayPrice)}</span>
-            {hasDiscount ? (
-              <span className="text-ink-subtle line-through">
-                {formatKRW(product.price)}
-              </span>
-            ) : null}
-          </p>
+          <PriceRow price={product.price} salePrice={product.salePrice} className="justify-center text-[12.5px]" />
         </div>
       </Link>
     </article>
   );
 }
 
-const BADGE_STYLES: Record<ProductBadge, string> = {
-  SALE: "bg-black text-white",
-  BEST: "bg-brand-badge text-white",
+const BADGE_STYLES: Partial<Record<ProductBadge, string>> = {
   NEW: "bg-brand-badge text-white",
+  BEST: "bg-brand-badge text-white",
 };
 
 function BadgeStack({ badges }: { badges: ProductBadge[] }) {

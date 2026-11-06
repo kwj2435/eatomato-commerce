@@ -22,7 +22,7 @@ export async function listNewProducts(
   return apiFetch<Product[]>(`/api/products/new?limit=${limit}`);
 }
 
-/** 메인 Best Picks 오른쪽 칸에 넣을 BEST 배지 상품. */
+/** 메인 Best Picks 오른쪽 칸에 넣을 BEST 배지 상품(판매량 순). */
 export async function listBestProducts(params: ListNewProductsParams = {}): Promise<Product[]> {
   const { limit = 4 } = params;
   return apiFetch<Product[]>(`/api/products/best?limit=${limit}`);

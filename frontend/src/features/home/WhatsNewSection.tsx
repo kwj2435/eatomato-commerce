@@ -1,9 +1,9 @@
 import { Container } from "@/components/layout/Container";
 import { ProductCard } from "@/components/product/ProductCard";
-import { MultilineText } from "@/components/ui/MultilineText";
 import { listNewProducts } from "@/lib/api/products";
 
 import { PlaceholderGrid } from "./PlaceholderGrid";
+import { SectionHeading } from "./SectionHeading";
 
 /**
  * "What's New" 섹션.
@@ -21,22 +21,12 @@ export async function WhatsNewSection({ description }: { description: string }) 
   return (
     <section aria-labelledby="whats-new-title" className="pt-[59px]">
       <Container>
-        <h2
-          id="whats-new-title"
-          className="text-[22px] font-medium tracking-[-0.2px] text-black md:text-[25px]"
-        >
-          What&rsquo;s New
-        </h2>
-        {description ? (
-          <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
-            <MultilineText text={description} />
-          </p>
-        ) : null}
+        <SectionHeading id="whats-new-title" title="What’s New" description={description} moreHref="/products/phone-case" />
 
         {products.length === 0 ? (
           <PlaceholderGrid label="제품이미지" message="등록된 상품이 없습니다." />
         ) : (
-          <ul className="mt-8 grid grid-cols-2 gap-[13px] md:mt-[66px] md:grid-cols-4">
+          <ul className="mt-6 grid grid-cols-2 gap-[13px] md:mt-10 md:grid-cols-4">
             {products.map((product) => (
               <li key={product.id}>
                 <ProductCard product={product} />

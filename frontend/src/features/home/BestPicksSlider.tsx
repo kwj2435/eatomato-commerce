@@ -16,14 +16,14 @@ export function BestPicksSlider({ images }: { images: HeroBanner[] }) {
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center bg-surface-elevated">
+      <div className="flex aspect-square w-full items-center justify-center bg-surface-elevated md:aspect-auto md:min-h-full">
         <span className="text-[18px] tracking-[-0.3px] text-ink-placeholder md:text-[22px]">등록된 사진이 없습니다</span>
       </div>
     );
   }
 
   return (
-    <div aria-roledescription="carousel" aria-label="Best Picks 이미지" className="relative aspect-square w-full overflow-hidden">
+    <div aria-roledescription="carousel" aria-label="Best Picks 이미지" className="relative aspect-square w-full overflow-hidden md:aspect-auto md:min-h-full">
       {images.map((image, i) => (
         <div
           key={image.id}

@@ -106,7 +106,7 @@ export function SearchResults() {
           </Container>
 
           <Container as="section" className="mt-3.5" aria-label="검색 결과">
-            <ul className="grid grid-cols-2 gap-x-3 gap-y-9 md:grid-cols-3">
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-9 md:grid-cols-4 md:gap-x-4">
               {results.map((product) => (
                 <li key={product.id}>
                   <ProductListCard product={product} />

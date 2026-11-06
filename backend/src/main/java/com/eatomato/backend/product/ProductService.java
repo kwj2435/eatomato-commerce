@@ -41,7 +41,7 @@ public class ProductService {
 	}
 
 	public List<ProductResponse> listBest(int limit) {
-		return productRepository.findByBadge(ProductBadge.BEST, PageRequest.of(0, limit)).stream()
+		return productRepository.findByBadgeOrderBySales(ProductBadge.BEST, PageRequest.of(0, limit)).stream()
 			.map(ProductResponse::from)
 			.toList();
 	}

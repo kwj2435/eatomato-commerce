@@ -54,6 +54,9 @@ public class Product {
 	/** 리스트 카드에 노출되는 옵션 요약. 예: "옵션 | 맥세이프" */
 	private String optionSummary;
 
+	/** 한글 검색어(쉼표 구분). 상품명이 영어라도 "토마토" 등으로 검색되게 한다. 화면에는 보이지 않는다. */
+	private String searchKeywords;
+
 	/** 정상가(원). */
 	private int price;
 
@@ -204,6 +207,11 @@ public class Product {
 		this.badges.addAll(badges);
 		this.detailImages.clear();
 		this.detailImages.addAll(detailImages);
+		this.updatedAt = Times.now();
+	}
+
+	public void changeSearchKeywords(String searchKeywords) {
+		this.searchKeywords = searchKeywords;
 		this.updatedAt = Times.now();
 	}
 

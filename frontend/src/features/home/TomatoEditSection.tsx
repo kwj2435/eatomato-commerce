@@ -2,8 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
-import { MultilineText } from "@/components/ui/MultilineText";
 import { listHeroBanners } from "@/lib/api/banners";
+
+import { SectionHeading } from "./SectionHeading";
 
 /**
  * "The Tomato Edit" 섹션(메인 상단 슬라이드 바로 아래).
@@ -20,14 +21,7 @@ export async function TomatoEditSection({ description }: { description: string }
   return (
     <section aria-labelledby="tomato-edit-title" className="pt-14 md:pt-[94px]">
       <Container>
-        <h2 id="tomato-edit-title" className="text-[22px] font-medium tracking-[-0.2px] text-black md:text-[25px]">
-          The Tomato Edit
-        </h2>
-        {description ? (
-          <p className="mt-2 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-3 md:text-[17.5px] md:leading-[25.1px]">
-            <MultilineText text={description} />
-          </p>
-        ) : null}
+        <SectionHeading id="tomato-edit-title" title="The Tomato Edit" description={description} />
       </Container>
 
       {/* 모바일에서는 화면 끝까지 넘겨 보이도록 Container 밖에서 좌우 여백을 직접 준다. */}

@@ -1,9 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { PriceRow, cardBadges } from "@/components/product/PriceRow";
 import { SoldOutOverlay } from "@/components/product/SoldOutOverlay";
 import { cn } from "@/lib/utils/cn";
-import { formatKRW } from "@/lib/utils/format";
 import type { Product, ProductBadge } from "@/types/product";
 
 type ProductCardProps = {
@@ -16,12 +16,11 @@ type ProductCardProps = {
  *
  * - 썸네일은 3:4 고정 비율.
  * - 이미지가 없을 때는 시안처럼 회색 placeholder 텍스트를 노출.
- * - 할인이 있으면 salePrice(현재가)를 진하게, 정가는 취소선.
+ * - 할인이 있으면 "할인율% 판매가 ~~정가~~" 한 줄(PriceRow). SALE 배지는 그리지 않는다.
  * - 카드 전체가 링크. 접근성을 위해 내부에 인터랙션 요소를 중첩하지 않는다.
  */
 export function ProductCard({ product, className }: ProductCardProps) {
-  const hasDiscount = product.salePrice !== undefined;
-  const displayPrice = product.salePrice ?? product.price;
+  const badges = cardBadges(product.badges);
 
   return (
     <article className={cn("flex flex-col", className)}>
@@ -30,7 +29,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
         className="group flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
       >
         <div className="relative aspect-[3/4] w-full overflow-hidden">
-          {product.badges?.length ? <BadgeGroup badges={product.badges} /> : null}
+          {badges.length ? <BadgeGroup badges={badges} /> : null}
           {product.soldOut ? <SoldOutOverlay /> : null}
 
           {product.imageUrl ? (
@@ -59,24 +58,16 @@ export function ProductCard({ product, className }: ProductCardProps) {
               {product.option}
             </p>
           ) : null}
-          <p className="flex items-center gap-1.5 text-[12px] leading-5 tracking-[-0.2px] md:text-[12.5px]">
-            <span className="text-ink-muted">{formatKRW(displayPrice)}</span>
-            {hasDiscount ? (
-              <span className="text-ink-subtle line-through">
-                {formatKRW(product.price)}
-              </span>
-            ) : null}
-          </p>
+          <PriceRow price={product.price} salePrice={product.salePrice} className="justify-center text-[12px] md:text-[12.5px]" />
         </div>
       </Link>
     </article>
   );
 }
 
-const BADGE_STYLES: Record<ProductBadge, string> = {
+const BADGE_STYLES: Partial<Record<ProductBadge, string>> = {
   NEW: "bg-brand-badge text-ink-inverse",
   BEST: "bg-brand-badge text-ink-inverse",
-  SALE: "bg-black text-ink-inverse",
 };
 
 function BadgeGroup({ badges }: { badges: ProductBadge[] }) {

@@ -33,7 +33,7 @@ export function ProductListResults({ products }: ProductListResultsProps) {
 
   return (
     <>
-      <Container className="mt-[86px] flex justify-end">
+      <Container className="mt-8 flex justify-end md:mt-10">
         <SortSelect currentSort={sort} />
       </Container>
 

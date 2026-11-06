@@ -27,7 +27,7 @@ export function ProductGrid({
   }
 
   return (
-    <ul aria-label={label} className="grid grid-cols-2 gap-x-3 gap-y-9 md:grid-cols-3">
+    <ul aria-label={label} className="grid grid-cols-2 gap-x-3 gap-y-9 md:grid-cols-4 md:gap-x-4">
       {products.map((product) => (
         <li key={product.id}>
           <ProductListCard product={product} />

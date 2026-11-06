@@ -2,16 +2,19 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Container } from "@/components/layout/Container";
-import { MultilineText } from "@/components/ui/MultilineText";
+import { PriceRow } from "@/components/product/PriceRow";
+import { SoldOutOverlay } from "@/components/product/SoldOutOverlay";
 import { listHeroBanners } from "@/lib/api/banners";
 import { listBestProducts } from "@/lib/api/products";
 
 import { BestPicksSlider } from "./BestPicksSlider";
+import { SectionHeading } from "./SectionHeading";
 
 /**
  * "Best Picks" 섹션.
  * 왼쪽: 관리자가 올린 이미지 슬라이드(배너 관리 > Best Picks, 링크 없음).
- * 오른쪽: BEST 배지를 단 상품 4개. 누르면 상품 상세로 간다.
+ * 오른쪽: BEST 배지를 단 상품 4개를 판매량 순으로. 사진 위에 1~4위 순위, 아래에 상품명·할인율·가격(제안서 02).
+ * 누르면 상품 상세로 간다.
  */
 /** @param description 섹션 설명. 관리자 화면(문구)에서 고친다. 비어 있으면 설명 줄을 그리지 않는다. */
 export async function BestPicksSection({ description }: { description: string }) {
@@ -20,19 +23,12 @@ export async function BestPicksSection({ description }: { description: string })
   return (
     <section aria-labelledby="best-picks-title" className="pt-14 md:pt-[94px]">
       <Container>
-        <h2 id="best-picks-title" className="text-[22px] font-medium tracking-[-0.2px] text-black md:text-[25px]">
-          Best Picks
-        </h2>
-        {description ? (
-          <p className="mt-4 text-[14px] font-normal leading-[22px] tracking-[-0.3px] text-ink-muted md:mt-[39px] md:text-[17.5px] md:leading-[25.1px]">
-            <MultilineText text={description} />
-          </p>
-        ) : null}
+        <SectionHeading id="best-picks-title" title="Best Picks" description={description} moreHref="/products/phone-case" />
 
-        <div className="mt-8 grid gap-[13px] md:mt-[66px] md:grid-cols-2 md:gap-4">
+        <div className="mt-6 grid gap-[13px] md:mt-10 md:grid-cols-2 md:gap-4">
           <BestPicksSlider images={images} />
 
-          <ul className="grid grid-cols-2 gap-[13px] md:gap-4">
+          <ol className="grid grid-cols-2 gap-x-[13px] gap-y-5 md:gap-x-4 md:gap-y-6">
             {Array.from({ length: 4 }, (_, i) => {
               const product = products[i];
               if (!product) {
@@ -42,29 +38,41 @@ export async function BestPicksSection({ description }: { description: string })
                   </li>
                 );
               }
+              const rank = i + 1;
               return (
                 <li key={product.id}>
                   <Link
                     href={`/products/${product.slug}`}
-                    aria-label={product.name}
-                    className="group relative flex aspect-square items-center justify-center overflow-hidden border border-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
+                    className="group flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2"
                   >
-                    {product.imageUrl ? (
-                      <Image
-                        src={product.imageUrl}
-                        alt={product.name}
-                        fill
-                        sizes="(min-width: 1200px) 300px, (min-width: 768px) 25vw, 50vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <span className="text-[16px] text-ink-placeholder md:text-[20px]">{product.name}</span>
-                    )}
+                    <span className="relative flex aspect-square items-center justify-center overflow-hidden border border-black/5">
+                      {product.imageUrl ? (
+                        <Image
+                          src={product.imageUrl}
+                          alt={product.name}
+                          fill
+                          sizes="(min-width: 1200px) 300px, (min-width: 768px) 25vw, 50vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <span className="text-[16px] text-ink-placeholder md:text-[20px]">{product.name}</span>
+                      )}
+                      {product.soldOut ? <SoldOutOverlay /> : null}
+                      <span className="absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-[12px] font-semibold text-white md:left-3 md:top-3 md:h-7 md:w-7 md:text-[13px]">
+                        <span className="sr-only">판매 </span>
+                        {rank}
+                        <span className="sr-only">위</span>
+                      </span>
+                    </span>
+                    <span className="mt-2.5 truncate text-[13px] font-medium leading-5 tracking-[-0.2px] text-black md:text-[14px]">
+                      {product.name}
+                    </span>
+                    <PriceRow price={product.price} salePrice={product.salePrice} className="text-[12px] md:text-[13px]" />
                   </Link>
                 </li>
               );
             })}
-          </ul>
+          </ol>
         </div>
       </Container>
     </section>

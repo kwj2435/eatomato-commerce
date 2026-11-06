@@ -72,6 +72,7 @@ public class AdminProductService {
 			.build());
 		product.changeVisible(request.visible());
 		product.changeStock(request.stockQuantity());
+		product.changeSearchKeywords(normalizeKeywords(request.searchKeywords()));
 		addOptionGroups(product, request);
 		product.replaceRelatedProducts(relatedProducts(request, product.getId()));
 		return AdminProductResponse.from(product);
@@ -98,6 +99,7 @@ public class AdminProductService {
 			badges(request),
 			listOrEmpty(request.detailImages()));
 		product.changeStock(request.stockQuantity());
+		product.changeSearchKeywords(normalizeKeywords(request.searchKeywords()));
 
 		// 옵션 그룹은 통째로 교체한다. (product_id, code) 유니크 제약 때문에
 		// 기존 행 삭제를 먼저 DB 에 반영(flush)한 뒤 새 그룹을 넣는다.
@@ -217,5 +219,18 @@ public class AdminProductService {
 
 	private static String blankToNull(String value) {
 		return value == null || value.isBlank() ? null : value.trim();
+	}
+
+	/** "토마토 ,  카드케이스,," → "토마토, 카드케이스". 빈 항목·중복을 걷어 낸다. */
+	private static String normalizeKeywords(String value) {
+		if (value == null) {
+			return null;
+		}
+		String joined = java.util.Arrays.stream(value.split("[,\\n]"))
+			.map(String::trim)
+			.filter(s -> !s.isEmpty())
+			.distinct()
+			.collect(java.util.stream.Collectors.joining(", "));
+		return joined.isEmpty() ? null : joined;
 	}
 }

@@ -46,6 +46,21 @@ export function AdminProductFields({ form, onChange, categories, allProducts, pr
               <Field label="옵션 요약" htmlFor={`${idPrefix}-optsum`} hint="리스트 카드에 나오는 문구. 예: 옵션 | 맥세이프">
                 <input id={`${idPrefix}-optsum`} value={form.optionSummary} onChange={(e) => set("optionSummary", e.target.value)} className={inputClass} />
               </Field>
+              <Field
+                label="한글 검색어"
+                htmlFor={`${idPrefix}-keywords`}
+                hint="쉼표로 구분. 손님이 이 단어로 검색하면 이 상품이 나옵니다(화면에는 안 보임). 예: 토마토, 카드케이스, 맥세이프, 그립톡"
+                className="md:col-span-2"
+              >
+                <input
+                  id={`${idPrefix}-keywords`}
+                  value={form.searchKeywords}
+                  maxLength={500}
+                  placeholder="토마토, 카드케이스, 맥세이프"
+                  onChange={(e) => set("searchKeywords", e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
               <Field label="카테고리" htmlFor={`${idPrefix}-cat`}>
                 <select
                   id={`${idPrefix}-cat`}

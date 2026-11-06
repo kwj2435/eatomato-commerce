@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 
 import { Container } from "@/components/layout/Container";
@@ -9,7 +10,7 @@ import { CategoryTabs } from "./CategoryTabs";
 import { ProductGrid } from "./ProductGrid";
 import { ProductListResults } from "./ProductListResults";
 import { SortSelect } from "./SortSelect";
-import type { CategoryEntry } from "./categories";
+import { categoryHref, type CategoryEntry } from "./categories";
 
 type ProductListViewProps = {
   category: CategoryEntry;
@@ -41,16 +42,50 @@ export async function ProductListView({
     subcategory: activeSubcategory ?? undefined,
   });
 
+  const subcategory = activeSubcategory
+    ? category.subcategories.find((s) => s.slug === activeSubcategory)
+    : undefined;
+
   return (
     <>
-      <Container as="section" className="pt-14">
+      {/* 지금 어디인지·몇 개인지(제안서 05): 위치(홈 › 카테고리 › 하위) + 제목·상품 수 */}
+      <Container as="section" className="pt-8 md:pt-12">
+        <nav aria-label="현재 위치">
+          <ol className="flex flex-wrap items-center gap-1.5 text-[12px] tracking-[-0.2px] text-ink-subtle md:text-[13px]">
+            <li>
+              <Link href="/" className="hover:text-brand-primary">홈</Link>
+            </li>
+            <li aria-hidden>›</li>
+            <li>
+              <Link
+                href={categoryHref(category.slug)}
+                aria-current={subcategory ? undefined : "page"}
+                className="hover:text-brand-primary"
+              >
+                {category.label}
+              </Link>
+            </li>
+            {subcategory ? (
+              <>
+                <li aria-hidden>›</li>
+                <li aria-current="page" className="text-ink-muted">{subcategory.label}</li>
+              </>
+            ) : null}
+          </ol>
+        </nav>
+        <h1 className="mt-2 flex items-baseline gap-2 text-[24px] font-semibold tracking-[-0.4px] text-black md:text-[30px]">
+          {category.label}
+          <span className="text-[14px] font-normal tracking-[-0.2px] text-ink-subtle md:text-[16px]">
+            {products.length}개
+          </span>
+        </h1>
         <CategoryTabs category={category} activeSubcategory={activeSubcategory} />
       </Container>
 
       <Suspense
         fallback={
           <>
-            <Container className="mt-[86px] flex justify-end">
+            <Container className="mt-8 flex justify-end md:mt-10">
               <SortSelect currentSort={DEFAULT_SORT} />
             </Container>
             <Container as="section" className="mt-3.5">

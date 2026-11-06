@@ -34,9 +34,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		+ " order by p.createdAt desc, p.id")
 	List<Product> findByBadge(@Param("badge") ProductBadge badge, Pageable pageable);
 
-	/** 상품명·옵션 요약 부분 일치 검색. */
+	/** 메인 Best Picks: 배지 단 상품을 판매량 순으로(화면에 1~4위로 보인다). */
+	@Query("select p from Product p join p.badges b where b = :badge and " + ON_SALE
+		+ " order by p.salesCount desc, p.createdAt desc, p.id")
+	List<Product> findByBadgeOrderBySales(@Param("badge") ProductBadge badge, Pageable pageable);
+
+	/** 상품명·옵션 요약·한글 검색어 부분 일치 검색. */
 	@Query("select p from Product p where " + ON_SALE
-		+ " and lower(concat(p.name, ' ', coalesce(p.optionSummary, ''))) like lower(concat('%', :keyword, '%')) escape '\\'")
+		+ " and lower(concat(p.name, ' ', coalesce(p.optionSummary, ''), ' ', coalesce(p.searchKeywords, '')))"
+		+ " like lower(concat('%', :keyword, '%')) escape '\\'")
 	List<Product> search(@Param("keyword") String keyword, Sort sort);
 
 	/** 방문자 분석: 상품 페이지 주소의 슬러그를 상품 id 로 바꾼다(숨김 상품 포함, 삭제 상품 제외). */
