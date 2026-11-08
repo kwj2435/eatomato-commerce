@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -31,6 +32,27 @@ class AnalyticsFlowTest {
 
 	@Autowired
 	MockMvc mockMvc;
+
+	@Autowired
+	JdbcTemplate jdbc;
+
+	private void event(String visitor, String session, String type, String extra) throws Exception {
+		String body = """
+			{"visitorId":"%s","sessionId":"%s","type":"%s"%s}
+			""".formatted(visitor, session, type, extra);
+		mockMvc.perform(post("/api/analytics/event").contentType(MediaType.APPLICATION_JSON)
+				.header(HttpHeaders.USER_AGENT, BROWSER).content(body))
+			.andExpect(status().isNoContent());
+	}
+
+	private String signup(String loginId) throws Exception {
+		String body = mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"loginId\":\"%s\",\"password\":\"password123\",\"email\":\"%s@example.com\",\"name\":\"회원\"}"
+					.formatted(loginId, loginId)))
+			.andExpect(status().isCreated())
+			.andReturn().getResponse().getContentAsString();
+		return "Bearer " + JsonPath.read(body, "$.accessToken");
+	}
 
 	private void view(String visitor, String session, String path, boolean start, String referrer, String userAgent)
 		throws Exception {
@@ -92,6 +114,73 @@ class AnalyticsFlowTest {
 		assertThat(naver).singleElement().satisfies(n -> assertThat(n.longValue()).isGreaterThanOrEqualTo(1));
 		List<Number> mobile = JsonPath.read(after, "$.devices[?(@.key == 'MOBILE')].count");
 		assertThat(mobile).singleElement().satisfies(n -> assertThat(n.longValue()).isGreaterThanOrEqualTo(1));
+	}
+
+	@Test
+	void 캠페인과_구매_단계가_방문_단위로_집계된다() throws Exception {
+		String admin = admin();
+		String before = analytics(admin);
+		long productId = jdbc.queryForObject("select id from product where slug = 'tok-cream-round'", Long.class);
+
+		// 인스타 게시물 링크(?from=Post 1107!)로 들어와 상품을 보고 담고 결제까지 마친 방문
+		String visitor = UUID.randomUUID().toString();
+		String session = UUID.randomUUID().toString();
+		mockMvc.perform(post("/api/analytics/pageview").contentType(MediaType.APPLICATION_JSON)
+				.header(HttpHeaders.USER_AGENT, BROWSER)
+				.content("""
+					{"visitorId":"%s","sessionId":"%s","path":"/products/tok-cream-round","sessionStart":true,
+					 "referrer":"https://l.instagram.com/","campaign":"Post 1107!"}
+					""".formatted(visitor, session)))
+			.andExpect(status().isNoContent());
+		event(visitor, session, "ADD_TO_CART", ",\"productId\":%d,\"quantity\":2".formatted(productId));
+
+		String user = signup("analytics1");
+		mockMvc.perform(post("/api/cart/items").header(HttpHeaders.AUTHORIZATION, user)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"productId\":%d,\"options\":{\"color\":\"cream\",\"type\":\"basic\"},\"quantity\":1}"
+					.formatted(productId)))
+			.andExpect(status().isOk());
+		String order = mockMvc.perform(post("/api/orders").header(HttpHeaders.AUTHORIZATION, user)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"shipping\":{\"recipientName\":\"김토마\",\"recipientPhone\":\"010-1234-5678\","
+					+ "\"zipCode\":\"21986\",\"roadAddress\":\"도로명 주소 1\",\"detailAddress\":\"101호\"}}"))
+			.andExpect(status().isCreated())
+			.andReturn().getResponse().getContentAsString();
+		String orderNumber = JsonPath.read(order, "$.orderNumber");
+		int total = JsonPath.read(order, "$.total");
+		String orderRef = ",\"orderNumber\":\"%s\"".formatted(orderNumber);
+		event(visitor, session, "CHECKOUT_START", orderRef);
+
+		// 결제 전 PURCHASE 는 버린다(결제되지 않은 주문)
+		event(visitor, session, "PURCHASE", orderRef);
+		assertThat(number(analytics(admin), "$.funnel.purchases") - number(before, "$.funnel.purchases")).isZero();
+
+		mockMvc.perform(post("/api/payments/confirm").header(HttpHeaders.AUTHORIZATION, user)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"orderNumber\":\"%s\",\"paymentKey\":\"mock-%s\",\"amount\":%d}"
+					.formatted(orderNumber, orderNumber, total)))
+			.andExpect(status().isOk());
+		event(visitor, session, "PURCHASE", orderRef);
+		event(visitor, session, "PURCHASE", orderRef); // 완료 화면 새로고침: 한 번만 센다
+		// 없는 주문·없는 상품은 조용히 버린다
+		event(visitor, session, "PURCHASE", ",\"orderNumber\":\"NOPE-1\"");
+		event(visitor, session, "ADD_TO_CART", ",\"productId\":999999");
+
+		String after = analytics(admin);
+		assertThat(number(after, "$.funnel.cartSessions") - number(before, "$.funnel.cartSessions")).isEqualTo(1);
+		assertThat(number(after, "$.funnel.checkoutStartSessions") - number(before, "$.funnel.checkoutStartSessions"))
+			.isEqualTo(1);
+		assertThat(number(after, "$.funnel.purchases") - number(before, "$.funnel.purchases")).isEqualTo(1);
+		assertThat(number(after, "$.funnel.revenue") - number(before, "$.funnel.revenue")).isEqualTo(total);
+
+		List<Map<String, Object>> campaign = JsonPath.read(after, "$.campaigns[?(@.campaign == 'post-1107')]");
+		assertThat(campaign).singleElement().satisfies(c -> {
+			assertThat(((Number) c.get("sessions")).longValue()).isGreaterThanOrEqualTo(1);
+			assertThat(((Number) c.get("productSessions")).longValue()).isGreaterThanOrEqualTo(1);
+			assertThat(((Number) c.get("cartSessions")).longValue()).isGreaterThanOrEqualTo(1);
+			assertThat(((Number) c.get("purchaseSessions")).longValue()).isGreaterThanOrEqualTo(1);
+			assertThat(((Number) c.get("revenue")).longValue()).isGreaterThanOrEqualTo(total);
+		});
 	}
 
 	@Test

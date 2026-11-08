@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 public class PageViewController {
 
 	private final PageViewService pageViewService;
+	private final AnalyticsEventService analyticsEventService;
 
 	@PostMapping("/api/analytics/pageview")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -25,5 +26,13 @@ public class PageViewController {
 		@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent,
 		HttpServletRequest servletRequest) {
 		pageViewService.record(request, userAgent, servletRequest.getServerName());
+	}
+
+	/** 구매 단계 이벤트(담기·결제 시도·결제 완료). */
+	@PostMapping("/api/analytics/event")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void event(@Valid @RequestBody AnalyticsEventRequest request,
+		@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
+		analyticsEventService.record(request, userAgent);
 	}
 }

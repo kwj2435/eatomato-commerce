@@ -71,6 +71,14 @@ public interface PageViewRepository extends JpaRepository<PageView, Long> {
 		""")
 	List<Object[]> devices(@Param("from") LocalDateTime from);
 
+	/** 그 종류의 페이지를 연 방문 수. */
+	@Query("""
+		select count(distinct v.sessionId) from PageView v
+		where v.pageType = :type and v.viewedAt >= :from and v.viewedAt < :to
+		""")
+	long countSessionsByType(@Param("type") String type, @Param("from") LocalDateTime from,
+		@Param("to") LocalDateTime to);
+
 	@Query("select count(distinct v.visitorId) from PageView v where v.viewedAt >= :from")
 	long countVisitorsSince(@Param("from") LocalDateTime from);
 

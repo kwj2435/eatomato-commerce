@@ -26,8 +26,24 @@ public record AnalyticsResponse(
 	/** 유입 경로별 방문 수. host 가 null 이면 직접 방문(주소 입력·북마크·앱 등). */
 	List<Source> referrers,
 	/** 기기별 방문자 수(MOBILE·TABLET·DESKTOP). */
-	List<Source> devices
+	List<Source> devices,
+	/** 기간의 구매 단계(방문 기준). */
+	Funnel funnel,
+	/** 링크 ?from= 캠페인별 성과. 많이 들어온 순 20개. */
+	List<Campaign> campaigns
 ) {
+
+	/**
+	 * 방문 수 → 상품을 본 방문 → 장바구니에 담은 방문 → 주문서를 연 방문 → 결제하기를 누른 방문 → 결제를 마친 방문.
+	 * purchases·revenue 는 결제 완료 주문 수와 금액.
+	 */
+	public record Funnel(long sessions, long productSessions, long cartSessions, long checkoutPageSessions,
+		long checkoutStartSessions, long purchaseSessions, long purchases, long revenue) {
+	}
+
+	public record Campaign(String campaign, long sessions, long productSessions, long cartSessions,
+		long purchaseSessions, long revenue) {
+	}
 
 	public record Totals(long visitors, long sessions, long pageViews) {
 	}

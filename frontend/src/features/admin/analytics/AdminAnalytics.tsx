@@ -198,6 +198,15 @@ function AnalyticsBody({ data, rangeLabel }: { data: Analytics; rangeLabel: stri
         </div>
       </div>
 
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.6fr]">
+        <Card title={`구매 단계 (${rangeLabel})`}>
+          <FunnelSteps funnel={data.funnel} />
+        </Card>
+        <Card title={`캠페인별 성과 (${rangeLabel})`}>
+          <CampaignTable campaigns={data.campaigns} />
+        </Card>
+      </div>
+
       <Card title={`많이 본 상품 (${rangeLabel})`} className="mt-4">
         {data.topProducts.length === 0 ? (
           <Empty>상품 조회 기록이 없습니다.</Empty>
@@ -291,6 +300,97 @@ function AnalyticsBody({ data, rangeLabel }: { data: Analytics; rangeLabel: stri
     </>
   );
 }
+
+/** 방문 → 상품 → 담기 → 주문서 → 결제하기 → 결제 완료. 각 단계가 전체 방문의 몇 %인지와 앞 단계 대비 비율. */
+function FunnelSteps({ funnel }: { funnel: Analytics["funnel"] }) {
+  const steps = [
+    { label: "방문", value: funnel.sessions },
+    { label: "상품 상세를 봄", value: funnel.productSessions },
+    { label: "장바구니에 담음", value: funnel.cartSessions },
+    { label: "주문서를 엶", value: funnel.checkoutPageSessions },
+    { label: "결제하기를 누름", value: funnel.checkoutStartSessions },
+    { label: "결제 완료", value: funnel.purchaseSessions },
+  ];
+  if (funnel.sessions === 0) return <Empty>이 기간에 기록된 방문이 없습니다.</Empty>;
+
+  return (
+    <>
+      <ol className="space-y-3">
+        {steps.map((step, i) => {
+          const share = (step.value / funnel.sessions) * 100;
+          const prev = i > 0 ? steps[i - 1].value : 0;
+          return (
+            <li key={step.label} className="text-[13px]">
+              <div className="flex items-baseline gap-2">
+                <span className="min-w-0 flex-1 truncate text-ink-body">{step.label}</span>
+                <span className="flex-none tabular-nums text-ink-primary">{fmt(step.value)}회</span>
+                <span className="w-12 flex-none text-right tabular-nums text-ink-subtle">{share.toFixed(share < 10 ? 1 : 0)}%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 rounded-full bg-black/[0.05]">
+                <div className="h-full rounded-full" style={{ width: `${Math.max(share, step.value > 0 ? 1 : 0)}%`, backgroundColor: BAR_COLOR }} />
+              </div>
+              {i > 0 ? (
+                <p className="mt-1 text-[11px] text-ink-subtle">
+                  앞 단계의 {prev > 0 ? `${((step.value / prev) * 100).toFixed(0)}%` : "-"}
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+      <p className="mt-3 text-[12px] text-ink-subtle">
+        방문(30분 단위) 기준이며, 결제 완료 {fmt(funnel.purchases)}건 · {fmt(funnel.revenue)}원. 담기·결제 기록은 이 기능을 배포한 뒤부터 쌓입니다.
+      </p>
+    </>
+  );
+}
+
+/** ?from= 캠페인별 방문과 그 방문 안의 상품 조회·담기·결제. */
+function CampaignTable({ campaigns }: { campaigns: Analytics["campaigns"] }) {
+  return (
+    <>
+      {campaigns.length === 0 ? (
+        <Empty>아직 캠페인 링크로 들어온 방문이 없습니다.</Empty>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className={tableClass}>
+            <thead>
+              <tr>
+                <th className={thClass}>캠페인</th>
+                <th className={`${thClass} text-right`}>방문</th>
+                <th className={`${thClass} text-right`}>상품 조회</th>
+                <th className={`${thClass} text-right`}>담기</th>
+                <th className={`${thClass} text-right`}>결제</th>
+                <th className={`${thClass} text-right`}>매출</th>
+              </tr>
+            </thead>
+            <tbody>
+              {campaigns.map((c) => (
+                <tr key={c.campaign}>
+                  <td className={`${tdClass} max-w-[200px] truncate text-ink-body`}>{c.campaign}</td>
+                  <td className={`${tdClass} text-right tabular-nums`}>{fmt(c.sessions)}</td>
+                  <td className={`${tdClass} text-right tabular-nums`}>
+                    {fmt(c.productSessions)}
+                    <span className="ml-1 text-[11px] text-ink-subtle">{pct(c.productSessions, c.sessions)}</span>
+                  </td>
+                  <td className={`${tdClass} text-right tabular-nums`}>{fmt(c.cartSessions)}</td>
+                  <td className={`${tdClass} text-right tabular-nums`}>{fmt(c.purchaseSessions)}</td>
+                  <td className={`${tdClass} text-right tabular-nums text-ink-primary`}>{fmt(c.revenue)}원</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-3 text-[12px] text-ink-subtle">
+        인스타 게시물·스토리 링크 뒤에 <code className="rounded bg-black/[0.05] px-1">?from=이름</code>을 붙이면 여기서 나뉘어 보입니다.
+        예: <code className="rounded bg-black/[0.05] px-1">eatomato.kr/products/mel-tg?from=post-1107</code>
+      </p>
+    </>
+  );
+}
+
+const pct = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : "");
 
 function StatTile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (

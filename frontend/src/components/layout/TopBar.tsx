@@ -29,7 +29,7 @@ export function TopBar({ message }: TopBarProps) {
         type="button"
         aria-label="공지 닫기"
         onClick={() => setVisible(false)}
-        className="absolute right-8 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center text-ink-inverse transition-opacity hover:opacity-70"
+        className="absolute right-8 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center text-ink-inverse transition-opacity hover:opacity-70 before:absolute before:-inset-3 before:content-['']"
       >
         <CloseIcon />
       </button>

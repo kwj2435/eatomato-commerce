@@ -40,6 +40,9 @@ public class PageView {
 
 	private String referrerHost;
 
+	/** 링크의 ?from= 값. 방문의 첫 조회에만 있다. */
+	private String campaign;
+
 	private String device;
 
 	private LocalDateTime viewedAt;
@@ -49,7 +52,7 @@ public class PageView {
 	private int viewHour;
 
 	PageView(String visitorId, String sessionId, String path, PageType pageType, Long productId,
-		boolean sessionStart, String referrerHost, Device device, LocalDateTime viewedAt) {
+		boolean sessionStart, String referrerHost, String campaign, Device device, LocalDateTime viewedAt) {
 		this.visitorId = visitorId;
 		this.sessionId = sessionId;
 		this.path = path;
@@ -57,6 +60,7 @@ public class PageView {
 		this.productId = productId;
 		this.sessionStart = sessionStart;
 		this.referrerHost = referrerHost;
+		this.campaign = campaign;
 		this.device = device.name();
 		this.viewedAt = viewedAt;
 		this.viewDate = viewedAt.toLocalDate();

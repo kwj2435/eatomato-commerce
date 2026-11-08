@@ -73,6 +73,26 @@ export type Analytics = {
   referrers: Array<{ key: string | null; count: number }>;
   /** key: MOBILE·TABLET·DESKTOP, count 는 방문자 수. */
   devices: Array<{ key: string; count: number }>;
+  /** 구매 단계(방문 기준). purchases·revenue 는 결제 완료 주문 수·금액. */
+  funnel: {
+    sessions: number;
+    productSessions: number;
+    cartSessions: number;
+    checkoutPageSessions: number;
+    checkoutStartSessions: number;
+    purchaseSessions: number;
+    purchases: number;
+    revenue: number;
+  };
+  /** 링크 ?from= 캠페인별 성과(많이 들어온 순 20개). */
+  campaigns: Array<{
+    campaign: string;
+    sessions: number;
+    productSessions: number;
+    cartSessions: number;
+    purchaseSessions: number;
+    revenue: number;
+  }>;
 };
 
 // ── 상품 ──────────────────────────────────────────────────

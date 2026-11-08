@@ -9,13 +9,15 @@ import jakarta.validation.constraints.Size;
  *
  * @param sessionStart 이 방문의 첫 조회인지. 첫 조회에만 referrer 를 보낸다(SPA 이동에서는 document.referrer 가 바뀌지 않는다).
  * @param referrer     document.referrer 원문. 호스트만 남긴다.
+ * @param campaign     링크에 붙은 ?from= 값(예: post-1107). 방문의 첫 조회에만 보낸다.
  */
 public record PageViewRequest(
 	@NotBlank @Pattern(regexp = UUID) String visitorId,
 	@NotBlank @Pattern(regexp = UUID) String sessionId,
 	@NotBlank @Size(max = 500) String path,
 	boolean sessionStart,
-	@Size(max = 2000) String referrer
+	@Size(max = 2000) String referrer,
+	@Size(max = 200) String campaign
 ) {
 
 	static final String UUID = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";

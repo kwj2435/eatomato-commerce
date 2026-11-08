@@ -59,7 +59,7 @@ export function MobileMenu({ items }: MobileMenuProps) {
         aria-label="메뉴 열기"
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex h-[22px] w-[22px] items-center justify-center text-ink-icon lg:hidden"
+        className="relative flex h-[22px] w-[22px] items-center justify-center text-ink-icon lg:hidden before:absolute before:-inset-[11px] before:content-['']"
       >
         <MenuIcon />
       </button>
@@ -84,7 +84,7 @@ export function MobileMenu({ items }: MobileMenuProps) {
           type="button"
           onClick={close}
           aria-label="메뉴 닫기"
-          className="absolute right-5 top-[18px] flex h-[22px] w-[22px] items-center justify-center text-black"
+          className="absolute right-5 top-[18px] flex h-[22px] w-[22px] items-center justify-center text-black before:absolute before:-inset-[11px] before:content-['']"
         >
           <MenuIcon />
         </button>

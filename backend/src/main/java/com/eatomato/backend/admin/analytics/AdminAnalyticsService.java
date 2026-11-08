@@ -14,12 +14,17 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.eatomato.backend.admin.analytics.AnalyticsResponse.Campaign;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Daily;
+import com.eatomato.backend.admin.analytics.AnalyticsResponse.Funnel;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Hourly;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Source;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.TopPage;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.TopProduct;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Totals;
+import com.eatomato.backend.analytics.AnalyticsEvent;
+import com.eatomato.backend.analytics.AnalyticsEventRepository;
+import com.eatomato.backend.analytics.PageView.PageType;
 import com.eatomato.backend.analytics.PageViewRepository;
 import com.eatomato.backend.global.error.ApiException;
 import com.eatomato.backend.global.error.ErrorCode;
@@ -39,6 +44,7 @@ public class AdminAnalyticsService {
 	private static final int TOP = 10;
 
 	private final PageViewRepository pageViewRepository;
+	private final AnalyticsEventRepository analyticsEventRepository;
 	private final ProductRepository productRepository;
 	private final OrderItemRepository orderItemRepository;
 
@@ -82,7 +88,29 @@ public class AdminAnalyticsService {
 			topPages(from),
 			topProducts(from),
 			sources(pageViewRepository.referrers(from)),
-			sources(pageViewRepository.devices(from)));
+			sources(pageViewRepository.devices(from)),
+			funnel(from, end),
+			campaigns(from, end));
+	}
+
+	private Funnel funnel(LocalDateTime from, LocalDateTime to) {
+		Object[] purchase = analyticsEventRepository.countAndSum(AnalyticsEvent.Type.PURCHASE.name(), from, to)
+			.stream().findFirst().orElse(new Object[] {0L, 0L});
+		return new Funnel(
+			totals(from, to).sessions(),
+			pageViewRepository.countSessionsByType(PageType.PRODUCT.name(), from, to),
+			analyticsEventRepository.countSessions(AnalyticsEvent.Type.ADD_TO_CART.name(), from, to),
+			pageViewRepository.countSessionsByType(PageType.CHECKOUT.name(), from, to),
+			analyticsEventRepository.countSessions(AnalyticsEvent.Type.CHECKOUT_START.name(), from, to),
+			analyticsEventRepository.countSessions(AnalyticsEvent.Type.PURCHASE.name(), from, to),
+			num(purchase[0]),
+			num(purchase[1]));
+	}
+
+	private List<Campaign> campaigns(LocalDateTime from, LocalDateTime to) {
+		return analyticsEventRepository.campaigns(from, to).stream()
+			.map(row -> new Campaign((String) row[0], num(row[1]), num(row[2]), num(row[3]), num(row[4]), num(row[5])))
+			.toList();
 	}
 
 	private Totals totals(LocalDateTime from, LocalDateTime to) {

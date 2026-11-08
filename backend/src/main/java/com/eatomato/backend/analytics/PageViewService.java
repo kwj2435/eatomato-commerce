@@ -31,6 +31,7 @@ public class PageViewService {
 		Pattern.CASE_INSENSITIVE);
 
 	private final PageViewRepository pageViewRepository;
+	private final AnalyticsEventRepository analyticsEventRepository;
 	private final ProductRepository productRepository;
 
 	/**
@@ -62,16 +63,18 @@ public class PageViewService {
 		}
 
 		String referrerHost = request.sessionStart() ? referrerHost(request.referrer(), ownHost) : null;
+		String campaign = request.sessionStart() ? normalizeCampaign(request.campaign()) : null;
 		pageViewRepository.save(new PageView(request.visitorId().toLowerCase(Locale.ROOT),
 			request.sessionId().toLowerCase(Locale.ROOT), path, type, productId, request.sessionStart(), referrerHost,
-			device(userAgent), Times.now()));
+			campaign, device(userAgent), Times.now()));
 	}
 
 	@Scheduled(cron = "0 50 4 * * *", zone = "Asia/Seoul")
 	@Transactional
 	public void cleanUp() {
 		int deleted = pageViewRepository.deleteViewedBefore(Times.now().minus(KEEP));
-		log.info("페이지 조회 기록 정리: {}건", deleted);
+		int events = analyticsEventRepository.deleteOccurredBefore(Times.now().minus(KEEP));
+		log.info("방문 기록 정리: 페이지 조회 {}건, 구매 단계 이벤트 {}건", deleted, events);
 	}
 
 	/** 쿼리·해시를 떼고 끝의 / 를 없앤다(정적 export 는 /cart/ 처럼 끝에 / 가 붙는다). 형식이 이상하면 null. */
@@ -88,6 +91,21 @@ public class PageViewService {
 			path = path.substring(0, path.length() - 1);
 		}
 		return path.length() > 255 ? null : path;
+	}
+
+	private static final Pattern CAMPAIGN_ALLOWED = Pattern.compile("[^a-z0-9가-힣_.-]");
+
+	/** "Post 1107!" → "post-1107". 소문자·숫자·한글·_.- 만 남기고 60자로 자른다. 비면 null. */
+	static String normalizeCampaign(String raw) {
+		if (raw == null) {
+			return null;
+		}
+		String value = raw.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", "-");
+		value = CAMPAIGN_ALLOWED.matcher(value).replaceAll("");
+		if (value.isEmpty()) {
+			return null;
+		}
+		return value.length() > 60 ? value.substring(0, 60) : value;
 	}
 
 	static PageType classify(String path) {

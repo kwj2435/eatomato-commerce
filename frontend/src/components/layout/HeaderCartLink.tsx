@@ -32,7 +32,7 @@ export function HeaderCartLink() {
     <Link
       href="/cart"
       aria-label={`장바구니${visible ? ` (${count}개)` : ""}`}
-      className="relative flex h-[22px] w-[22px] items-center justify-center transition-opacity hover:opacity-70"
+      className="relative flex h-[22px] w-[22px] items-center justify-center transition-opacity hover:opacity-70 before:absolute before:-inset-x-[6px] before:-inset-y-[11px] before:content-['']"
     >
       <CartIcon />
       {visible ? (

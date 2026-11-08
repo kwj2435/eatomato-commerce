@@ -17,6 +17,7 @@ import { useHydrated } from "@/lib/store/use-hydrated";
 import { cn } from "@/lib/utils/cn";
 import { couponDiscount, describeMinOrder } from "@/lib/utils/coupon";
 import { formatKRW } from "@/lib/utils/format";
+import { trackEvent } from "@/lib/analytics";
 import type { MemberCoupon } from "@/types/benefit";
 import type { Member } from "@/types/member";
 import type { Order } from "@/types/order";
@@ -211,6 +212,7 @@ function CheckoutForm({
       } else {
         order = await createOrder(shipping, { memberCouponId: couponId || undefined, usePoints });
       }
+      trackEvent({ type: "CHECKOUT_START", orderNumber: order.orderNumber });
       // 쿠폰·적립금으로 0원이 되면 서버가 바로 결제완료로 만든다(결제창 없음).
       if (order.status === "PAID") {
         router.replace(`/checkout/complete?${new URLSearchParams({ orderId: order.orderNumber })}`);

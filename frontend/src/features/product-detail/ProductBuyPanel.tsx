@@ -13,6 +13,7 @@ import { getProductDetail } from "@/lib/api/products";
 import { useCartStore } from "@/lib/store/cart-store";
 import { cn } from "@/lib/utils/cn";
 import { formatKRW } from "@/lib/utils/format";
+import { trackEvent } from "@/lib/analytics";
 import type { OptionGroup, ProductDetail } from "@/types/product-detail";
 import type { ShippingPolicy } from "@/types/shipping";
 
@@ -148,7 +149,10 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
     setPending(true);
     try {
       // 순서대로 담는다. 같은 줄로 합쳐지는 경우가 있어 병렬 요청은 피한다.
-      for (const input of inputs) await addItem(input);
+      for (const input of inputs) {
+        await addItem(input);
+        trackEvent({ type: "ADD_TO_CART", productId: input.productId, quantity: input.quantity });
+      }
       setStatus({
         kind: "success",
         message: `장바구니에 ${inputs.length}건이 담겼습니다.`,

@@ -182,7 +182,7 @@ function UtilLink({
     <Link
       href={href}
       aria-label={label}
-      className="flex h-[22px] w-[22px] items-center justify-center transition-opacity hover:opacity-70"
+      className="relative flex h-[22px] w-[22px] items-center justify-center transition-opacity hover:opacity-70 before:absolute before:-inset-x-[6px] before:-inset-y-[11px] before:content-['']"
     >
       {children}
     </Link>

@@ -23,7 +23,7 @@ export function HeaderUserLink() {
       href={loggedOut ? "/login" : "/mypage"}
       aria-label={loggedOut ? "로그인" : "마이페이지"}
       title={showLoggedIn ? "로그인됨 · 마이페이지" : loggedOut ? "로그인" : undefined}
-      className="relative flex h-[22px] w-[22px] items-center justify-center transition-opacity hover:opacity-70"
+      className="relative flex h-[22px] w-[22px] items-center justify-center transition-opacity hover:opacity-70 before:absolute before:-inset-x-[6px] before:-inset-y-[11px] before:content-['']"
     >
       <UserIcon />
       {showLoggedIn ? (

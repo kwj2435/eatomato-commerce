@@ -53,14 +53,14 @@ export async function ProductListView({
         <nav aria-label="현재 위치">
           <ol className="flex flex-wrap items-center gap-1.5 text-[12px] tracking-[-0.2px] text-ink-subtle md:text-[13px]">
             <li>
-              <Link href="/" className="hover:text-brand-primary">홈</Link>
+              <Link href="/" className="-mx-1.5 inline-block px-1.5 py-2 hover:text-brand-primary">홈</Link>
             </li>
             <li aria-hidden>›</li>
             <li>
               <Link
                 href={categoryHref(category.slug)}
                 aria-current={subcategory ? undefined : "page"}
-                className="hover:text-brand-primary"
+                className="inline-block py-2 hover:text-brand-primary"
               >
                 {category.label}
               </Link>
@@ -73,7 +73,7 @@ export async function ProductListView({
             ) : null}
           </ol>
         </nav>
-        <h1 className="mt-2 flex items-baseline gap-2 text-[24px] font-semibold tracking-[-0.4px] text-black md:text-[30px]">
+        <h1 className="mt-0.5 flex items-baseline gap-2 text-[24px] font-semibold tracking-[-0.4px] text-black md:text-[30px]">
           {category.label}
           <span className="text-[14px] font-normal tracking-[-0.2px] text-ink-subtle md:text-[16px]">
             {products.length}개

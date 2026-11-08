@@ -14,6 +14,7 @@ import { removeGuestCartLines, useCartStore } from "@/lib/store/cart-store";
 import { readGuestCheckout } from "@/lib/store/guest-checkout";
 import { useHydrated } from "@/lib/store/use-hydrated";
 import { formatKRW, formatPhone } from "@/lib/utils/format";
+import { trackEvent } from "@/lib/analytics";
 import type { Order } from "@/types/order";
 
 /**
@@ -55,7 +56,13 @@ export function CheckoutComplete() {
       removeGuestCartLines(checkout.lineIds).catch(() => {});
       return confirmed;
     };
-    (loggedIn ? member() : guest()).then(setOrder).catch((e: unknown) => setError(errorMessage(e)));
+    (loggedIn ? member() : guest())
+      .then((confirmed) => {
+        setOrder(confirmed);
+        // 결제 완료 기록. 서버가 결제된 주문인지 확인하고, 새로고침으로 다시 와도 한 번만 센다.
+        trackEvent({ type: "PURCHASE", orderNumber: confirmed.orderNumber });
+      })
+      .catch((e: unknown) => setError(errorMessage(e)));
   }, [ready, loggedIn, invalid, orderNumber, paymentKey, amount, loadCart]);
 
   const ordersHref = loggedIn ? "/mypage" : "/orders/guest";
