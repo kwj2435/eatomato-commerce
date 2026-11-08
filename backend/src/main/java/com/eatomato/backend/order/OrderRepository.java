@@ -38,10 +38,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	Page<Order> searchForAdmin(@Param("status") OrderStatus status, @Param("keyword") String keyword,
 		@Param("memberIds") Collection<Long> memberIds, Pageable pageable);
 
-	String PAID = "com.eatomato.backend.order.OrderStatus.PAID, com.eatomato.backend.order.OrderStatus.SHIPPING, "
-		+ "com.eatomato.backend.order.OrderStatus.DELIVERED";
+	String PAID = "com.eatomato.backend.order.OrderStatus.PAID, com.eatomato.backend.order.OrderStatus.PREPARING, "
+		+ "com.eatomato.backend.order.OrderStatus.SHIPPING, com.eatomato.backend.order.OrderStatus.DELIVERED";
 
-	/** 결제가 끝난 주문(결제완료·배송중·배송완료). 결제대기·취소는 매출에서 뺀다. */
+	/** 결제가 끝난 주문(결제완료·상품준비중·배송중·배송완료). 결제대기·취소는 매출에서 뺀다. */
 	@Query("select o from ShopOrder o where o.orderedAt >= :from and o.status in (" + PAID + ")")
 	List<Order> findValidOrdersSince(@Param("from") LocalDateTime from);
 
@@ -52,7 +52,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	@Query("""
 		select o.memberId, count(o), coalesce(sum(o.total), 0) from ShopOrder o
 		where o.memberId in :memberIds and o.status in (com.eatomato.backend.order.OrderStatus.PAID,
-		  com.eatomato.backend.order.OrderStatus.SHIPPING, com.eatomato.backend.order.OrderStatus.DELIVERED)
+		  com.eatomato.backend.order.OrderStatus.PREPARING, com.eatomato.backend.order.OrderStatus.SHIPPING,
+		  com.eatomato.backend.order.OrderStatus.DELIVERED)
 		group by o.memberId
 		""")
 	List<Object[]> summarizeByMembers(@Param("memberIds") Collection<Long> memberIds);

@@ -129,6 +129,7 @@ class CouponPointFlowTest {
 
 		confirm(user, first);
 		String firstNumber = JsonPath.read(first, "$.orderNumber");
+		adminStatus(admin, firstNumber, "PREPARING");
 		adminStatus(admin, firstNumber, "SHIPPING");
 		org.assertj.core.api.Assertions.assertThat(balance(user)).isZero();
 		adminStatus(admin, firstNumber, "DELIVERED");

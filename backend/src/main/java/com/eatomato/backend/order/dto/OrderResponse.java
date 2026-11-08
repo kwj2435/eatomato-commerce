@@ -6,13 +6,12 @@ import java.util.List;
 import com.eatomato.backend.global.time.Times;
 import com.eatomato.backend.order.Order;
 import com.eatomato.backend.order.OrderItem;
-import com.eatomato.backend.order.OrderStatus;
 import com.eatomato.backend.order.ShippingAddress;
 import com.eatomato.backend.payment.Payment;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * 주문. cancellable 이면 고객이 직접 취소할 수 있다(결제대기·입금대기·결제완료).
+ * 주문. cancellable 이면 고객이 직접 취소할 수 있다(결제대기·입금대기·결제완료). 상품준비중부터는 취소할 수 없다.
  * 무통장입금으로 입금까지 끝난 주문은 환불 계좌가 필요해 고객이 직접 취소할 수 없다(고객센터로 안내).
  * payment 는 결제수단과 무통장입금 계좌(입금 안내용)다. tracking 은 관리자가 넣은 택배사·송장번호다.
  */
@@ -110,7 +109,7 @@ public record OrderResponse(
 	}
 
 	public static OrderResponse from(Order order, Payment payment) {
-		boolean paidByVirtualAccount = order.getStatus() == OrderStatus.PAID && payment != null
+		boolean paidByVirtualAccount = order.getStatus().isPaid() && payment != null
 			&& payment.isVirtualAccount();
 		return new OrderResponse(
 			order.getOrderNumber(),
@@ -124,7 +123,7 @@ public record OrderResponse(
 			order.getPointUsed(),
 			order.getTotal(),
 			order.getPointsEarned(),
-			order.getStatus().isCancellable() && !paidByVirtualAccount,
+			order.getStatus().isCancellableByCustomer() && !paidByVirtualAccount,
 			Shipping.from(order.getShippingAddress()),
 			order.getItems().stream().map(Item::from).toList(),
 			PaymentInfo.from(payment),

@@ -18,7 +18,7 @@ import { TrackingForm, hasTracking } from "./TrackingForm";
 const STATUSES = Object.keys(ORDER_STATUS_LABELS) as OrderStatus[];
 
 /** 송장을 넣을 수 있는 상태(결제가 끝난 주문). */
-const TRACKABLE: OrderStatus[] = ["PAID", "SHIPPING", "DELIVERED"];
+const TRACKABLE: OrderStatus[] = ["PAID", "PREPARING", "SHIPPING", "DELIVERED"];
 
 const PAYMENT_LABELS = {
   READY: "결제 전",
@@ -67,7 +67,7 @@ export function AdminOrderList() {
       return;
     }
     // 무통장입금으로 입금까지 받은 주문은 고객 환불 계좌를 받아야 취소(환불)할 수 있다.
-    if (next === "CANCELLED" && order.status === "PAID" && order.payment?.virtualAccount) {
+    if (next === "CANCELLED" && (order.status === "PAID" || order.status === "PREPARING") && order.payment?.virtualAccount) {
       setRefundFor(order);
       return;
     }
@@ -87,7 +87,7 @@ export function AdminOrderList() {
     <>
       <PageHeader
         title="주문·결제"
-        description="결제대기 → (무통장입금은 입금대기 →) 결제완료 → 배송중 → 배송완료 순서로만 바뀝니다. 배송중은 택배사·송장번호를 저장한 주문만 바꿀 수 있습니다. 취소는 배송 전까지 가능하며 환불·재고 복원이 함께 됩니다. 무통장입금으로 받은 주문을 취소하면 고객 환불 계좌를 입력합니다."
+        description="결제대기 → (무통장입금은 입금대기 →) 결제완료 → 상품준비중 → 배송중 → 배송완료 순서로만 바뀝니다. 상품준비중으로 바꾸면 고객은 더 이상 직접 취소할 수 없습니다. 배송중은 택배사·송장번호를 저장한 주문만 바꿀 수 있습니다. 취소는 배송 전까지 가능하며 환불·재고 복원이 함께 됩니다. 무통장입금으로 받은 주문을 취소하면 고객 환불 계좌를 입력합니다."
         actions={
           <Link
             href="/admin/shipments"

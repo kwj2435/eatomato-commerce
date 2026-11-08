@@ -27,7 +27,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 		select oi.productId, max(oi.productName), sum(oi.quantity), sum(oi.unitPrice * oi.quantity)
 		from OrderItem oi join oi.order o
 		where o.status in (com.eatomato.backend.order.OrderStatus.PAID,
-		  com.eatomato.backend.order.OrderStatus.SHIPPING, com.eatomato.backend.order.OrderStatus.DELIVERED)
+		  com.eatomato.backend.order.OrderStatus.PREPARING, com.eatomato.backend.order.OrderStatus.SHIPPING,
+		  com.eatomato.backend.order.OrderStatus.DELIVERED)
 		group by oi.productId
 		order by sum(oi.quantity) desc
 		""")
@@ -39,7 +40,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 		from OrderItem oi join oi.order o
 		where o.orderedAt >= :from and oi.productId in :productIds
 		  and o.status in (com.eatomato.backend.order.OrderStatus.PAID,
-		    com.eatomato.backend.order.OrderStatus.SHIPPING, com.eatomato.backend.order.OrderStatus.DELIVERED)
+		    com.eatomato.backend.order.OrderStatus.PREPARING, com.eatomato.backend.order.OrderStatus.SHIPPING,
+		    com.eatomato.backend.order.OrderStatus.DELIVERED)
 		group by oi.productId
 		""")
 	List<Object[]> paidQuantitiesSince(@Param("from") java.time.LocalDateTime from,

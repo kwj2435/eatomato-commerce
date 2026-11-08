@@ -1,14 +1,23 @@
 /**
- * 주문 상태. 결제대기 → (무통장입금이면 입금대기 →) 결제완료 → 배송중 → 배송완료. 배송 전까지 취소 가능.
+ * 주문 상태. 결제대기 → (무통장입금이면 입금대기 →) 결제완료 → 상품준비중 → 배송중 → 배송완료.
+ * 고객은 결제완료까지만 직접 취소할 수 있고, 상품준비중부터는 관리자만 취소한다(배송 전까지).
  * 결제완료·입금대기로는 결제 승인·입금 확인(PG 웹훅)으로만 바뀐다.
  */
-export type OrderStatus = "PENDING_PAYMENT" | "AWAITING_DEPOSIT" | "PAID" | "SHIPPING" | "DELIVERED" | "CANCELLED";
+export type OrderStatus =
+  | "PENDING_PAYMENT"
+  | "AWAITING_DEPOSIT"
+  | "PAID"
+  | "PREPARING"
+  | "SHIPPING"
+  | "DELIVERED"
+  | "CANCELLED";
 
 /** 주문 상태 표시 문구. 목록·필터·상태 변경 셀렉트가 이 순서를 공유한다. */
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "결제대기",
   AWAITING_DEPOSIT: "입금대기",
   PAID: "결제완료",
+  PREPARING: "상품준비중",
   SHIPPING: "배송중",
   DELIVERED: "배송완료",
   CANCELLED: "취소",
@@ -74,7 +83,7 @@ export type Order = {
   total: number;
   /** 배송완료 때 적립된 금액. */
   pointsEarned: number;
-  /** 고객이 직접 취소할 수 있는지(결제대기·입금대기·결제완료). 무통장입금으로 입금이 끝난 주문은 고객센터로. */
+  /** 고객이 직접 취소할 수 있는지(결제대기·입금대기·결제완료). 상품준비중부터와 무통장입금으로 입금이 끝난 주문은 고객센터로. */
   cancellable: boolean;
   shipping?: OrderShipping;
   items: OrderItem[];

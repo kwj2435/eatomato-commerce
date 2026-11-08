@@ -48,7 +48,7 @@ export async function getMyOrder(orderNumber: string): Promise<Order> {
   return apiFetch<Order>(`/api/orders/${orderNumber}`, { auth: true });
 }
 
-/** 고객 취소(결제대기·결제완료만). 결제완료였다면 결제가 취소(환불)된다. */
+/** 고객 취소(결제대기·입금대기·결제완료만. 상품준비중부터는 불가). 결제완료였다면 결제가 취소(환불)된다. */
 export async function cancelMyOrder(orderNumber: string): Promise<Order> {
   return apiFetch<Order>(`/api/orders/${orderNumber}/cancel`, { method: "POST", auth: true });
 }

@@ -37,7 +37,7 @@ public class AdminOrderController {
 	/** 결제·주문 현황. q 는 주문번호 또는 주문자 아이디. */
 	@GetMapping
 	public PageResponse<AdminOrderResponse> list(
-		@RequestParam(required = false) @Pattern(regexp = "PENDING_PAYMENT|AWAITING_DEPOSIT|PAID|SHIPPING|DELIVERED|CANCELLED") String status,
+		@RequestParam(required = false) @Pattern(regexp = "PENDING_PAYMENT|AWAITING_DEPOSIT|PAID|PREPARING|SHIPPING|DELIVERED|CANCELLED") String status,
 		@RequestParam(required = false) String q,
 		@RequestParam(defaultValue = "0") @Min(0) int page,
 		@RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {

@@ -7,9 +7,10 @@ import { changeAdminOrderStatus, listAllAdminOrders } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
 import { formatKRW, formatPhone } from "@/lib/utils/format";
 import type { AdminOrder } from "@/types/admin";
+import { ORDER_STATUS_LABELS } from "@/types/order";
 
 import { formatDateTime } from "../format";
-import { Button, Card, Empty, Notice, PageHeader } from "../ui";
+import { Button, Card, Chip, Empty, Notice, PageHeader } from "../ui";
 import { downloadCsv, optionText, shipmentCsv, totalQuantity } from "./shipment-csv";
 import { TrackingForm, hasTracking } from "./TrackingForm";
 
@@ -20,8 +21,9 @@ function today(): string {
 }
 
 /**
- * 배송 준비: 결제완료(아직 보내지 않은) 주문을 오래된 순으로 모두 펼쳐 보여준다.
+ * 배송 준비: 결제완료·상품준비중(아직 보내지 않은) 주문을 오래된 순으로 모두 펼쳐 보여준다.
  * 받는 분·주소·상품 수량을 한 화면에서 보고, CSV 로 내려받아 택배 접수에 쓴다.
+ * 결제완료 주문은 "상품준비중으로 변경" 으로 준비를 시작한다(이때부터 고객이 직접 취소할 수 없다).
  * 발송한 주문은 택배사·송장번호를 저장한 뒤 "배송중으로 변경" 을 누르면 목록에서 빠진다.
  */
 export function AdminShipmentList() {
@@ -31,7 +33,8 @@ export function AdminShipmentList() {
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    listAllAdminOrders("PAID")
+    Promise.all([listAllAdminOrders("PAID"), listAllAdminOrders("PREPARING")])
+      .then(([paid, preparing]) => [...paid, ...preparing])
       .then((list) => {
         // 먼저 결제한 주문부터 보낸다.
         const sorted = [...list].sort((a, b) => (a.paidAt ?? a.orderedAt).localeCompare(b.paidAt ?? b.orderedAt));
@@ -86,6 +89,31 @@ export function AdminShipmentList() {
   const replace = (updated: AdminOrder) =>
     setOrders((prev) => prev?.map((o) => (o.orderNumber === updated.orderNumber ? updated : o)) ?? prev);
 
+  /** 상품준비중으로 바꿀 수 있는 주문(결제완료). 선택한 주문이 있으면 그중에서만. */
+  const preparable = targets.filter((o) => o.status === "PAID");
+
+  /** 결제완료 → 상품준비중. 한 건씩 바꾸고, 실패한 주문은 결제완료로 남긴 채 알려준다. */
+  const prepare = async (list: AdminOrder[]) => {
+    if (list.length === 0) return;
+    const label = list.length === 1 ? `주문 ${list[0].orderNumber} 을(를)` : `주문 ${list.length}건을`;
+    if (!window.confirm(`${label} '상품준비중'으로 바꿀까요?\n이후에는 고객이 직접 취소할 수 없습니다.`)) return;
+    setError(null);
+    setMessage(null);
+    const failed: string[] = [];
+    for (const order of list) {
+      try {
+        replace(await changeAdminOrderStatus(order.orderNumber, "PREPARING"));
+      } catch (e) {
+        failed.push(`${order.orderNumber}: ${errorMessage(e)}`);
+      }
+    }
+    const done = list.length - failed.length;
+    if (done > 0) setMessage(`주문 ${done}건을 상품준비중으로 바꿨습니다.`);
+    if (failed.length > 0) {
+      setError(`상품준비중으로 바꾸지 못한 주문이 있습니다. 새로고침 후 확인해 주세요. (${failed.join(" / ")})`);
+    }
+  };
+
   const ship = async (order: AdminOrder) => {
     if (!window.confirm(`주문 ${order.orderNumber} 을(를) 발송했나요?\n'배송중'으로 바꾸면 이 목록에서 빠집니다.`)) return;
     setError(null);
@@ -107,10 +135,13 @@ export function AdminShipmentList() {
     <>
       <PageHeader
         title="배송 준비"
-        description="결제완료 주문(아직 보내지 않은 주문)을 먼저 결제한 순서로 보여줍니다. 발송한 뒤 택배사·송장번호를 저장하고 '배송중으로 변경'을 누르면 목록에서 빠집니다."
+        description="결제완료·상품준비중 주문(아직 보내지 않은 주문)을 먼저 결제한 순서로 보여줍니다. 준비를 시작하면 '상품준비중으로 변경'을 누르세요(이후 고객은 직접 취소할 수 없습니다). 발송한 뒤 택배사·송장번호를 저장하고 '배송중으로 변경'을 누르면 목록에서 빠집니다."
         actions={
           <>
             <Button onClick={load}>새로고침</Button>
+            <Button disabled={preparable.length === 0} onClick={() => prepare(preparable)}>
+              {selected.size > 0 ? `선택 중 결제완료 ${preparable.length}건 상품준비중으로` : `결제완료 ${preparable.length}건 모두 상품준비중으로`}
+            </Button>
             <Button variant="primary" disabled={orders.length === 0} onClick={download}>
               {selected.size > 0 ? `선택한 ${selected.size}건 엑셀(CSV) 다운로드` : `전체 ${orders.length}건 엑셀(CSV) 다운로드`}
             </Button>
@@ -152,6 +183,7 @@ export function AdminShipmentList() {
                 order={o}
                 checked={selected.has(o.orderNumber)}
                 onToggle={() => toggle(o.orderNumber)}
+                onPrepare={() => prepare([o])}
                 onShip={() => ship(o)}
                 onTrackingSaved={replace}
               />
@@ -183,12 +215,14 @@ function ShipmentCard({
   order: o,
   checked,
   onToggle,
+  onPrepare,
   onShip,
   onTrackingSaved,
 }: {
   order: AdminOrder;
   checked: boolean;
   onToggle: () => void;
+  onPrepare: () => void;
   onShip: () => void;
   onTrackingSaved: (updated: AdminOrder) => void;
 }) {
@@ -203,18 +237,25 @@ function ShipmentCard({
           <input type="checkbox" checked={checked} onChange={onToggle} className="h-4 w-4 accent-brand-deep" />
           <span className="font-bold tabular-nums">{o.orderNumber}</span>
           <span className="text-ink-subtle">결제 {formatDateTime(o.paidAt ?? o.orderedAt)}</span>
+          <Chip tone={o.status === "PREPARING" ? "brand" : "neutral"}>{ORDER_STATUS_LABELS[o.status]}</Chip>
         </label>
         <div className="flex flex-wrap items-start gap-2">
           <TrackingForm key={`${o.courier}|${o.trackingNumber}`} order={o} onSaved={onTrackingSaved} />
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={onShip}
-            disabled={!hasTracking(o)}
-            title={hasTracking(o) ? undefined : "택배사·송장번호를 먼저 저장해 주세요"}
-          >
-            배송중으로 변경
-          </Button>
+          {o.status === "PAID" ? (
+            <Button size="sm" variant="primary" onClick={onPrepare}>
+              상품준비중으로 변경
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={onShip}
+              disabled={!hasTracking(o)}
+              title={hasTracking(o) ? undefined : "택배사·송장번호를 먼저 저장해 주세요"}
+            >
+              배송중으로 변경
+            </Button>
+          )}
         </div>
       </div>
 

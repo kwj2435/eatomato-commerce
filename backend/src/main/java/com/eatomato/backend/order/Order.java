@@ -161,7 +161,7 @@ public class Order {
 		this.cancelledAt = Times.now();
 	}
 
-	/** 송장 입력·수정. 결제가 끝난 주문(결제완료·배송중·배송완료)에만 넣을 수 있다. */
+	/** 송장 입력·수정. 결제가 끝난 주문(결제완료·상품준비중·배송중·배송완료)에만 넣을 수 있다. */
 	public void updateTracking(String courier, String trackingNumber) {
 		if (!status.isPaid()) {
 			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);

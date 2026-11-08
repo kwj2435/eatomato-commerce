@@ -41,7 +41,8 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * 주문 생성·조회·취소.
  *
- * 흐름: 주문서 제출 → 결제대기 주문 + 재고 차감(선점) → 결제 승인(PaymentService.confirm) → 결제완료.
+ * 흐름: 주문서 제출 → 결제대기 주문 + 재고 차감(선점) → 결제 승인(PaymentService.confirm) → 결제완료
+ * → (관리자) 상품준비중 → 배송중 → 배송완료.
  * 결제대기로 30분이 지나면 자동 취소하고 재고를 돌려놓는다.
  */
 @Slf4j
@@ -157,6 +158,7 @@ public class OrderService {
 	/**
 	 * 고객 취소(결제대기·입금대기·결제완료). 결제완료였다면 PG 결제를 취소한다.
 	 * 무통장입금으로 입금까지 끝난 주문은 환불 계좌가 필요해 고객센터(관리자 취소)로 안내한다.
+	 * 상품준비중부터는 고객이 취소할 수 없다(관리자 취소만).
 	 */
 	@Transactional
 	public OrderResponse cancelMine(Long memberId, String orderNumber) {
@@ -167,6 +169,12 @@ public class OrderService {
 	@Transactional
 	public OrderResponse cancelByCustomer(Order order) {
 		lock(order);
+		if (order.getStatus() == OrderStatus.PREPARING) {
+			throw new ApiException(ErrorCode.ORDER_PREPARING);
+		}
+		if (!order.getStatus().isCancellableByCustomer()) {
+			throw new ApiException(ErrorCode.INVALID_ORDER_STATUS);
+		}
 		Payment payment = paymentRepository.findByOrder(order).orElse(null);
 		if (order.getStatus() == OrderStatus.PAID && payment != null && payment.isVirtualAccount()) {
 			throw new ApiException(ErrorCode.CANCEL_VIA_CUSTOMER_SERVICE);
@@ -200,7 +208,7 @@ public class OrderService {
 		if (payment != null) {
 			if (canceledAtGateway) {
 				PaymentService.markCanceled(payment);
-			} else if (before == OrderStatus.PAID) {
+			} else if (before.isPaid()) {
 				PaymentService.refund(paymentGateway, payment, reason, refundAccount);
 			} else if (before == OrderStatus.AWAITING_DEPOSIT) {
 				PaymentService.closeVirtualAccount(paymentGateway, payment, reason);
@@ -208,7 +216,7 @@ public class OrderService {
 				PaymentService.markCanceled(payment);
 			}
 		}
-		if (before == OrderStatus.PAID) {
+		if (before.isPaid()) {
 			order.getItems().forEach(item ->
 				productRepository.findById(item.getProductId()).ifPresent(p -> p.decreaseSalesCount(item.getQuantity())));
 		}
@@ -223,7 +231,7 @@ public class OrderService {
 		historyRepository.save(new OrderStatusHistory(order.getId(), before, OrderStatus.CANCELLED, changedBy, reason));
 	}
 
-	/** 관리자 상태 변경(배송중·배송완료·취소). 결제완료는 결제 승인으로만 바뀐다. */
+	/** 관리자 상태 변경(상품준비중·배송중·배송완료·취소). 결제완료는 결제 승인으로만 바뀐다. */
 	@Transactional
 	public void changeStatusByAdmin(Order order, OrderStatus next, Long adminId,
 		PaymentGateway.RefundAccount refundAccount) {

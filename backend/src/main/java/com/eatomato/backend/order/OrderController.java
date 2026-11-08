@@ -32,7 +32,7 @@ public class OrderController {
 		return orderService.create(memberId, request);
 	}
 
-	/** 고객 취소(결제대기·결제완료만). */
+	/** 고객 취소(결제대기·입금대기·결제완료만. 상품준비중부터는 불가). */
 	@PostMapping("/{orderNumber}/cancel")
 	public OrderResponse cancel(@CurrentMemberId Long memberId, @PathVariable String orderNumber) {
 		return orderService.cancelMine(memberId, orderNumber);

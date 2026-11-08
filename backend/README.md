@@ -79,7 +79,7 @@ docker compose up -d --build   # mysql → backend 순서로 뜬다
 | GET·POST | `/api/admin/coupons` 🔒 | 쿠폰 목록·만들기 `{name, discountType: FIXED\|PERCENT, discountValue, maxDiscount?, minOrderAmount?, validDays?, validUntil?, issueOnSignup?}` | 관리자 |
 | PATCH | `/api/admin/coupons/{id}` 🔒 | 발급 중지/재개 `active`, 가입 자동 발급 `issueOnSignup` | 관리자 |
 | POST | `/api/admin/coupons/{id}/issue` 🔒 | 발급 `{all: true}` 또는 `{loginIds: [...]}`. 이미 받은 회원은 건너뜀 | 관리자 |
-| POST | `/api/orders/{orderNumber}/cancel` 🔒 | 고객 취소(결제대기·결제완료). 환불·재고 복원 | 마이페이지 |
+| POST | `/api/orders/{orderNumber}/cancel` 🔒 | 고객 취소(결제대기·입금대기·결제완료). 상품준비중부터는 `ORDER_PREPARING` 400. 환불·재고 복원 | 마이페이지 |
 | GET | `/api/orders` · `/api/orders/{orderNumber}` 🔒 | 주문 내역 | 마이페이지 주문 내역 |
 | GET | `/api/shipping-policy` | 배송비 정책 `{baseFee, freeThreshold, remoteAreaFee}` | 상세·장바구니·주문서 |
 | PUT | `/api/me/profile` 🔒 | 가입 후 추가 정보·약관 필수 동의 `{nickname, zipCode, roadAddress, detailAddress, agreeTerms, agreePrivacy, ageOver14}` (동의는 모두 true) | 추가 정보 입력 |
@@ -99,7 +99,7 @@ docker compose up -d --build   # mysql → backend 순서로 뜬다
 | GET | `/api/admin/members` · `/api/admin/members/{id}` | 회원 목록(`q`, `role`) / 상세(최근 주문 포함) |
 | PATCH | `/api/admin/members/{id}` | 등급·권한·이용 정지 `{grade?, role?, enabled?}` (본인 권한·상태는 못 바꿈) |
 | GET | `/api/admin/orders` | 주문 목록(`status`, `q`=주문번호·주문자 아이디) |
-| PATCH | `/api/admin/orders/{orderNumber}/status` | 상태 변경 `PAID` `SHIPPING` `DELIVERED` `CANCELLED` |
+| PATCH | `/api/admin/orders/{orderNumber}/status` | 상태 변경 `PREPARING` `SHIPPING` `DELIVERED` `CANCELLED` (결제완료 → 상품준비중 → 배송중 순서) |
 | GET · POST · PUT · DELETE | `/api/admin/banners[/{id}]` | 메인 배너 관리 `{placement, href, imageUrl, alt, sortOrder, active}` |
 | GET · POST · PUT · DELETE | `/api/admin/notices[/{id}]` | 공지 관리 |
 | GET · PUT · DELETE | `/api/admin/site-contents[/{key}]` | 사이트 문구(메인 섹션 설명 등) 조회 / 수정 `{value}` / 기본값으로 |
@@ -117,7 +117,7 @@ docker compose up -d --build   # mysql → backend 순서로 뜬다
 
 - 상품·공지·배너 id 는 DB 숫자 PK 의 문자열이다(`"prod-001"` → `"1"`). 회원 `id` 는 로그인 아이디.
 - 상세 `reviewCount` 는 실제 리뷰 수다(mock 은 390 고정).
-- 주문 흐름: 주문서 제출 → `PENDING_PAYMENT`(재고 선점) → 결제 승인 → `PAID` → `SHIPPING` → `DELIVERED`. 취소는 배송 전까지(환불·재고 복원·판매량 되돌림). 허용되지 않는 전이는 400, 변경 이력은 `order_status_history`.
+- 주문 흐름: 주문서 제출 → `PENDING_PAYMENT`(재고 선점) → 결제 승인 → `PAID` → (관리자) `PREPARING`(상품준비중) → `SHIPPING` → `DELIVERED`. 취소는 배송 전까지(환불·재고 복원·판매량 되돌림)이고, `PREPARING` 부터는 고객이 직접 취소할 수 없어 관리자만 취소한다. 허용되지 않는 전이는 400, 변경 이력은 `order_status_history`.
 - 쿠폰·적립금: 주문서 제출(`POST /api/orders` 에 `memberCouponId`, `usePoints`) 때 쿠폰 1장(상품 금액에만)과 적립금(남은 결제 금액까지)을 바로 차감하고, 주문이 취소·만료되면 돌려준다. 결제할 금액이 0원이면 결제창 없이 바로 `PAID`. 적립은 배송완료 때 상품별 적립률(주문 시점 스냅샷), 후기 작성 때 텍스트 200원·포토 500원. 신규 가입 쿠폰(2,000원·30일)은 V10 이 넣는다.
 - 무통장입금(토스 가상계좌): 승인하면 계좌가 발급되고 `AWAITING_DEPOSIT`(입금대기, 재고 유지) → 입금 웹훅이 오면 `PAID`. 입금 기한이 지나면 자동 취소. 입금 전 취소는 가상계좌를 닫고, 입금 뒤 취소(환불)는 고객 환불 계좌가 필요해 관리자만 할 수 있다(`PATCH /api/admin/orders/{n}/status` 에 `refundAccount{bank, accountNumber, holderName}`).
 - 결제: `PaymentGateway` 인터페이스로 PG 를 붙인다. `PAYMENT_PROVIDER=mock`(기본)은 `MockPaymentGateway` 가 항상 승인하고, `toss` 는 `TossPaymentGateway`(토스페이먼츠 결제위젯)가 승인·취소한다. 결제대기 30분이 지나면 자동 취소.

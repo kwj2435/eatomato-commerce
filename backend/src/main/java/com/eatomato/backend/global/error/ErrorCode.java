@@ -73,6 +73,7 @@ public enum ErrorCode {
 	COUPON_NOT_APPLICABLE(HttpStatus.BAD_REQUEST, "이 주문에는 쓸 수 없는 쿠폰입니다."),
 	COUPON_NOT_ISSUABLE(HttpStatus.BAD_REQUEST, "발급이 중지되었거나 기간이 끝난 쿠폰입니다."),
 	REFUND_ACCOUNT_REQUIRED(HttpStatus.BAD_REQUEST, "무통장입금 결제를 환불하려면 환불 받을 계좌가 필요합니다."),
+	ORDER_PREPARING(HttpStatus.BAD_REQUEST, "상품 준비가 시작된 주문은 취소할 수 없습니다. 고객센터로 문의해 주세요."),
 	CANCEL_VIA_CUSTOMER_SERVICE(HttpStatus.BAD_REQUEST, "무통장입금으로 결제한 주문은 고객센터로 취소를 요청해 주세요."),
 	PAYMENT_CANCEL_FAILED(HttpStatus.BAD_GATEWAY, "결제 취소에 실패했습니다. 잠시 뒤 다시 시도해 주세요."),
 	INVALID_WEBHOOK(HttpStatus.UNAUTHORIZED, "잘못된 결제 알림입니다."),

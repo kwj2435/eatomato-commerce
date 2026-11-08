@@ -54,7 +54,7 @@ public class GuestController {
 		return guestOrderService.get(request.orderNumber(), request.password(), servletRequest.getRemoteAddr());
 	}
 
-	/** 고객 취소(결제대기·입금대기·결제완료). 회원 취소와 규칙이 같다. */
+	/** 고객 취소(결제대기·입금대기·결제완료. 상품준비중부터는 불가). 회원 취소와 규칙이 같다. */
 	@PostMapping("/orders/cancel")
 	public OrderResponse cancel(@Valid @RequestBody Credentials request, HttpServletRequest servletRequest) {
 		return guestOrderService.cancel(request.orderNumber(), request.password(), servletRequest.getRemoteAddr());

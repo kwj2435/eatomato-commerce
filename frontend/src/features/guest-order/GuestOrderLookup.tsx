@@ -157,6 +157,9 @@ function GuestOrderCard({ order, onCancel }: { order: Order; onCancel: () => voi
       {order.status === "PAID" && !order.cancellable && order.payment?.virtualAccount ? (
         <p className="mt-2 text-right text-[12px] text-[#999]">무통장입금 주문 취소는 고객센터로 요청해 주세요.</p>
       ) : null}
+      {order.status === "PREPARING" ? (
+        <p className="mt-2 text-right text-[12px] text-[#999]">상품 준비가 시작되어 직접 취소할 수 없습니다. 고객센터로 문의해 주세요.</p>
+      ) : null}
       {order.cancellable ? (
         <div className="mt-3 text-right">
           <button

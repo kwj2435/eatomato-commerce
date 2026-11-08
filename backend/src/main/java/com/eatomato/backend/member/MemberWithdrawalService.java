@@ -33,7 +33,8 @@ public class MemberWithdrawalService {
 
 	/** 이 상태의 주문이 있으면 탈퇴를 막는다(결제·배송이 끝나지 않은 주문). */
 	static final Set<OrderStatus> IN_PROGRESS = EnumSet.of(
-		OrderStatus.PENDING_PAYMENT, OrderStatus.AWAITING_DEPOSIT, OrderStatus.PAID, OrderStatus.SHIPPING);
+		OrderStatus.PENDING_PAYMENT, OrderStatus.AWAITING_DEPOSIT, OrderStatus.PAID, OrderStatus.PREPARING,
+		OrderStatus.SHIPPING);
 
 	/** 탈퇴한 소셜 계정 해시를 두는 기간. */
 	static final Period KEEP_WITHDRAWN_SOCIAL = Period.ofYears(1);

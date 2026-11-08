@@ -282,6 +282,12 @@ class AdminApiIntegrationTest {
 			.andExpect(jsonPath("$.content", hasSize(1)))
 			.andExpect(jsonPath("$.content[0].member.loginId").value("orderuser"));
 
+		// 결제완료 → 상품준비중
+		mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"PREPARING\"}"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("PREPARING"));
+
 		// 송장 없이는 배송중으로 바꿀 수 없다.
 		mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SHIPPING\"}"))

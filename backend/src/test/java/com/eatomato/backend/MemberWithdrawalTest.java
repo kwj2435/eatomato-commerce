@@ -158,7 +158,7 @@ class MemberWithdrawalTest {
 		mockMvc.perform(put("/api/admin/orders/" + orderNumber + "/tracking").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"courier\":\"CJ대한통운\",\"trackingNumber\":\"1234 5678 9012\"}"))
 			.andExpect(status().isOk());
-		for (String next : List.of("SHIPPING", "DELIVERED")) {
+		for (String next : List.of("PREPARING", "SHIPPING", "DELIVERED")) {
 			mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
 					.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"%s\"}".formatted(next)))
 				.andExpect(status().isOk());

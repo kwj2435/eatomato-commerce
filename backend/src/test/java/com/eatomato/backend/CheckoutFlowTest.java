@@ -152,6 +152,52 @@ class CheckoutFlowTest {
 		setStock(admin, 8, null);
 	}
 
+	private org.springframework.test.web.servlet.ResultActions adminStatus(String admin, String orderNumber, String next)
+		throws Exception {
+		return mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
+			.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"" + next + "\"}"));
+	}
+
+	@Test
+	void 상품준비중부터는_고객이_취소할_수_없고_관리자만_취소한다() throws Exception {
+		String admin = admin();
+		setStock(admin, 9, 5);
+		String user = signup("checkout7");
+		int salesBefore = salesOf(9);
+		addToCart(user, 9, 2);
+		String order = order(user, "21986");
+		String orderNumber = JsonPath.read(order, "$.orderNumber");
+		int total = JsonPath.read(order, "$.total");
+		confirm(user, orderNumber, total).andExpect(status().isOk());
+
+		// 결제완료에서 배송중으로 건너뛸 수 없고, 상품준비중을 거쳐야 한다
+		adminStatus(admin, orderNumber, "SHIPPING")
+			.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_ORDER_STATUS"));
+		adminStatus(admin, orderNumber, "PREPARING")
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.status").value("PREPARING"))
+			.andExpect(jsonPath("$.nextStatuses", hasSize(2)));
+
+		// 고객: 취소 버튼이 사라지고(cancellable=false) API 로도 취소할 수 없다
+		mockMvc.perform(get("/api/orders/" + orderNumber).header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(jsonPath("$.status").value("PREPARING"))
+			.andExpect(jsonPath("$.cancellable").value(false));
+		mockMvc.perform(post("/api/orders/" + orderNumber + "/cancel").header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("ORDER_PREPARING"));
+		org.assertj.core.api.Assertions.assertThat(stockOf(9)).isEqualTo(3);
+		org.assertj.core.api.Assertions.assertThat(salesOf(9)).isEqualTo(salesBefore + 2);
+
+		// 관리자는 상품준비중에서도 취소할 수 있다(환불·재고·판매량 복원)
+		adminStatus(admin, orderNumber, "CANCELLED")
+			.andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CANCELLED"));
+		org.assertj.core.api.Assertions.assertThat(stockOf(9)).isEqualTo(5);
+		org.assertj.core.api.Assertions.assertThat(salesOf(9)).isEqualTo(salesBefore);
+		org.assertj.core.api.Assertions.assertThat(jdbc.queryForObject(
+			"select p.status from payment p join orders o on o.id = p.order_id where o.order_number = ?",
+			String.class, orderNumber)).isEqualTo("CANCELED");
+		setStock(admin, 9, null);
+	}
+
 	@Test
 	void 재고가_모자라면_주문이_통째로_거절된다() throws Exception {
 		String admin = admin();

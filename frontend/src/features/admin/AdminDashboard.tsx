@@ -27,7 +27,7 @@ export function AdminDashboard() {
 
   return (
     <>
-      <PageHeader title="대시보드" description="결제 현황과 주요 지표. 매출은 결제가 끝난 주문(결제완료·배송중·배송완료)의 결제 금액(배송비 포함)입니다." />
+      <PageHeader title="대시보드" description="결제 현황과 주요 지표. 매출은 결제가 끝난 주문(결제완료·상품준비중·배송중·배송완료)의 결제 금액(배송비 포함)입니다." />
 
       <div className="grid gap-4 md:grid-cols-[1.4fr_1fr_1fr]">
         {/* 대시보드의 대표 숫자는 오늘 매출 하나 */}
@@ -137,7 +137,7 @@ function StatusTile({ counts }: { counts: Record<OrderStatus, number> }) {
   return (
     <Card className="sm:col-span-2">
       <p className="text-[13px] text-ink-subtle">주문 상태</p>
-      <dl className="mt-2 grid grid-cols-3 gap-2 md:grid-cols-6">
+      <dl className="mt-2 grid grid-cols-4 gap-2 md:grid-cols-7">
         {(Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map((status) => (
           <Link key={status} href={`/admin/orders?status=${status}`} className="rounded-md px-1 py-1 hover:bg-black/[0.03]">
             <dt className="text-[12px] text-ink-muted">{ORDER_STATUS_LABELS[status]}</dt>

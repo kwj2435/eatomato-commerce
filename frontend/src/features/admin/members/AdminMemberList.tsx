@@ -250,7 +250,7 @@ function MemberDetailPanel({ memberId, onChanged }: { memberId: string; onChange
                 <span className="tabular-nums text-ink-muted">{formatDateTime(o.orderedAt)}</span>
                 <span className="min-w-0 flex-1 truncate">{o.items[0]?.name}</span>
                 <span className="tabular-nums">{formatKRW(o.total)}</span>
-                <span className="w-14 text-right text-ink-subtle">{ORDER_STATUS_LABELS[o.status]}</span>
+                <span className="w-16 text-right text-ink-subtle">{ORDER_STATUS_LABELS[o.status]}</span>
               </li>
             ))}
           </ul>

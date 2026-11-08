@@ -124,7 +124,7 @@ class GuestOrderFlowTest {
 		mockMvc.perform(put("/api/admin/orders/" + orderNumber + "/tracking").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"courier\":\"CJ대한통운\",\"trackingNumber\":\"1234 5678 9012\"}"))
 			.andExpect(status().isOk());
-		for (String next : new String[] {"SHIPPING", "DELIVERED"}) {
+		for (String next : new String[] {"PREPARING", "SHIPPING", "DELIVERED"}) {
 			mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
 					.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"" + next + "\"}"))
 				.andExpect(status().isOk());

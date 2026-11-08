@@ -229,6 +229,7 @@ const STATUS_CHIP: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "bg-[#ECE9E8] text-[#666]",
   AWAITING_DEPOSIT: "bg-[#FBEBD5] text-[#8A5A12]",
   PAID: "bg-[#F6E3DF] text-brand-primary",
+  PREPARING: "bg-[#EFE6DA] text-[#6B4E2E]",
   SHIPPING: "bg-[#E4EFE6] text-[#2F6B3B]",
   DELIVERED: "bg-[#ECE9E8] text-[#545454]",
   CANCELLED: "bg-[#ECE9E8] text-[#999]",
@@ -336,6 +337,9 @@ function OrderList({ orders: initial }: { orders: Order[] }) {
             ) : null}
             {order.status === "PAID" && !order.cancellable && order.payment?.virtualAccount ? (
               <p className="mt-2 text-right text-[12px] text-[#999]">무통장입금 주문 취소는 고객센터로 요청해 주세요.</p>
+            ) : null}
+            {order.status === "PREPARING" ? (
+              <p className="mt-2 text-right text-[12px] text-[#999]">상품 준비가 시작되어 직접 취소할 수 없습니다. 고객센터로 문의해 주세요.</p>
             ) : null}
 
             {order.cancellable || canReview ? (

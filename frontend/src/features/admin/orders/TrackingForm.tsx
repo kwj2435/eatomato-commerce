@@ -35,7 +35,7 @@ export function hasTracking(order: AdminOrder): boolean {
 
 /**
  * 택배사·송장번호 입력. 저장하면 서버가 돌려준 주문으로 onSaved 를 부른다.
- * 결제가 끝난 주문(결제완료·배송중·배송완료)에서만 쓴다.
+ * 결제가 끝난 주문(결제완료·상품준비중·배송중·배송완료)에서만 쓴다.
  */
 export function TrackingForm({ order, onSaved }: { order: AdminOrder; onSaved: (updated: AdminOrder) => void }) {
   const saved = order.courier ?? "";
