@@ -104,6 +104,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
               ADMIN
             </span>
           </Link>
+          {/* 모바일: 좌측 하단 계정 영역이 없으므로 헤더 줄에 둔다. */}
+          <div className="flex gap-3 text-[12px] text-ink-subtle lg:hidden">
+            <Link href="/" className="hover:text-ink-body hover:underline">
+              사이트로
+            </Link>
+            <button type="button" onClick={logout} className="hover:text-ink-body hover:underline">
+              로그아웃
+            </button>
+          </div>
         </div>
         <nav aria-label="관리자 메뉴" className="overflow-x-auto px-3 pb-3 lg:px-3">
           <ul className="flex gap-1 lg:flex-col">

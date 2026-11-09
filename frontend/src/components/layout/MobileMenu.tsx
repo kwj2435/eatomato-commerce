@@ -6,7 +6,7 @@ import { useEffect, useId, useState } from "react";
 import { NavLink } from "@/components/layout/NavLink";
 import { ChevronDownIcon, MenuIcon } from "@/components/ui/icons";
 import { useLogout } from "@/features/auth/useLogout";
-import { useIsLoggedIn } from "@/lib/store/auth-store";
+import { useAuthStore, useIsLoggedIn } from "@/lib/store/auth-store";
 import { useHydrated } from "@/lib/store/use-hydrated";
 import { cn } from "@/lib/utils/cn";
 
@@ -35,6 +35,7 @@ export function MobileMenu({ items }: MobileMenuProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const hydrated = useHydrated();
   const loggedIn = useIsLoggedIn();
+  const isAdmin = useAuthStore((s) => s.member?.role === "ADMIN");
   const logout = useLogout();
 
   useEffect(() => {
@@ -166,6 +167,14 @@ export function MobileMenu({ items }: MobileMenuProps) {
             <ul className="mt-auto flex flex-col gap-3 border-t border-black/10 pt-6 text-[15px] text-ink-muted">
               {loggedIn ? (
                 <>
+                  {/* 데스크톱 헤더의 ADMIN 배지는 모바일에서 숨기므로 관리자 바로가기를 여기 둔다. */}
+                  {isAdmin ? (
+                    <li>
+                      <Link href="/admin" onClick={close} className="font-bold text-brand-primary hover:text-black">
+                        관리자 화면
+                      </Link>
+                    </li>
+                  ) : null}
                   <li>
                     <Link href="/mypage" onClick={close} className="hover:text-black">
                       마이페이지
