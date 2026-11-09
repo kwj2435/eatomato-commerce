@@ -12,13 +12,31 @@ import type { AdminOrder, Page } from "@/types/admin";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 
 import { formatDateTime } from "../format";
-import { Button, Card, Empty, Field, Notice, PageHeader, Pagination, inputClass, tableClass, tdClass, thClass } from "../ui";
+import { Button, Card, Chip, Empty, Field, Notice, PageHeader, Pagination, inputClass, tableClass, tdClass, thClass } from "../ui";
 import { TrackingForm, hasTracking } from "./TrackingForm";
 
 const STATUSES = Object.keys(ORDER_STATUS_LABELS) as OrderStatus[];
 
 /** 송장을 넣을 수 있는 상태(결제가 끝난 주문). */
 const TRACKABLE: OrderStatus[] = ["PAID", "PREPARING", "SHIPPING", "DELIVERED"];
+
+/** 상태 칩 색. 처리할 일이 남은 상태(결제완료·상품준비중)만 브랜드 색으로 눈에 띄게 한다. */
+const STATUS_TONE: Record<OrderStatus, "brand" | "neutral" | "muted"> = {
+  PENDING_PAYMENT: "muted",
+  AWAITING_DEPOSIT: "neutral",
+  PAID: "brand",
+  PREPARING: "brand",
+  SHIPPING: "neutral",
+  DELIVERED: "muted",
+  CANCELLED: "muted",
+};
+
+/** 다음 단계로 넘기는 버튼 문구. 취소는 따로 둔다. */
+const FORWARD_LABELS: Partial<Record<OrderStatus, string>> = {
+  PREPARING: "상품준비중으로 변경",
+  SHIPPING: "배송중으로 변경",
+  DELIVERED: "배송완료로 변경",
+};
 
 const PAYMENT_LABELS = {
   READY: "결제 전",
@@ -181,25 +199,7 @@ export function AdminOrderList() {
                       </td>
                       <td className={`${tdClass} whitespace-nowrap text-right tabular-nums`}>{formatKRW(o.total)}</td>
                       <td className={tdClass}>
-                        {/* 지금 상태에서 허용된 다음 상태만 고를 수 있다(서버 규칙과 같음). */}
-                        <select
-                          aria-label={`주문 ${o.orderNumber} 상태`}
-                          value={o.status}
-                          disabled={o.nextStatuses.length === 0}
-                          onChange={(e) => change(o, e.target.value as OrderStatus)}
-                          className="h-8 rounded-md border border-black/15 bg-white px-2 text-[13px] disabled:bg-black/[0.03] disabled:text-ink-subtle"
-                        >
-                          <option value={o.status}>{ORDER_STATUS_LABELS[o.status]}</option>
-                          {o.nextStatuses.map((s) => {
-                            const needsTracking = s === "SHIPPING" && !hasTracking(o);
-                            return (
-                              <option key={s} value={s} disabled={needsTracking}>
-                                → {ORDER_STATUS_LABELS[s]}
-                                {needsTracking ? " (송장 입력 필요)" : ""}
-                              </option>
-                            );
-                          })}
-                        </select>
+                        <StatusCell order={o} onChange={(next) => change(o, next)} />
                       </td>
                       <td className={tdClass}>
                         {TRACKABLE.includes(o.status) ? (
@@ -384,6 +384,51 @@ function RefundAccountDialog({
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+/**
+ * 상태 칸: 지금 상태(칩) + 다음 단계 버튼 + 따로 떨어진 취소.
+ * 서버가 준 nextStatuses(허용 전이)만 버튼으로 보여준다. 배송중은 송장을 저장해야 누를 수 있다.
+ */
+function StatusCell({ order: o, onChange }: { order: AdminOrder; onChange: (next: OrderStatus) => void }) {
+  const forward = o.nextStatuses.filter((s) => s !== "CANCELLED");
+  const cancellable = o.nextStatuses.includes("CANCELLED");
+  return (
+    <div className="flex flex-col items-start gap-1.5">
+      <Chip tone={STATUS_TONE[o.status]}>{ORDER_STATUS_LABELS[o.status]}</Chip>
+      {forward.length > 0 || cancellable ? (
+        <div className="flex items-center gap-3">
+          {forward.map((s) => {
+            const needsTracking = s === "SHIPPING" && !hasTracking(o);
+            return (
+              <Button
+                key={s}
+                size="sm"
+                onClick={() => onChange(s)}
+                disabled={needsTracking}
+                title={needsTracking ? "택배사·송장번호를 먼저 저장해 주세요" : undefined}
+                className="whitespace-nowrap"
+              >
+                {FORWARD_LABELS[s] ?? `${ORDER_STATUS_LABELS[s]}(으)로 변경`}
+              </Button>
+            );
+          })}
+          {cancellable ? (
+            <button
+              type="button"
+              onClick={() => onChange("CANCELLED")}
+              className="whitespace-nowrap text-[12px] text-ink-subtle underline-offset-2 hover:text-brand-primary hover:underline"
+            >
+              주문 취소
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {forward.includes("SHIPPING") && !hasTracking(o) ? (
+        <p className="whitespace-nowrap text-[11px] text-ink-subtle">송장을 저장하면 바꿀 수 있습니다</p>
+      ) : null}
     </div>
   );
 }
