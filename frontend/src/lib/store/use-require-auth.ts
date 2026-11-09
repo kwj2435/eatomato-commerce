@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { useIsLoggedIn } from "./auth-store";
+import { justLoggedOut, useIsLoggedIn } from "./auth-store";
 import { useHydrated } from "./use-hydrated";
 
 /**
@@ -17,7 +17,8 @@ export function useRequireAuth(): boolean {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (hydrated && !loggedIn) {
+    // 직접 로그아웃했으면 로그아웃한 쪽이 정한 화면(메인)으로 가게 둔다.
+    if (hydrated && !loggedIn && !justLoggedOut()) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     }
   }, [hydrated, loggedIn, pathname, router]);

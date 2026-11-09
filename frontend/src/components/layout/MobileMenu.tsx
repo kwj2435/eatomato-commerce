@@ -5,6 +5,7 @@ import { useEffect, useId, useState } from "react";
 
 import { NavLink } from "@/components/layout/NavLink";
 import { ChevronDownIcon, MenuIcon } from "@/components/ui/icons";
+import { useLogout } from "@/features/auth/useLogout";
 import { useIsLoggedIn } from "@/lib/store/auth-store";
 import { useHydrated } from "@/lib/store/use-hydrated";
 import { cn } from "@/lib/utils/cn";
@@ -34,6 +35,7 @@ export function MobileMenu({ items }: MobileMenuProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const hydrated = useHydrated();
   const loggedIn = useIsLoggedIn();
+  const logout = useLogout();
 
   useEffect(() => {
     if (!open) return;
@@ -173,6 +175,18 @@ export function MobileMenu({ items }: MobileMenuProps) {
                     <Link href="/mypage/profile" onClick={close} className="hover:text-black">
                       회원 정보 수정
                     </Link>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        close();
+                        logout();
+                      }}
+                      className="hover:text-black"
+                    >
+                      로그아웃
+                    </button>
                   </li>
                 </>
               ) : (

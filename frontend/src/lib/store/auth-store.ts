@@ -136,8 +136,17 @@ async function getAccessToken(): Promise<string | null> {
 }
 
 /** 로그아웃: 이 브라우저의 세션을 지우고, 서버에서 리프레시 토큰을 폐기한다. */
+/** 직접 로그아웃한 시각. 로그인 필요 화면이 로그인 화면으로 보내 로그아웃 후 이동을 덮어쓰지 않게 한다. */
+let loggedOutAt = 0;
+
+/** 방금(2초 안) 이 탭에서 직접 로그아웃했는지. 세션 만료·다른 탭 로그아웃은 해당하지 않는다. */
+export function justLoggedOut(): boolean {
+  return Date.now() - loggedOutAt < 2000;
+}
+
 export function logout(): void {
   const { refreshToken } = useAuthStore.getState();
+  loggedOutAt = Date.now();
   useAuthStore.getState().clear();
   if (refreshToken) {
     apiFetch<void>("/api/auth/logout", { method: "POST", json: { refreshToken }, keepalive: true }).catch(() => {});

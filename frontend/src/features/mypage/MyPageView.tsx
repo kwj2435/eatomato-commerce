@@ -22,6 +22,8 @@ import type { Member } from "@/types/member";
 import { ORDER_STATUS_LABELS, type Order, type OrderStatus } from "@/types/order";
 import type { MyReview } from "@/types/review";
 
+import { useLogout } from "@/features/auth/useLogout";
+
 import { HistorySection } from "./HistorySection";
 import { LoginProviderBadge } from "./LoginProviderBadge";
 import { consumeProfileSavedFlag } from "./profile-saved";
@@ -179,14 +181,14 @@ function Summary({
           <h1 className="truncate text-[21px] font-bold tracking-[-0.4px] text-black md:text-[26px]">
             {member.nickname || member.name} 님
           </h1>
-          <ProfileLink className="inline-flex lg:hidden" />
+          <AccountActions className="flex lg:hidden" />
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-muted md:text-[14px]">
           <span className="rounded-full bg-[#F6E3DF] px-2 py-px text-[11.5px] font-semibold text-brand-secondary md:text-[12px]">
             {member.grade}
           </span>
           <LoginProviderBadge provider={member.loginProvider} />
-          <ProfileLink className="ml-1 hidden lg:inline-flex" />
+          <AccountActions className="ml-1 hidden lg:flex" />
         </div>
       </div>
 
@@ -211,17 +213,25 @@ function Summary({
   );
 }
 
-function ProfileLink({ className }: { className?: string }) {
+/** 회원 정보 수정 링크 + 로그아웃. 모바일은 이름 옆, 데스크톱은 등급·로그인 방식 뒤에 둔다. */
+function AccountActions({ className }: { className?: string }) {
+  const logout = useLogout();
   return (
-    <Link
-      href="/mypage/profile"
-      className={cn(
-        "flex-none items-center whitespace-nowrap border border-[#212121] bg-white px-2.5 py-1 text-[12.5px] font-semibold text-black transition-colors hover:bg-black hover:text-white md:text-[13px]",
-        className,
-      )}
-    >
-      회원 정보 수정 ›
-    </Link>
+    <div className={cn("flex-none items-center gap-1.5", className)}>
+      <Link
+        href="/mypage/profile"
+        className="inline-flex items-center whitespace-nowrap border border-[#212121] bg-white px-2.5 py-1 text-[12.5px] font-semibold text-black transition-colors hover:bg-black hover:text-white md:text-[13px]"
+      >
+        회원 정보 수정 ›
+      </Link>
+      <button
+        type="button"
+        onClick={logout}
+        className="inline-flex items-center whitespace-nowrap border border-[#CFC5C2] bg-white px-2.5 py-1 text-[12.5px] text-ink-muted transition-colors hover:border-black hover:text-black md:text-[13px]"
+      >
+        로그아웃
+      </button>
+    </div>
   );
 }
 
