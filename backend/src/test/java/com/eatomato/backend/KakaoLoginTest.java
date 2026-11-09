@@ -1,5 +1,6 @@
 package com.eatomato.backend;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,6 +22,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.eatomato.backend.auth.kakao.KakaoOAuthClient;
 import com.eatomato.backend.auth.kakao.KakaoUser;
+import com.eatomato.backend.member.Member;
+import com.eatomato.backend.member.MemberRepository;
 
 /** 카카오 로그인. 카카오 서버 호출(KakaoOAuthClient)만 가짜로 바꾸고 나머지 흐름은 그대로 돈다. */
 @SpringBootTest(properties = "app.kakao.rest-api-key=test-key")
@@ -32,6 +35,9 @@ class KakaoLoginTest {
 
 	@Autowired
 	MockMvc mockMvc;
+
+	@Autowired
+	MemberRepository memberRepository;
 
 	@MockitoBean
 	KakaoOAuthClient kakaoOAuthClient;
@@ -92,5 +98,48 @@ class KakaoLoginTest {
 		given(kakaoOAuthClient.fetchUser("code-5", REDIRECT)).willReturn(new KakaoUser(3004L, "linkme@example.com", false));
 		mockMvc.perform(post("/api/auth/kakao").contentType(MediaType.APPLICATION_JSON).content(loginBody("code-5")))
 			.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void 가입하면_휴대전화번호와_CI_해시를_저장하고_같은_CI로는_다시_가입할_수_없다() throws Exception {
+		given(kakaoOAuthClient.fetchUser("code-6", REDIRECT))
+			.willReturn(new KakaoUser(4001L, "ci.first@example.com", true, "010-2222-3333", "CI-SAME-PERSON"));
+		mockMvc.perform(post("/api/auth/kakao").contentType(MediaType.APPLICATION_JSON).content(loginBody("code-6")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.member.phone.first").value("010"))
+			.andExpect(jsonPath("$.member.phone.middle").value("2222"))
+			.andExpect(jsonPath("$.member.phone.last").value("3333"));
+		Member member = memberRepository.findByKakaoId(4001L).orElseThrow();
+		assertThat(member.getCiHash()).isEqualTo(Member.hashCi("CI-SAME-PERSON")).isNotEqualTo("CI-SAME-PERSON");
+
+		// 같은 사람이 다른 카카오 계정으로 가입하려 하면 거절
+		given(kakaoOAuthClient.fetchUser("code-7", REDIRECT))
+			.willReturn(new KakaoUser(4002L, "ci.second@example.com", true, "010-2222-3333", "CI-SAME-PERSON"));
+		mockMvc.perform(post("/api/auth/kakao").contentType(MediaType.APPLICATION_JSON).content(loginBody("code-7")))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("KAKAO_CI_ALREADY_REGISTERED"));
+		assertThat(memberRepository.findByKakaoId(4002L)).isEmpty();
+	}
+
+	@Test
+	void 기존_회원은_비어_있는_번호와_CI만_채운다() throws Exception {
+		given(kakaoOAuthClient.fetchUser("code-8", REDIRECT)).willReturn(new KakaoUser(5001L, "fill@example.com", true));
+		mockMvc.perform(post("/api/auth/kakao").contentType(MediaType.APPLICATION_JSON).content(loginBody("code-8")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.member.phone.first").value(""));
+
+		given(kakaoOAuthClient.fetchUser("code-9", REDIRECT))
+			.willReturn(new KakaoUser(5001L, "fill@example.com", true, "010-4444-5555", "CI-FILL"));
+		mockMvc.perform(post("/api/auth/kakao").contentType(MediaType.APPLICATION_JSON).content(loginBody("code-9")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.member.phone.middle").value("4444"));
+		assertThat(memberRepository.findByKakaoId(5001L).orElseThrow().getCiHash()).isEqualTo(Member.hashCi("CI-FILL"));
+
+		// 이미 번호가 있으면(마이페이지에서 고친 번호 등) 카카오 번호로 덮어쓰지 않는다
+		given(kakaoOAuthClient.fetchUser("code-10", REDIRECT))
+			.willReturn(new KakaoUser(5001L, "fill@example.com", true, "010-9999-9999", "CI-FILL"));
+		mockMvc.perform(post("/api/auth/kakao").contentType(MediaType.APPLICATION_JSON).content(loginBody("code-10")))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.member.phone.middle").value("4444"));
 	}
 }

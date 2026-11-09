@@ -21,6 +21,17 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 55MB
+  task:
+    # @Async(알림톡 발송). DB 연결 풀이 작아(5) 일괄 상태 변경 때 알림이 연결을 다 차지하지 않도록 2개로 둔다.
+    execution:
+      thread-name-prefix: async-
+      pool:
+        core-size: 2
+        max-size: 2
+      shutdown:
+        # 배포로 재시작할 때 대기 중인 알림을 잠깐 기다렸다가 내린다.
+        await-termination: true
+        await-termination-period: 20s
 
 server:
   port: 8080
@@ -56,6 +67,8 @@ app:
     rest-api-key: ${KAKAO_REST_API_KEY:}
     client-secret: ${KAKAO_CLIENT_SECRET:}
     redirect-uris: ${KAKAO_REDIRECT_URIS:https://eatomato.kr/login/kakao/,http://localhost:3000/login/kakao/}
+    # 휴대전화번호·연계정보(CI)를 가입 필수로 받을지. 카카오 비즈 앱 심사로 두 동의항목을 연 뒤에 true 로 켠다.
+    require-phone-and-ci: ${KAKAO_REQUIRE_PHONE_CI:false}
   naver:
     client-id: ${NAVER_CLIENT_ID:}
     client-secret: ${NAVER_CLIENT_SECRET:}
@@ -87,6 +100,18 @@ app:
     daily-limit: ${INSIGHT_DAILY_LIMIT:10}
     # RUNNING 으로 이 시간이 지나면 워커가 멈춘 것으로 보고 실패 처리
     stale-after: 15m
+  alimtalk:
+    # 카카오 알림톡(솔라피). 키·채널·발신번호 중 하나라도 비어 있으면 보내지 않고 발송 기록에 SKIPPED 로만 남긴다.
+    api-key: ${SOLAPI_API_KEY:}
+    api-secret: ${SOLAPI_API_SECRET:}
+    pf-id: ${SOLAPI_PF_ID:}
+    sender: ${SOLAPI_SENDER:}
+    # 카카오 검수를 받은 템플릿 ID. 비어 있는 종류는 보내지 않는다(검수가 끝난 것부터 하나씩 켤 수 있다).
+    templates:
+      ORDER_PAID: ${ALIMTALK_TEMPLATE_ORDER_PAID:}
+      ORDER_PREPARING: ${ALIMTALK_TEMPLATE_ORDER_PREPARING:}
+      ORDER_SHIPPING: ${ALIMTALK_TEMPLATE_ORDER_SHIPPING:}
+      ORDER_CANCELLED: ${ALIMTALK_TEMPLATE_ORDER_CANCELLED:}
 
 ---
 # DB 접속 정보 없이 실행해 보는 용도. `./gradlew bootRun --args='--spring.profiles.active=local'`

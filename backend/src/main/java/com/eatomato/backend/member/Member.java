@@ -1,7 +1,11 @@
 package com.eatomato.backend.member;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -69,6 +73,9 @@ public class Member {
 
 	/** 네이버 회원 식별자. 네이버로 가입·연결한 회원만 있다. */
 	private String naverId;
+
+	/** 연계정보(CI)의 SHA-256 해시. 카카오 로그인으로 받은 회원만 있다. 원문은 저장하지 않는다. */
+	private String ciHash;
 
 	@Enumerated(EnumType.STRING)
 	private MemberRole role;
@@ -151,6 +158,7 @@ public class Member {
 		this.marketingSms = false;
 		this.kakaoId = null;
 		this.naverId = null;
+		this.ciHash = null;
 		this.enabled = false;
 		this.withdrawnAt = Times.now();
 	}
@@ -206,6 +214,25 @@ public class Member {
 
 	public void linkNaver(String naverId) {
 		this.naverId = naverId;
+	}
+
+	/** @param ciHash hashCi() 로 만든 값 */
+	public void linkCi(String ciHash) {
+		this.ciHash = ciHash;
+	}
+
+	public boolean hasPhone() {
+		return hasText(phoneFirst) && hasText(phoneMiddle) && hasText(phoneLast);
+	}
+
+	/** 연계정보(CI) → SHA-256 16진수. 같은 사람이면 어느 서비스 계정으로 받아도 같은 값이 나온다. */
+	public static String hashCi(String ci) {
+		try {
+			byte[] digest = MessageDigest.getInstance("SHA-256").digest(ci.getBytes(StandardCharsets.UTF_8));
+			return HexFormat.of().formatHex(digest);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	public boolean isAdmin() {

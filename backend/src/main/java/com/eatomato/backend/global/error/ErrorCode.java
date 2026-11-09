@@ -19,6 +19,8 @@ public enum ErrorCode {
 	KAKAO_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "카카오 로그인에 실패했습니다. 다시 시도해 주세요."),
 	KAKAO_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "카카오 계정의 이메일 제공에 동의해야 가입할 수 있습니다."),
 	KAKAO_EMAIL_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 이 이메일로 가입된 계정이 있습니다. 처음 가입할 때 쓴 방법(카카오 또는 네이버)으로 로그인해 주세요."),
+	KAKAO_PHONE_CI_REQUIRED(HttpStatus.BAD_REQUEST, "카카오 계정의 휴대전화번호와 연계정보(CI) 제공에 동의해야 가입할 수 있습니다."),
+	KAKAO_CI_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입한 회원입니다. 처음 가입할 때 쓴 카카오 계정으로 로그인해 주세요."),
 	EMAIL_SIGNUP_DISABLED(HttpStatus.FORBIDDEN, "이메일 회원가입은 더 이상 받지 않습니다. 카카오 또는 네이버로 가입해 주세요."),
 	PASSWORD_LOGIN_DISABLED(HttpStatus.FORBIDDEN, "아이디·비밀번호 로그인은 더 이상 지원하지 않습니다. 카카오 또는 네이버로 로그인해 주세요."),
 	NAVER_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "네이버 로그인이 설정되지 않았습니다."),

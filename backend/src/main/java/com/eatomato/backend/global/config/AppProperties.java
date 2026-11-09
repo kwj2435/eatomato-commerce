@@ -24,8 +24,12 @@ public record AppProperties(boolean passwordAuthEnabled, Jwt jwt, Cors cors, Upl
 	/**
 	 * 카카오 로그인(REST API). redirectUris 는 카카오 콘솔에 등록한 주소와 글자 하나까지 같아야 한다.
 	 * 프론트가 보낸 redirectUri 가 이 목록에 없으면 거절한다(임의 주소로 인가 코드가 새지 않도록).
+	 *
+	 * @param requirePhoneAndCi 휴대전화번호·연계정보(CI)를 가입 필수로 받을지. 카카오 비즈 앱 심사로 두 동의항목을
+	 *                          연 뒤에 켠다(먼저 켜면 카카오가 항목을 주지 않아 가입이 모두 막힌다). 켜면 인가 화면에서
+	 *                          두 항목 동의를 요청하고(기존 회원 포함), 두 값이 없는 신규 가입은 거절한다.
 	 */
-	public record Kakao(String restApiKey, String clientSecret, List<String> redirectUris) {
+	public record Kakao(String restApiKey, String clientSecret, List<String> redirectUris, boolean requirePhoneAndCi) {
 
 		public boolean configured() {
 			return restApiKey != null && !restApiKey.isBlank();

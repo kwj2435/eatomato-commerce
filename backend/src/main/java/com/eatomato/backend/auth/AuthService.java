@@ -34,7 +34,9 @@ import com.eatomato.backend.member.WithdrawnSocialAccount;
 import com.eatomato.backend.member.dto.MemberResponse;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -123,6 +125,10 @@ public class AuthService {
 	 *    남의 이메일로 먼저 가입해 둔 계정일 수 있고, 거기에 자동으로 연결하면 그 계정 주인이 카카오 사용자의
 	 *    주문·배송지를 보게 된다.
 	 * 3) 둘 다 아니면 새로 가입. 비밀번호는 임의 값이라 이 계정은 카카오로만 로그인한다.
+	 *    휴대전화번호·연계정보(CI)를 함께 저장하고(CI 는 해시만), 같은 CI 의 회원이 이미 있으면 거절한다(중복 가입 방지).
+	 *    필수 설정(app.kakao.require-phone-and-ci)이 켜져 있으면 두 값이 없을 때 가입을 거절한다.
+	 *
+	 * 기존 회원은 비어 있는 휴대전화번호·CI 만 채운다(마이페이지에서 고친 번호는 덮어쓰지 않는다).
 	 */
 	@Transactional
 	public TokenResponse loginWithKakao(KakaoUser kakao) {
@@ -131,9 +137,15 @@ public class AuthService {
 			if (kakao.email() == null || kakao.email().isBlank() || !kakao.emailVerified()) {
 				throw new ApiException(ErrorCode.KAKAO_EMAIL_REQUIRED);
 			}
+			if (properties.kakao().requirePhoneAndCi() && !kakao.hasPhoneAndCi()) {
+				throw new ApiException(ErrorCode.KAKAO_PHONE_CI_REQUIRED);
+			}
 			String email = kakao.email().trim();
 			if (memberRepository.findByEmail(email).isPresent()) {
 				throw new ApiException(ErrorCode.KAKAO_EMAIL_ALREADY_REGISTERED);
+			}
+			if (kakao.ci() != null && memberRepository.existsByCiHash(Member.hashCi(kakao.ci()))) {
+				throw new ApiException(ErrorCode.KAKAO_CI_ALREADY_REGISTERED);
 			}
 			String name = email.substring(0, email.indexOf('@'));
 			member = memberRepository.save(new Member(
@@ -150,6 +162,7 @@ public class AuthService {
 		if (!member.isEnabled()) {
 			throw new ApiException(ErrorCode.MEMBER_DISABLED);
 		}
+		fillPhoneAndCi(member, kakao);
 		return issueToken(member);
 	}
 
@@ -189,6 +202,22 @@ public class AuthService {
 			throw new ApiException(ErrorCode.MEMBER_DISABLED);
 		}
 		return issueToken(member);
+	}
+
+	/** 카카오가 준 휴대전화번호·CI 로 회원의 빈 값을 채운다. 다른 회원이 이미 쓰는 CI 는 넣지 않는다. */
+	private void fillPhoneAndCi(Member member, KakaoUser kakao) {
+		if (kakao.phone() != null && !member.hasPhone()) {
+			String[] phone = kakao.phone().split("-");
+			member.changePhone(phone[0], phone[1], phone[2]);
+		}
+		if (kakao.ci() != null && member.getCiHash() == null) {
+			String ciHash = Member.hashCi(kakao.ci());
+			if (memberRepository.existsByCiHash(ciHash)) {
+				log.warn("카카오 CI 가 다른 회원과 같아 저장하지 않음: memberId={}", member.getId());
+			} else {
+				member.linkCi(ciHash);
+			}
+		}
 	}
 
 	/** 리프레시 토큰으로 새 액세스·리프레시 토큰을 받는다. 쓴 리프레시 토큰은 폐기된다. */
