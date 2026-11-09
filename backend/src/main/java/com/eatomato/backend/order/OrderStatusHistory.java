@@ -1,6 +1,10 @@
 package com.eatomato.backend.order;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.data.domain.DomainEvents;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -48,5 +52,11 @@ public class OrderStatusHistory {
 		this.changedBy = changedBy;
 		this.reason = reason;
 		this.changedAt = Times.now();
+	}
+
+	/** historyRepository.save() 때 Spring Data 가 발행한다(알림톡 등). 이력은 새로 만들기만 하고 고치지 않는다. */
+	@DomainEvents
+	Collection<Object> domainEvents() {
+		return List.of(new OrderStatusChangedEvent(orderId, fromStatus, toStatus));
 	}
 }
