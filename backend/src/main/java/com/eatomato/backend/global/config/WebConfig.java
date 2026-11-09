@@ -17,6 +17,7 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 
 import com.eatomato.backend.admin.AdminAccessInterceptor;
 import com.eatomato.backend.global.security.CurrentMemberIdArgumentResolver;
+import com.eatomato.backend.insight.InternalTokenInterceptor;
 import com.eatomato.backend.member.MemberRepository;
 import com.eatomato.backend.upload.WebpSiblingResolver;
 
@@ -33,6 +34,7 @@ public class WebConfig implements WebMvcConfigurer {
 
 	private final AppProperties properties;
 	private final AdminAccessInterceptor adminAccessInterceptor;
+	private final InternalTokenInterceptor internalTokenInterceptor;
 	private final MemberRepository memberRepository;
 
 	@Override
@@ -43,6 +45,8 @@ public class WebConfig implements WebMvcConfigurer {
 	@Override
 	public void addInterceptors(InterceptorRegistry registry) {
 		registry.addInterceptor(adminAccessInterceptor).addPathPatterns("/api/admin/**");
+		// 같은 서버의 Python 워커(insight-agent) 전용. 로그인 대신 공유 토큰으로 확인한다.
+		registry.addInterceptor(internalTokenInterceptor).addPathPatterns("/internal/**");
 		// 같은 주소라도 Accept 에 따라 WebP/원본이 달라지므로 캐시가 구분하게 한다(WebpSiblingResolver).
 		registry.addInterceptor(new HandlerInterceptor() {
 			@Override

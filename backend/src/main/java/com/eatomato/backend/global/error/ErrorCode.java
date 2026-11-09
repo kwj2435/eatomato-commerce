@@ -77,6 +77,11 @@ public enum ErrorCode {
 	CANCEL_VIA_CUSTOMER_SERVICE(HttpStatus.BAD_REQUEST, "무통장입금으로 결제한 주문은 고객센터로 취소를 요청해 주세요."),
 	PAYMENT_CANCEL_FAILED(HttpStatus.BAD_GATEWAY, "결제 취소에 실패했습니다. 잠시 뒤 다시 시도해 주세요."),
 	INVALID_WEBHOOK(HttpStatus.UNAUTHORIZED, "잘못된 결제 알림입니다."),
+	INSIGHT_RUN_NOT_FOUND(HttpStatus.NOT_FOUND, "인사이트 분석 기록을 찾을 수 없습니다."),
+	INSIGHT_RUN_IN_PROGRESS(HttpStatus.CONFLICT, "진행 중인 분석이 있습니다. 끝난 뒤 다시 요청해 주세요."),
+	INSIGHT_DAILY_LIMIT(HttpStatus.TOO_MANY_REQUESTS, "오늘 요청할 수 있는 분석 횟수를 모두 썼습니다. 내일 다시 요청해 주세요."),
+	INSIGHT_RUN_NOT_RUNNING(HttpStatus.CONFLICT, "이미 끝났거나 처리 중이 아닌 분석입니다."),
+	INTERNAL_ACCESS_DENIED(HttpStatus.NOT_FOUND, "찾을 수 없습니다."),
 	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다.");
 
 	private final HttpStatus status;

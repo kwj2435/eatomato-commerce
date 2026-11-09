@@ -51,6 +51,9 @@ public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEvent, 
 		""")
 	List<Object[]> campaigns(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
+	/** from 이후 이벤트 전부(마케팅 인사이트 원자료). */
+	List<AnalyticsEvent> findByOccurredAtGreaterThanEqual(LocalDateTime from);
+
 	@Modifying
 	@Query("delete from AnalyticsEvent e where e.occurredAt < :before")
 	int deleteOccurredBefore(@Param("before") LocalDateTime before);

@@ -66,6 +66,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 	boolean existsByMemberIdAndStatusIn(Long memberId, Collection<OrderStatus> statuses);
 
+	/** from 이후 주문 전부(상태 무관, 상품 포함). 마케팅 인사이트 원자료. */
+	@EntityGraph(attributePaths = "items")
+	List<Order> findByOrderedAtGreaterThanEqual(LocalDateTime from);
+
 	// ── 운영 브리핑 ──────────────────────────────────────────
 
 	/** 그 상태의 주문 수. */

@@ -6,6 +6,7 @@ eatomato 커머스 모노레포. 서비스 주소: https://eatomato.kr
 |---|---|
 | [`frontend/`](frontend) | Next.js 프론트(스토어 + 관리자 `/admin`). 운영은 standalone Node 서버 |
 | [`backend/`](backend) | Spring Boot API 서버 (Java 21, MySQL 8.4 컨테이너). API 목록은 `backend/README.md` |
+| [`insight-agent/`](insight-agent) | 마케팅 인사이트 워커(Python). Claude API 도구 호출로 방문·주문·후기를 분석해 관리자 리포트를 만든다 |
 | [`deploy/`](deploy) | VM 배포·백업 스크립트(`deploy.sh`, `backup.sh`), 호스트 nginx 설정 (HTTPS 종료, `/api`·`/uploads` → 백엔드, 나머지 → 프론트) |
 
 ## 배포 구조 (Vultr VM, 158.247.230.110)

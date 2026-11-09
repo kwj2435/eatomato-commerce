@@ -14,6 +14,7 @@ import type {
   Analytics,
   Briefing,
   Dashboard,
+  InsightRun,
   Page,
 } from "@/types/admin";
 import type { MemberRole } from "@/types/member";
@@ -33,6 +34,14 @@ function query(params: Record<string, string | number | undefined>): string {
 }
 
 export const getDashboard = () => apiFetch<Dashboard>("/api/admin/dashboard", { auth: true });
+
+/** 마케팅 인사이트 분석 요청. 질문을 비우면 주간 리포트. 처리는 Python 워커가 한다. */
+export const requestInsightRun = (question?: string) =>
+  apiFetch<InsightRun>("/api/admin/insights/runs", { method: "POST", auth: true, json: { question: question || null } });
+
+export const listInsightRuns = () => apiFetch<InsightRun[]>("/api/admin/insights/runs", { auth: true });
+
+export const getInsightRun = (id: number) => apiFetch<InsightRun>(`/api/admin/insights/runs/${id}`, { auth: true });
 
 /** 오늘의 브리핑. 열 때마다 서버가 새로 계산한다. */
 export const getBriefing = () => apiFetch<Briefing>("/api/admin/briefing", { auth: true });

@@ -1,3 +1,8 @@
 .DS_Store
 # 접속 정보·키. 각 폴더의 .env.example 참고
 .env
+
+# insight-agent (Python)
+insight-agent/.venv/
+__pycache__/
+.pytest_cache/

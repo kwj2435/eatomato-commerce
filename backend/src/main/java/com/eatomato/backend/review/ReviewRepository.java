@@ -30,6 +30,14 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 	List<Review> findByRatingLessThanEqualAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(int maxRating,
 		LocalDateTime since);
 
+	/** from 이후 후기(상품 포함). 마케팅 인사이트 원자료. */
+	@EntityGraph(attributePaths = "product")
+	List<Review> findByCreatedAtGreaterThanEqual(LocalDateTime from);
+
+	/** 상품별 (상품 id, 후기 수). */
+	@Query("select r.product.id, count(r) from Review r group by r.product.id")
+	List<Object[]> countGroupByProduct();
+
 	/** 탈퇴한 회원의 후기는 남기고 작성자 표시만 바꾼다. */
 	@Modifying
 	@Query("update Review r set r.writerName = :writerName where r.memberId = :memberId")

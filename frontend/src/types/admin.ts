@@ -18,6 +18,62 @@ export type Page<T> = {
 
 export type Sales = { orders: number; revenue: number };
 
+/** 마케팅 인사이트 리포트(Python 에이전트가 만든 JSON). */
+export type InsightConfidence = "high" | "medium" | "low";
+
+export type InsightReport = {
+  headline: string;
+  period: string;
+  insights: {
+    title: string;
+    finding: string;
+    evidence: { metric: string; value: string }[];
+    confidence: InsightConfidence;
+    sample_note: string;
+  }[];
+  actions: {
+    priority: number;
+    action: string;
+    reason: string;
+    expected_effect: string;
+    effort: "low" | "medium" | "high";
+  }[];
+  data_gaps: string[];
+  /** 근거 숫자가 도구 결과에 실제로 있는지 에이전트가 확인한 결과. */
+  verification?: {
+    checked: number;
+    unverified: { metric: string; value: string; numbers_not_in_tool_results: string[] }[];
+  };
+};
+
+export type InsightTraceStep = {
+  turn: number;
+  tool: string;
+  input: Record<string, unknown>;
+  ms?: number;
+  preview?: string;
+  error?: string;
+};
+
+export type InsightRunStatus = "PENDING" | "RUNNING" | "DONE" | "FAILED";
+
+/** 인사이트 분석 실행. report·trace 는 상세 조회에만 온다. question 이 없으면 주간 리포트. */
+export type InsightRun = {
+  id: number;
+  question?: string;
+  status: InsightRunStatus;
+  report?: InsightReport;
+  trace?: InsightTraceStep[];
+  error?: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  toolCalls?: number;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+};
+
 /** 운영 브리핑 할 일 단계. 긴급 → 확인 → 참고 순으로 온다. */
 export type BriefingLevel = "URGENT" | "WARNING" | "INFO";
 

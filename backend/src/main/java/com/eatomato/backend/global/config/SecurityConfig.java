@@ -73,6 +73,8 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/api/auth/kakao/authorize", "/api/auth/naver/authorize").permitAll()
 				.requestMatchers(HttpMethod.GET, PUBLIC_GET).permitAll()
 				.requestMatchers("/error").permitAll()
+				// 같은 서버의 Python 워커 전용. 로그인 토큰 대신 InternalTokenInterceptor 가 공유 토큰을 확인한다.
+				.requestMatchers("/internal/**").permitAll()
 				// 관리자 권한은 토큰의 roles 클레임이 아니라 AdminAccessInterceptor 가 요청마다 DB 로 판단한다.
 				// 토큰 기준으로 막으면 권한을 준 직후 기존 토큰(roles=USER)으로는 403 이 났다.
 				.requestMatchers("/api/admin/**").authenticated()

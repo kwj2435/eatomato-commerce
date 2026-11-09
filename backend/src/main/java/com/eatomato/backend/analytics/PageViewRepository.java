@@ -82,6 +82,9 @@ public interface PageViewRepository extends JpaRepository<PageView, Long> {
 	@Query("select count(distinct v.visitorId) from PageView v where v.viewedAt >= :from")
 	long countVisitorsSince(@Param("from") LocalDateTime from);
 
+	/** from 이후 페이지 조회 전부(마케팅 인사이트 원자료). */
+	List<PageView> findByViewedAtGreaterThanEqual(LocalDateTime from);
+
 	@Modifying
 	@Query("delete from PageView v where v.viewedAt < :before")
 	int deleteViewedBefore(@Param("before") LocalDateTime before);

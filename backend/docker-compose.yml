@@ -54,6 +54,24 @@ services:
     restart: unless-stopped
     mem_limit: 450m
 
+  # 마케팅 인사이트 워커(Python, ../insight-agent). 켤 때만 뜨도록 profile 로 둔다:
+  # .env 에 COMPOSE_PROFILES=insight 와 INSIGHT_AGENT_TOKEN, ANTHROPIC_API_KEY 를 넣는다.
+  # 백엔드 .env 전체를 넘기지 않고 필요한 값만 준다(DB 비밀번호 등은 워커에 필요 없음).
+  insight-agent:
+    profiles: ["insight"]
+    build: ../insight-agent
+    image: eatomato-insight-agent
+    container_name: eatomato-insight-agent
+    depends_on:
+      - backend
+    environment:
+      BACKEND_URL: http://backend:8080
+      INSIGHT_AGENT_TOKEN: ${INSIGHT_AGENT_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      INSIGHT_MODEL: ${INSIGHT_MODEL:-claude-haiku-5-5}
+    restart: unless-stopped
+    mem_limit: 200m
+
 volumes:
   mysql-data:
   uploads:
