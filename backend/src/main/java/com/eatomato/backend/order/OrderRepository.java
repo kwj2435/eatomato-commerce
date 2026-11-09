@@ -65,4 +65,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	List<Order> findByStatusAndOrderedAtBefore(OrderStatus status, LocalDateTime before);
 
 	boolean existsByMemberIdAndStatusIn(Long memberId, Collection<OrderStatus> statuses);
+
+	// ── 운영 브리핑 ──────────────────────────────────────────
+
+	/** 그 상태의 주문 수. */
+	@Query("select count(o) from ShopOrder o where o.status = :status")
+	long countWithStatus(@Param("status") OrderStatus status);
+
+	/** 그 상태 주문 중 가장 이른 결제 시각. 주문이 없으면 null. */
+	@Query("select min(o.paidAt) from ShopOrder o where o.status = :status")
+	LocalDateTime findOldestPaidAt(@Param("status") OrderStatus status);
+
+	/** 상품준비중 중 송장(택배사·송장번호)을 아직 넣지 않은 주문 수. */
+	@Query("""
+		select count(o) from ShopOrder o
+		where o.status = com.eatomato.backend.order.OrderStatus.PREPARING
+		  and (o.courier is null or o.trackingNumber is null)
+		""")
+	long countPreparingWithoutTracking();
 }

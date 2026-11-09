@@ -91,6 +91,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
 	long countByStockQuantityLessThanEqualAndDeletedAtIsNull(int stock);
 
+	/** 판매 중이고 재고를 관리하는 상품 중 재고가 max 이하인 것(품절 포함). 재고 적은 순. */
+	@Query("select p from Product p where " + ON_SALE
+		+ " and p.stockQuantity is not null and p.stockQuantity <= :max order by p.stockQuantity, p.name")
+	List<Product> findLowStock(@Param("max") int max);
+
 	/** 다른 상품의 함께 구매 목록에서 이 상품을 뺀다(삭제 시). */
 	@Modifying
 	@Query(value = "delete from product_related where related_product_id = :productId", nativeQuery = true)

@@ -12,6 +12,7 @@ import type {
   AdminProductInput,
   AdminProductSummary,
   Analytics,
+  Briefing,
   Dashboard,
   Page,
 } from "@/types/admin";
@@ -32,6 +33,9 @@ function query(params: Record<string, string | number | undefined>): string {
 }
 
 export const getDashboard = () => apiFetch<Dashboard>("/api/admin/dashboard", { auth: true });
+
+/** 오늘의 브리핑. 열 때마다 서버가 새로 계산한다. */
+export const getBriefing = () => apiFetch<Briefing>("/api/admin/briefing", { auth: true });
 
 /** 방문자 분석. days: 오늘 포함 며칠(1~90). */
 export const getAnalytics = (days: number) =>

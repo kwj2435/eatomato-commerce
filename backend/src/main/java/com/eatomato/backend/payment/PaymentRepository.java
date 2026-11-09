@@ -16,4 +16,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 	List<Payment> findByOrderIn(Collection<Order> orders);
 
 	List<Payment> findByStatusAndVaDueAtBefore(PaymentStatus status, LocalDateTime dueAt);
+
+	/** 입금 기한이 [from, to] 사이인 결제 수(입금 기한이 곧 끝나는 무통장입금). */
+	long countByStatusAndVaDueAtBetween(PaymentStatus status, LocalDateTime from, LocalDateTime to);
 }

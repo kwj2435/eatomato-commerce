@@ -199,6 +199,39 @@ class CheckoutFlowTest {
 	}
 
 	@Test
+	void 운영_브리핑은_오래된_결제완료와_재고_부족을_알린다() throws Exception {
+		String admin = admin();
+		String user = signup("checkout8");
+		addToCart(user, 9, 1);
+		String order = order(user, "21986");
+		String orderNumber = JsonPath.read(order, "$.orderNumber");
+		int total = JsonPath.read(order, "$.total");
+		confirm(user, orderNumber, total).andExpect(status().isOk());
+		// 결제 후 이틀이 지났는데 상품 준비를 시작하지 않은 주문
+		jdbc.update("update orders set paid_at = ? where order_number = ?",
+			com.eatomato.backend.global.time.Times.now().minusDays(2), orderNumber);
+		setStock(admin, 11, 2);
+
+		mockMvc.perform(get("/api/admin/briefing").header(HttpHeaders.AUTHORIZATION, admin))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.generatedAt").exists())
+			.andExpect(jsonPath("$.yesterday.date").exists())
+			.andExpect(jsonPath("$.sameDayLastWeek.visitors").isNumber())
+			.andExpect(jsonPath("$.items[0].level").value("URGENT"))
+			.andExpect(jsonPath("$.items[?(@.kind == 'PAID_WAITING')].level").value(org.hamcrest.Matchers.contains("URGENT")))
+			.andExpect(jsonPath("$.items[?(@.link == '/admin/products/edit?id=11')].title",
+				org.hamcrest.Matchers.contains(org.hamcrest.Matchers.endsWith("재고 2개 남음"))));
+
+		// 관리자만 볼 수 있다
+		mockMvc.perform(get("/api/admin/briefing").header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(status().isForbidden());
+
+		setStock(admin, 11, null);
+		mockMvc.perform(post("/api/orders/" + orderNumber + "/cancel").header(HttpHeaders.AUTHORIZATION, user))
+			.andExpect(status().isOk());
+	}
+
+	@Test
 	void 재고가_모자라면_주문이_통째로_거절된다() throws Exception {
 		String admin = admin();
 		String user = signup("checkout2");

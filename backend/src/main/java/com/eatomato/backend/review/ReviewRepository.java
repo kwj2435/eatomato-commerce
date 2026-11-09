@@ -1,5 +1,6 @@
 package com.eatomato.backend.review;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -23,6 +24,11 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
 	@EntityGraph(attributePaths = "product")
 	List<Review> findByMemberIdOrderByCreatedAtDesc(Long memberId);
+
+	/** since 이후 별점이 maxRating 이하인 후기, 최신순. */
+	@EntityGraph(attributePaths = "product")
+	List<Review> findByRatingLessThanEqualAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(int maxRating,
+		LocalDateTime since);
 
 	/** 탈퇴한 회원의 후기는 남기고 작성자 표시만 바꾼다. */
 	@Modifying

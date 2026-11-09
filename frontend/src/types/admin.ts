@@ -18,6 +18,30 @@ export type Page<T> = {
 
 export type Sales = { orders: number; revenue: number };
 
+/** 운영 브리핑 할 일 단계. 긴급 → 확인 → 참고 순으로 온다. */
+export type BriefingLevel = "URGENT" | "WARNING" | "INFO";
+
+export type BriefingItem = {
+  level: BriefingLevel;
+  /** 항목 종류(PAID_WAITING, LOW_STOCK 등). */
+  kind: string;
+  title: string;
+  detail?: string;
+  /** 바로 갈 화면. /admin 으로 시작하면 관리자 화면, 아니면 스토어. */
+  link?: string;
+};
+
+/** 하루 실적. 주문·매출은 결제가 끝난 주문, 방문자는 페이지 조회 기준. */
+export type BriefingDay = { date: string; orders: number; revenue: number; visitors: number };
+
+/** 관리자 대시보드 맨 위의 오늘의 브리핑. */
+export type Briefing = {
+  generatedAt: string;
+  yesterday: BriefingDay;
+  sameDayLastWeek: BriefingDay;
+  items: BriefingItem[];
+};
+
 export type Dashboard = {
   today: Sales;
   thisMonth: Sales;

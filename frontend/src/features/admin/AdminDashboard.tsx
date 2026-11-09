@@ -9,6 +9,7 @@ import { formatKRW } from "@/lib/utils/format";
 import type { Dashboard } from "@/types/admin";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 
+import { BriefingCard } from "./BriefingCard";
 import { DailySalesChart } from "./DailySalesChart";
 import { formatDateTime } from "./format";
 import { Card, Chip, Empty, Notice, PageHeader, tableClass, tdClass, thClass } from "./ui";
@@ -28,6 +29,8 @@ export function AdminDashboard() {
   return (
     <>
       <PageHeader title="대시보드" description="결제 현황과 주요 지표. 매출은 결제가 끝난 주문(결제완료·상품준비중·배송중·배송완료)의 결제 금액(배송비 포함)입니다." />
+
+      <BriefingCard className="mb-4" />
 
       <div className="grid gap-4 md:grid-cols-[1.4fr_1fr_1fr]">
         {/* 대시보드의 대표 숫자는 오늘 매출 하나 */}
