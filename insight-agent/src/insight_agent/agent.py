@@ -3,7 +3,7 @@
 SDK 의 tool runner 대신 루프를 직접 쓴다. 실행마다 도구 호출 수·턴 수 상한을 걸고, 단계별 기록(trace)과
 토큰 사용량을 남겨 평가·비용 확인에 쓰기 위해서다.
 
-흐름: 사용자 메시지(요청 + 데이터 범위) → Claude 가 도구 호출 → pandas 로 집계해 결과 전달 → … → 리포트(JSON 스키마)
+흐름: 사용자 메시지(데이터 범위 + 지난 제안) → Claude 가 도구 호출 → pandas 로 집계해 결과 전달 → … → 제안(JSON 스키마)
 """
 
 from __future__ import annotations
@@ -53,11 +53,12 @@ class _Run:
         self.output_tokens += getattr(usage, "output_tokens", 0) or 0
 
 
-def run_agent(client: Any, ds: Dataset, question: str | None, *, model: str, max_tool_calls: int = 12,
-              max_turns: int = 10) -> AgentResult:
+def run_agent(client: Any, ds: Dataset, context: dict | None = None, *, kind: str = "MANUAL", model: str,
+              max_tool_calls: int = 12, max_turns: int = 10) -> AgentResult:
+    """context: 백엔드 /internal/insights/suggestions/context 결과(지난 제안 items, 효과 확인 대상 followUpDue)."""
     run = _Run()
     today = ds.end.date().isoformat()
-    messages: list[dict] = [{"role": "user", "content": task_message(question, ds.summary(), today)}]
+    messages: list[dict] = [{"role": "user", "content": task_message(kind, ds.summary(), today, context or {})}]
 
     for turn in range(max_turns):
         params: dict[str, Any] = {
@@ -133,7 +134,7 @@ def _parse_report(content: list) -> dict:
         report = json.loads(text)
     except json.JSONDecodeError as e:
         raise AgentError("AI 응답을 리포트로 읽지 못했습니다. 다시 요청해 주세요.") from e
-    if not isinstance(report, dict) or not {"headline", "insights", "actions"} <= report.keys():
+    if not isinstance(report, dict) or not {"summary", "suggestions"} <= report.keys():
         raise AgentError("AI 응답에 리포트 항목이 빠져 있습니다. 다시 요청해 주세요.")
     return report
 
@@ -157,7 +158,7 @@ def _normalize(value: float) -> str:
 
 
 def verify_evidence(report: dict, tool_outputs: list[str]) -> dict:
-    """리포트 근거(evidence)의 숫자가 도구 결과에 실제로 있는지 확인한다.
+    """제안·효과 확인의 근거(evidence) 숫자가 도구 결과에 실제로 있는지 확인한다.
 
     도구 결과에 없는 숫자는 AI 가 계산했거나 지어낸 것이다. 리포트를 막지는 않고 화면에 표시해
     운영자가 직접 확인하게 한다. 날짜·기간 같은 숫자도 도구 결과에 있으므로 함께 맞춰 본다.
@@ -170,8 +171,8 @@ def verify_evidence(report: dict, tool_outputs: list[str]) -> dict:
 
     checked = 0
     unverified = []
-    for insight in report.get("insights", []):
-        for evidence in insight.get("evidence", []):
+    for item in [*report.get("suggestions", []), *report.get("follow_ups", [])]:
+        for evidence in item.get("evidence", []):
             numbers = _numbers(str(evidence.get("value", "")))
             if not numbers:
                 continue

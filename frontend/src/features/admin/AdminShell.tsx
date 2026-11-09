@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils/cn";
 const NAV = [
   { href: "/admin", label: "대시보드" },
   { href: "/admin/analytics", label: "방문자 분석" },
-  { href: "/admin/insights", label: "마케팅 인사이트" },
+  { href: "/admin/insights", label: "개선 제안" },
   { href: "/admin/orders", label: "주문·결제" },
   { href: "/admin/shipments", label: "배송 준비" },
   { href: "/admin/products", label: "상품" },
@@ -23,6 +23,7 @@ const NAV = [
   { href: "/admin/notices", label: "공지" },
   { href: "/admin/contents", label: "문구·About" },
   { href: "/admin/shipping", label: "배송비" },
+  { href: "/admin/changelog", label: "업데이트 이력" },
 ] as const;
 
 type Access = { kind: "checking" } | { kind: "allowed" } | { kind: "denied"; message: string };

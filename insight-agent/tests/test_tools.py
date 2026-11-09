@@ -95,13 +95,63 @@ def test_review_signals_show_low_rating_excerpts(ds):
         {"name": "톡 CREAM ROUND", "rating": 1, "excerpt": "케이스가 금방 깨질 것 같아요", "date": "2026-11-07"}]
 
 
+def _params_for(definition: dict, days: int = 7) -> dict:
+    """도구마다 필요한 입력만 골라 준다."""
+    common = {"days": days, "dimension": "campaign", "sort_by": "views", "limit": 5}
+    if definition["name"] == "compare_before_after":
+        return {"date": "2026-11-05", "days": 7}
+    props = definition["input_schema"]["properties"]
+    return {k: v for k, v in common.items() if k in props}
+
+
 def test_empty_dataset_does_not_crash():
     ds = Dataset.from_json({"from": "2026-11-01T00:00:00", "to": "2026-11-09T10:00:00"})
     for definition in TOOL_DEFINITIONS:
-        params = {"days": 7, "dimension": "campaign", "sort_by": "views", "limit": 5}
-        props = definition["input_schema"]["properties"]
-        result = run_tool(ds, definition["name"], {k: v for k, v in params.items() if k in props})
-        assert result["period"]["days"] == 7
+        result = run_tool(ds, definition["name"], _params_for(definition))
+        assert isinstance(result, dict)
+
+
+def test_product_performance_explains_empty_stock(ds):
+    result = run_tool(ds, "product_performance", {"days": 7, "sort_by": "views", "limit": 5})
+    red = next(p for p in result["products"] if p["name"] == "톡 RED SQUARE")
+    assert red["stock"] is None
+    assert "재고를 관리하지 않는 상품" in result["stock_note"]
+
+
+def test_page_flow(ds):
+    result = run_tool(ds, "page_flow", {"days": 7})
+    assert result["sessions"] == 30
+    # 상품을 본 22회는 2화면, 나머지 8회는 메인만 보고 나감
+    assert result["bounce_pct"] == 26.7
+    assert result["avg_pages"] == 1.73
+    assert result["entries"] == [{"page_type": "HOME", "sessions": 30, "bounce_pct": 26.7, "purchase_pct": 6.7}]
+    assert {e["page_type"]: e["sessions"] for e in result["exits"]} == {"PRODUCT": 22, "HOME": 8}
+    mobile = result["by_device"][0]
+    assert mobile == {"device": "MOBILE", "sessions": 30, "avg_pages": 1.73, "bounce_pct": 26.7,
+                      "product_view_pct": 73.3, "add_to_cart_pct": 13.3, "purchase_pct": 6.7}
+    assert result["page_labels"]["PRODUCT"] == "상품 상세"
+
+
+def test_compare_before_after(ds):
+    result = run_tool(ds, "compare_before_after", {"date": "2026-11-05", "days": 7})
+    assert result["before"]["sessions"] == 15 and result["before"]["paid_orders"] == 1
+    assert result["after"]["sessions"] == 30 and result["after"]["paid_orders"] == 2
+    assert result["change_pct"]["sessions"] == 100.0
+    assert result["days_compared"] == {"before": 7.0, "after": 4.4}
+    assert "4.4일뿐" in result["note"]
+    red = next(p for p in result["products"] if p["name"] == "톡 RED SQUARE")
+    assert red["before"]["orders"] == 1 and red["after"]["view_sessions"] == 12
+
+
+@pytest.mark.parametrize("params", [
+    {"date": "2026-12-01", "days": 7},   # 미래
+    {"date": "2026-05-01", "days": 7},   # 원자료 이전
+    {"date": "어제", "days": 7},
+    {"date": "2026-11-05", "days": 2},
+])
+def test_compare_before_after_rejects_bad_input(ds, params):
+    with pytest.raises(ToolInputError):
+        run_tool(ds, "compare_before_after", params)
 
 
 @pytest.mark.parametrize("name, params", [
@@ -120,8 +170,6 @@ def test_tool_outputs_contain_no_visitor_or_session_ids(ds):
     """도구 결과에는 개인 단위 식별자를 넣지 않는다(집계만)."""
     import json
     for definition in TOOL_DEFINITIONS:
-        props = definition["input_schema"]["properties"]
-        params = {k: v for k, v in {"days": 30, "dimension": "campaign", "sort_by": "views", "limit": 20}.items()
-                  if k in props}
-        text = json.dumps(run_tool(ds, definition["name"], params), ensure_ascii=False, default=str)
+        text = json.dumps(run_tool(ds, definition["name"], _params_for(definition, days=30)), ensure_ascii=False,
+                          default=str)
         assert "s-0" not in text and "v-0" not in text and "b1" not in text

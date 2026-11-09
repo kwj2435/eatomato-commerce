@@ -16,7 +16,14 @@ public interface InsightRunRepository extends JpaRepository<InsightRun, Long> {
 
 	boolean existsByStatusIn(Collection<InsightRun.Status> statuses);
 
-	long countByCreatedAtGreaterThanEqual(LocalDateTime from);
+	long countByKindAndCreatedAtGreaterThanEqual(InsightRun.Kind kind, LocalDateTime from);
+
+	boolean existsByKindAndCreatedAtGreaterThanEqual(InsightRun.Kind kind, LocalDateTime from);
+
+	/** 가장 최근에 끝난 분석(오늘의 요약에 쓴다). */
+	Optional<InsightRun> findFirstByStatusOrderByFinishedAtDescIdDesc(InsightRun.Status status);
+
+	Optional<InsightRun> findFirstByStatusInOrderByCreatedAtDescIdDesc(Collection<InsightRun.Status> statuses);
 
 	Optional<InsightRun> findFirstByStatusOrderByCreatedAtAscIdAsc(InsightRun.Status status);
 

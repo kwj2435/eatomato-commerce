@@ -14,7 +14,10 @@ import type {
   Analytics,
   Briefing,
   Dashboard,
+  InsightOverview,
   InsightRun,
+  InsightSuggestion,
+  SuggestionStatus,
   Page,
 } from "@/types/admin";
 import type { MemberRole } from "@/types/member";
@@ -35,9 +38,18 @@ function query(params: Record<string, string | number | undefined>): string {
 
 export const getDashboard = () => apiFetch<Dashboard>("/api/admin/dashboard", { auth: true });
 
-/** 마케팅 인사이트 분석 요청. 질문을 비우면 주간 리포트. 처리는 Python 워커가 한다. */
-export const requestInsightRun = (question?: string) =>
-  apiFetch<InsightRun>("/api/admin/insights/runs", { method: "POST", auth: true, json: { question: question || null } });
+/** 개선 제안: 최근 분석·진행 중인 분석·상태별 수. */
+export const getInsightOverview = () => apiFetch<InsightOverview>("/api/admin/insights/overview", { auth: true });
+
+export const listInsightSuggestions = () =>
+  apiFetch<InsightSuggestion[]>("/api/admin/insights/suggestions", { auth: true });
+
+/** 채택·보류·제외·완료. 완료 7일 뒤 에이전트가 효과를 확인한다. */
+export const changeSuggestionStatus = (id: number, status: SuggestionStatus) =>
+  apiFetch<InsightSuggestion>(`/api/admin/insights/suggestions/${id}/status`, { method: "PATCH", auth: true, json: { status } });
+
+/** '지금 분석하기'. 분석은 매일 아침 자동으로도 돈다(처리는 Python 워커). */
+export const requestInsightRun = () => apiFetch<InsightRun>("/api/admin/insights/runs", { method: "POST", auth: true });
 
 export const listInsightRuns = () => apiFetch<InsightRun[]>("/api/admin/insights/runs", { auth: true });
 

@@ -17,6 +17,9 @@ class FakeBackend:
         self.raw = raw
         self.completed = []
 
+    def suggestion_context(self):
+        return {"items": [], "followUpDue": []}
+
     def dataset(self, days):
         assert days == 90
         return self.raw
@@ -31,12 +34,13 @@ def test_done_payload(raw):
         response([tool_use("t1", "overview", {"days": 7})], "tool_use"),
         response([text(json.dumps(REPORT, ensure_ascii=False))]),
     ])
-    process({"id": 7, "question": None}, backend, client, SETTINGS)
+    process({"id": 7, "kind": "DAILY"}, backend, client, SETTINGS)
 
     run_id, payload = backend.completed[0]
     assert run_id == 7
     assert payload["status"] == "DONE"
-    assert payload["report"]["headline"] == REPORT["headline"]
+    assert payload["report"]["summary"] == REPORT["summary"]
+    assert "매일 아침 자동 분석" in client.requests[0]["messages"][0]["content"]
     assert payload["toolCalls"] == 1 and payload["model"] == "claude-haiku-5-5"
     assert payload["trace"][0]["tool"] == "overview"
     # 백엔드로 보내는 값은 JSON 으로 직렬화할 수 있어야 한다

@@ -7,12 +7,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 
 /**
- * 관리자 화면의 인사이트 분석 한 건.
+ * 관리자 화면의 개선 제안 분석 한 건(kind: DAILY 자동·MANUAL 관리자 요청).
  * report·trace 는 워커가 보낸 JSON(저장할 때 파싱해 검증함)을 그대로 끼워 넣는다. 목록에서는 빼고 상세에서만 준다.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record InsightRunResponse(
 	Long id,
+	String kind,
 	String question,
 	String status,
 	@JsonRawValue String report,
@@ -38,6 +39,7 @@ public record InsightRunResponse(
 	private static InsightRunResponse of(InsightRun run, boolean withBody) {
 		return new InsightRunResponse(
 			run.getId(),
+			run.getKind().name(),
 			run.getQuestion(),
 			run.getStatus().name(),
 			withBody ? run.getReport() : null,

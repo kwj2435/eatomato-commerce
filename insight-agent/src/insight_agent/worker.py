@@ -30,8 +30,8 @@ def process(run: dict, backend: BackendClient, client: Any, settings: Settings) 
         return
     try:
         dataset = Dataset.from_json(backend.dataset(settings.dataset_days))
-        result = run_agent(client, dataset, run.get("question"), model=settings.model,
-                           max_tool_calls=settings.max_tool_calls, max_turns=settings.max_turns)
+        result = run_agent(client, dataset, backend.suggestion_context(), kind=run.get("kind", "MANUAL"),
+                           model=settings.model, max_tool_calls=settings.max_tool_calls, max_turns=settings.max_turns)
     except Exception as e:  # noqa: BLE001 - 어떤 실패든 실행 기록에 남기고 워커는 계속 돈다
         message = _user_message(e)
         log.warning("분석 실패 run=%s: %s", run_id, e)
@@ -47,8 +47,9 @@ def process(run: dict, backend: BackendClient, client: Any, settings: Settings) 
         "outputTokens": result.output_tokens,
         "toolCalls": result.tool_calls,
     })
-    log.info("분석 완료 run=%s 도구 %d회 토큰 입력 %d·출력 %d (%.1fs)", run_id, result.tool_calls,
-             result.input_tokens, result.output_tokens, time.perf_counter() - started)
+    log.info("분석 완료 run=%s 새 제안 %d개 도구 %d회 토큰 입력 %d·출력 %d (%.1fs)", run_id,
+             len(result.report.get("suggestions", [])), result.tool_calls, result.input_tokens, result.output_tokens,
+             time.perf_counter() - started)
 
 
 def _user_message(error: Exception) -> str:

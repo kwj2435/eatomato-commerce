@@ -197,12 +197,11 @@ def funnel_by_source(ds: Dataset, params: dict) -> dict:
     }
 
 
-def product_performance(ds: Dataset, params: dict) -> dict:
-    days = _days(params)
-    sort_by = _choice(params, "sort_by", ("views", "revenue", "low_conversion"))
-    limit = _limit(params)
-    start, end = ds.window(days)
+STOCK_NOTE = "stock 이 null 이면 재고를 관리하지 않는 상품(품절이 아님), 0 이면 품절"
 
+
+def _product_rows(ds: Dataset, start: pd.Timestamp, end: pd.Timestamp) -> list[dict]:
+    """기간 안에 조회·담기·결제가 있었던 상품별 성과."""
     views = _in(ds.views, "at", start, end)
     views = views[(views["pageType"] == "PRODUCT") & views["productId"].notna()]
     view_sessions = views.groupby("productId")["sessionId"].nunique().rename("view_sessions")
@@ -243,7 +242,15 @@ def product_performance(ds: Dataset, params: dict) -> dict:
             "rating": float(p["rating"]) if p is not None and pd.notna(p["rating"]) else None,
             "review_count": int(p["reviewCount"]) if p is not None else 0,
         })
+    return rows
 
+
+def product_performance(ds: Dataset, params: dict) -> dict:
+    days = _days(params)
+    sort_by = _choice(params, "sort_by", ("views", "revenue", "low_conversion"))
+    limit = _limit(params)
+    start, end = ds.window(days)
+    rows = _product_rows(ds, start, end)
     if sort_by == "views":
         rows.sort(key=lambda r: (-r["view_sessions"], -r["revenue"]))
     elif sort_by == "revenue":
@@ -256,6 +263,7 @@ def product_performance(ds: Dataset, params: dict) -> dict:
         "sort_by": sort_by,
         "products": rows[:limit],
         "other_products": max(0, len(rows) - limit),
+        "stock_note": STOCK_NOTE,
         "note": (f"low_conversion 은 상품 조회 방문 {MIN_PRODUCT_VIEWS}회 이상인 상품만 비교"
                  if sort_by == "low_conversion" else None),
     }
@@ -357,6 +365,111 @@ def review_signals(ds: Dataset, params: dict) -> dict:
     }
 
 
+PAGE_LABELS = {
+    "HOME": "메인", "CATEGORY": "상품 목록", "PRODUCT": "상품 상세", "SEARCH": "검색", "CART": "장바구니",
+    "CHECKOUT": "주문서", "MYPAGE": "마이페이지", "NOTICE": "공지", "LOGIN": "로그인", "OTHER": "기타",
+}
+
+
+def page_flow(ds: Dataset, params: dict) -> dict:
+    """방문이 어느 화면으로 들어와 어디서 나가는지, 한 화면만 보고 나간 비율, 기기별 차이."""
+    days = _days(params)
+    start, end = ds.window(days)
+    views = _in(ds.views, "at", start, end).sort_values("at")
+    result: dict[str, Any] = {"period": _period(start, end, days), "page_labels": PAGE_LABELS}
+    if views.empty:
+        return {**result, "sessions": 0, "entries": [], "exits": [], "by_device": [],
+                "note": _sample_note(0)}
+
+    grouped = views.groupby("sessionId")
+    pages = grouped.size()
+    entry = grouped["pageType"].first()
+    exit_page = grouped["pageType"].last()
+    device = grouped["device"].first()
+    flags = _session_table(ds, start, end).reindex(pages.index)
+    purchased = flags["purchase"].fillna(False).astype(bool)
+    carted = flags["add_to_cart"].fillna(False).astype(bool)
+    viewed_product = flags["product_view"].fillna(False).astype(bool)
+    bounced = pages == 1
+
+    entries = [{"page_type": str(t), "sessions": int((entry == t).sum()),
+                "bounce_pct": _pct((bounced & (entry == t)).sum(), (entry == t).sum()),
+                "purchase_pct": _pct((purchased & (entry == t)).sum(), (entry == t).sum())}
+               for t in entry.value_counts().index]
+    exits = [{"page_type": str(t), "sessions": int(n), "pct": _pct(n, len(pages))}
+             for t, n in exit_page.value_counts().items()]
+    by_device = []
+    for d in device.value_counts().index:
+        mask = device == d
+        by_device.append({
+            "device": str(d), "sessions": int(mask.sum()),
+            "avg_pages": round(float(pages[mask].mean()), 2),
+            "bounce_pct": _pct((bounced & mask).sum(), mask.sum()),
+            "product_view_pct": _pct((viewed_product & mask).sum(), mask.sum()),
+            "add_to_cart_pct": _pct((carted & mask).sum(), mask.sum()),
+            "purchase_pct": _pct((purchased & mask).sum(), mask.sum()),
+        })
+    searched = views.loc[views["pageType"] == "SEARCH", "sessionId"].unique()
+    return {
+        **result,
+        "sessions": len(pages),
+        "avg_pages": round(float(pages.mean()), 2),
+        "bounce_pct": _pct(bounced.sum(), len(pages)),
+        "entries": entries,
+        "exits": exits,
+        "by_device": by_device,
+        "search_sessions": len(searched),
+        "search_purchase_pct": _pct(purchased.reindex(searched).fillna(False).sum(), len(searched)),
+        "note": _sample_note(len(pages)),
+    }
+
+
+def compare_before_after(ds: Dataset, params: dict) -> dict:
+    """date(완료일) 앞뒤 같은 길이 기간의 성과와 상품별 변화. 완료한 제안의 효과를 확인할 때 쓴다."""
+    raw_date = params.get("date")
+    try:
+        pivot = pd.Timestamp(str(raw_date)).normalize()
+    except (ValueError, TypeError) as e:
+        raise ToolInputError("date 는 YYYY-MM-DD 형식이어야 합니다.") from e
+    days = params.get("days")
+    if not isinstance(days, int) or isinstance(days, bool) or not 3 <= days <= 28:
+        raise ToolInputError("days 는 3~28 사이 정수여야 합니다.")
+    now = ds.end + pd.Timedelta(microseconds=1)
+    if pivot >= now or pivot <= ds.start:
+        raise ToolInputError("date 는 원자료 기간 안의 과거 날짜여야 합니다.")
+
+    before = (max(pivot - pd.Timedelta(days=days), ds.start), pivot)
+    after = (pivot, min(pivot + pd.Timedelta(days=days), now))
+    actual = {key: round((w[1] - w[0]) / pd.Timedelta(days=1), 1) for key, w in (("before", before), ("after", after))}
+    metrics = {key: _overview_metrics(ds, *w) for key, w in (("before", before), ("after", after))}
+
+    def products(window: tuple[pd.Timestamp, pd.Timestamp]) -> dict[int, dict]:
+        return {r["product_id"]: r for r in _product_rows(ds, *window)}
+
+    before_products, after_products = products(before), products(after)
+    keys = ("view_sessions", "cart_sessions", "orders", "view_to_cart_pct", "view_to_order_pct")
+    product_rows = []
+    for pid in set(before_products) | set(after_products):
+        b, a = before_products.get(pid, {}), after_products.get(pid, {})
+        product_rows.append({"product_id": pid, "name": (a or b)["name"],
+                             "before": {k: b.get(k, 0) for k in keys}, "after": {k: a.get(k, 0) for k in keys}})
+    product_rows.sort(key=lambda r: -(r["before"]["view_sessions"] + r["after"]["view_sessions"]))
+    notes = [n for n in (_sample_note(metrics["before"]["sessions"], metrics["before"]["paid_orders"]),
+                         _sample_note(metrics["after"]["sessions"], metrics["after"]["paid_orders"])) if n]
+    if actual["after"] < days:
+        notes.append(f"완료 후 기간이 아직 {actual['after']}일뿐이라 {days}일과 비교하기엔 짧음")
+    return {
+        "date": pivot.date().isoformat(),
+        "days_compared": actual,
+        "before": metrics["before"],
+        "after": metrics["after"],
+        "change_pct": {k: _change_pct(metrics["after"][k], metrics["before"][k])
+                       for k in ("sessions", "add_to_cart_sessions", "purchase_sessions", "paid_orders", "revenue")},
+        "products": product_rows[:10],
+        "note": " / ".join(notes) or None,
+    }
+
+
 # ── Claude 에게 주는 도구 정의 ──────────────────────────────────────
 
 _DAYS_SCHEMA = {"type": "integer", "description": "오늘을 포함한 최근 며칠(1~90). 주간이면 7, 월간이면 28 을 권장."}
@@ -402,6 +515,20 @@ TOOLS: dict[str, tuple[Callable[[Dataset, dict], dict], dict]] = {
         "description": "후기 수·평균 별점·포토 후기 비율, 상품별 후기 요약, 별점 2점 이하 후기 본문 앞부분(최대 5개). 상품 불만·개선점을 볼 때 쓴다.",
         "input_schema": {"type": "object", "properties": {"days": _DAYS_SCHEMA}, "required": ["days"],
                          "additionalProperties": False},
+    }),
+    "page_flow": (page_flow, {
+        "description": "화면 흐름: 방문이 처음 들어온 화면(entries)과 마지막으로 본 화면(exits), 한 화면만 보고 나간 비율(bounce), "
+                       "기기별 상품 조회·담기·결제 비율, 검색을 쓴 방문의 결제 비율. 화면·흐름 문제(디자인·기획 제안)의 근거를 찾을 때 쓴다.",
+        "input_schema": {"type": "object", "properties": {"days": _DAYS_SCHEMA}, "required": ["days"],
+                         "additionalProperties": False},
+    }),
+    "compare_before_after": (compare_before_after, {
+        "description": "date(YYYY-MM-DD) 앞뒤 days 일(3~28)의 성과와 상품별 조회·담기·주문 변화. 완료된 제안의 효과를 확인할 때 "
+                       "완료일을 date 로 넣어 쓴다. 완료 후 기간이 짧거나 표본이 적으면 note 로 알려 준다.",
+        "input_schema": {"type": "object", "properties": {
+            "date": {"type": "string", "description": "기준 날짜(완료일), 예: 2026-11-02"},
+            "days": {"type": "integer", "description": "앞뒤로 비교할 일 수(3~28). 보통 7."},
+        }, "required": ["date", "days"], "additionalProperties": False},
     }),
 }
 

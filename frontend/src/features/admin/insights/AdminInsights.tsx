@@ -1,317 +1,354 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { getInsightRun, listInsightRuns, requestInsightRun } from "@/lib/api/admin";
+import { changeSuggestionStatus, getInsightOverview, listInsightRuns, listInsightSuggestions, requestInsightRun } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils/cn";
-import type { InsightConfidence, InsightReport, InsightRun, InsightRunStatus, InsightTraceStep } from "@/types/admin";
+import type {
+  InsightOverview,
+  InsightRun,
+  InsightSuggestion,
+  InsightTraceStep,
+  SuggestionCategory,
+  SuggestionLevel,
+  SuggestionStatus,
+} from "@/types/admin";
 
 import { formatDateTime } from "../format";
-import { Button, Card, Chip, Empty, Notice, PageHeader, textareaClass } from "../ui";
+import { Button, Card, Chip, Empty, Notice, PageHeader } from "../ui";
 
-const POLL_MS = 3000;
+const POLL_MS = 4000;
 
-const STATUS_LABELS: Record<InsightRunStatus, string> = {
-  PENDING: "대기 중",
-  RUNNING: "분석 중",
-  DONE: "완료",
-  FAILED: "실패",
+const CATEGORY_LABELS: Record<SuggestionCategory, string> = {
+  PLANNING: "기획",
+  DESIGN: "디자인",
+  MARKETING: "마케팅",
+  OPERATIONS: "운영",
 };
 
-const CONFIDENCE: Record<InsightConfidence, { label: string; tone: "brand" | "neutral" | "muted" }> = {
-  high: { label: "근거 충분", tone: "brand" },
-  medium: { label: "참고", tone: "neutral" },
-  low: { label: "표본 적음", tone: "muted" },
-};
+const LEVEL_LABELS: Record<SuggestionLevel, string> = { LOW: "낮음", MEDIUM: "보통", HIGH: "높음" };
 
-const EFFORT_LABELS = { low: "쉬움", medium: "보통", high: "큼" } as const;
+const VERDICT_LABELS = {
+  improved: "효과 있음",
+  no_change: "변화 없음",
+  worse: "나빠짐",
+  insufficient_data: "판단 보류(데이터 부족)",
+} as const;
 
-const EXAMPLES = [
-  "인스타 게시물 중 실제 구매로 이어진 건 뭐야?",
-  "많이 보는데 안 팔리는 상품은?",
-  "게시물은 언제 올리는 게 좋을까?",
+/** 보드 탭. 진행 중은 채택·보류를 함께 본다. */
+const TABS: { key: string; label: string; statuses: SuggestionStatus[] }[] = [
+  { key: "new", label: "새 제안", statuses: ["NEW"] },
+  { key: "doing", label: "진행 중", statuses: ["ADOPTED", "ON_HOLD"] },
+  { key: "done", label: "완료", statuses: ["DONE"] },
+  { key: "dismissed", label: "제외", statuses: ["DISMISSED"] },
 ];
 
-const isActive = (run: InsightRun) => run.status === "PENDING" || run.status === "RUNNING";
+/** 상태별로 누를 수 있는 버튼(다음 상태). 첫 버튼이 주 동작이다. */
+const ACTIONS: Record<SuggestionStatus, { label: string; next: SuggestionStatus }[]> = {
+  NEW: [{ label: "채택", next: "ADOPTED" }, { label: "보류", next: "ON_HOLD" }, { label: "제외", next: "DISMISSED" }],
+  ADOPTED: [{ label: "완료", next: "DONE" }, { label: "보류", next: "ON_HOLD" }],
+  ON_HOLD: [{ label: "채택", next: "ADOPTED" }, { label: "제외", next: "DISMISSED" }],
+  DONE: [{ label: "진행 중으로 되돌리기", next: "ADOPTED" }],
+  DISMISSED: [{ label: "새 제안으로 되돌리기", next: "NEW" }],
+};
+
+const isActive = (run?: InsightRun) => run?.status === "PENDING" || run?.status === "RUNNING";
+
+/** 대기(워커가 아직 가져가지 않음)와 분석 중을 구분해 보여 준다. */
+const activeLabel = (run?: InsightRun) => (run?.status === "PENDING" ? "분석 대기 중" : "분석 중");
+
+/** 근거 한 줄을 가리키는 키(도구 결과에서 확인되지 않은 숫자 표시용). */
+const evidenceKey = (metric: string, value: string) => `${metric}\u0000${value}`;
 
 /**
- * 마케팅 인사이트: 관리자가 요청하면 Python 에이전트(insight-agent)가 방문·주문·후기 데이터를 도구로 조회해
- * 근거 숫자가 붙은 리포트를 만든다. 요청은 백엔드 작업 큐에 쌓이고, 진행 중인 실행은 몇 초마다 다시 읽는다.
+ * 개선 제안: 매일 아침 AI 에이전트(insight-agent)가 방문·주문·후기 데이터를 조회해 기획·디자인·마케팅·운영 제안을 낸다.
+ * 관리자는 채택·보류·제외·완료로 관리하고, 완료 7일 뒤 에이전트가 전후 지표로 효과를 확인한다.
  */
 export function AdminInsights() {
-  const [runs, setRuns] = useState<InsightRun[] | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [detail, setDetail] = useState<InsightRun | null>(null);
-  const [question, setQuestion] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [overview, setOverview] = useState<InsightOverview | null>(null);
+  const [suggestions, setSuggestions] = useState<InsightSuggestion[] | null>(null);
+  const [tab, setTab] = useState(TABS[0].key);
+  const [category, setCategory] = useState<SuggestionCategory | "ALL">("ALL");
+  const [requesting, setRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadRuns = useCallback(() => {
-    listInsightRuns()
-      .then((list) => {
-        setRuns(list);
-        setSelectedId((current) => current ?? list[0]?.id ?? null);
+  const load = useCallback(() => {
+    Promise.all([getInsightOverview(), listInsightSuggestions()])
+      .then(([o, s]) => {
+        setOverview(o);
+        setSuggestions(s);
       })
       .catch((e: unknown) => setError(errorMessage(e)));
   }, []);
 
-  useEffect(loadRuns, [loadRuns]);
+  useEffect(load, [load]);
 
-  // 선택한 실행을 읽고, 진행 중이면 끝날 때까지 몇 초마다 다시 읽는다(끝나면 목록도 갱신).
+  // 분석이 진행 중이면 끝날 때까지 몇 초마다 다시 읽는다.
+  const running = isActive(overview?.active);
   useEffect(() => {
-    if (selectedId === null) return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const poll = () => {
-      getInsightRun(selectedId)
-        .then((run) => {
-          if (cancelled) return;
-          setDetail(run);
-          if (isActive(run)) timer = setTimeout(poll, POLL_MS);
-          else loadRuns();
-        })
-        .catch((e: unknown) => !cancelled && setError(errorMessage(e)));
-    };
-    poll();
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [selectedId, loadRuns]);
+    if (!running) return;
+    const timer = setInterval(load, POLL_MS);
+    return () => clearInterval(timer);
+  }, [running, load]);
 
-  const busy = runs?.some(isActive) ?? false;
-
-  const submit = async (text?: string) => {
-    setSubmitting(true);
+  const runNow = async () => {
+    setRequesting(true);
     setError(null);
     try {
-      const run = await requestInsightRun(text?.trim() || undefined);
-      setQuestion("");
-      setRuns((prev) => [run, ...(prev ?? [])]);
-      setDetail(null);
-      setSelectedId(run.id);
+      await requestInsightRun();
+      load();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
-      setSubmitting(false);
+      setRequesting(false);
     }
   };
+
+  const changeStatus = async (id: number, next: SuggestionStatus) => {
+    setError(null);
+    try {
+      const updated = await changeSuggestionStatus(id, next);
+      setSuggestions((prev) => prev?.map((s) => (s.id === id ? updated : s)) ?? prev);
+      getInsightOverview().then(setOverview).catch(() => {});
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
+  // 가장 최근 분석에서 도구 결과로 확인되지 않은 근거. 그 분석이 만든 제안 카드에 표시한다.
+  const latestRunId = overview?.latest?.id;
+  const unverified = useMemo(
+    () =>
+      new Set(
+        (overview?.latest?.report?.verification?.unverified ?? []).map((u) => evidenceKey(u.metric, u.value)),
+      ),
+    [overview],
+  );
+
+  const current = TABS.find((t) => t.key === tab) ?? TABS[0];
+  const visible = useMemo(
+    () =>
+      (suggestions ?? []).filter(
+        (s) => current.statuses.includes(s.status) && (category === "ALL" || s.category === category),
+      ),
+    [suggestions, current, category],
+  );
 
   return (
     <>
       <PageHeader
-        title="마케팅 인사이트"
-        description="AI 에이전트가 방문·주문·후기 데이터를 직접 조회해 구매를 늘릴 방법을 제안합니다. 숫자는 분석 도구가 계산한 값이며, 도구 결과에서 확인되지 않은 숫자는 따로 표시합니다. 고객 개인정보는 AI 에 보내지 않습니다."
+        title="개선 제안"
+        description="매일 오전 8시에 AI 에이전트가 방문·주문·후기 데이터를 직접 조회해 기획·디자인·마케팅·운영 개선 제안을 냅니다. 채택한 제안을 완료로 바꾸면 7일 뒤 전후 지표로 효과를 확인합니다. 고객 개인정보는 AI 에 보내지 않습니다."
+        actions={
+          <Button onClick={runNow} disabled={running || requesting}>
+            {running ? `${activeLabel(overview?.active)}…` : "지금 분석하기"}
+          </Button>
+        }
       />
-
-      <Card className="mb-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start">
-          <div className="flex-1">
-            <label htmlFor="insight-question" className="mb-1.5 block text-[13px] font-medium text-ink-muted">
-              질문하기
-            </label>
-            <textarea
-              id="insight-question"
-              rows={2}
-              maxLength={500}
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder={EXAMPLES[0]}
-              className={textareaClass}
-            />
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {EXAMPLES.map((example) => (
-                <button
-                  key={example}
-                  type="button"
-                  onClick={() => setQuestion(example)}
-                  className="rounded-full border border-black/10 px-2.5 py-1 text-[12px] text-ink-muted hover:bg-black/[0.04]"
-                >
-                  {example}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-2 md:flex-col md:pt-6">
-            <Button variant="primary" disabled={busy || submitting || !question.trim()} onClick={() => submit(question)}>
-              질문하기
-            </Button>
-            <Button disabled={busy || submitting} onClick={() => submit()}>
-              주간 리포트 만들기
-            </Button>
-          </div>
+      {error ? (
+        <div className="mb-4">
+          <Notice kind="error">{error}</Notice>
         </div>
-        {busy ? <p className="mt-3 text-[12px] text-ink-subtle">진행 중인 분석이 끝나면 새로 요청할 수 있습니다.</p> : null}
-        {error ? (
-          <div className="mt-3">
-            <Notice kind="error">{error}</Notice>
-          </div>
-        ) : null}
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <Card title="분석 기록" className="lg:self-start">
-          {!runs ? (
-            <div className="h-40 animate-pulse rounded-md bg-black/[0.04]" />
-          ) : runs.length === 0 ? (
-            <Empty>아직 분석 기록이 없습니다.</Empty>
-          ) : (
-            <ul className="-mx-2 space-y-1">
-              {runs.map((run) => (
-                <li key={run.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(run.id)}
-                    aria-current={run.id === selectedId ? "true" : undefined}
-                    className={cn(
-                      "w-full rounded-md px-2 py-2 text-left hover:bg-black/[0.04]",
-                      run.id === selectedId && "bg-black/[0.05]",
-                    )}
-                  >
-                    <span className="flex items-center justify-between gap-2">
-                      <span className="min-w-0 truncate text-[13px] text-ink-primary">{run.question ?? "주간 리포트"}</span>
-                      <span className="flex-none whitespace-nowrap">
-                        <StatusChip status={run.status} />
-                      </span>
-                    </span>
-                    <span className="mt-0.5 block text-[11px] text-ink-subtle">{formatDateTime(run.createdAt)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <div className="min-w-0">
-          {detail && detail.id === selectedId ? <RunDetail run={detail} /> : selectedId !== null ? (
-            <div className="h-60 animate-pulse rounded-lg bg-black/[0.04]" />
-          ) : null}
-        </div>
-      </div>
-    </>
-  );
-}
-
-function StatusChip({ status }: { status: InsightRunStatus }) {
-  const tone = status === "FAILED" ? "brand" : status === "DONE" ? "muted" : "neutral";
-  return <Chip tone={tone}>{STATUS_LABELS[status]}</Chip>;
-}
-
-function RunDetail({ run }: { run: InsightRun }) {
-  const title = run.question ?? "주간 리포트";
-  if (isActive(run)) {
-    return (
-      <Card title={title}>
-        <p className="text-[14px] text-ink-body">
-          {run.status === "PENDING" ? "분석을 기다리는 중입니다." : "AI 가 데이터를 조회하며 분석하고 있습니다."} 보통 1~2분 걸립니다.
-        </p>
-        <p className="mt-1 text-[12px] text-ink-subtle">
-          오래 대기 상태로 남으면 서버의 분석 워커(insight-agent)가 꺼져 있는지 확인해 주세요. 15분이 지나면 자동으로 실패 처리됩니다.
-        </p>
-      </Card>
-    );
-  }
-  if (run.status === "FAILED" || !run.report) {
-    return (
-      <Card title={title}>
-        <Notice kind="error">{run.error ?? "분석에 실패했습니다."}</Notice>
-        <RunMeta run={run} />
-      </Card>
-    );
-  }
-  return (
-    <div className="space-y-4">
-      <ReportView title={title} report={run.report} />
-      {run.trace && run.trace.length > 0 ? <TraceView steps={run.trace} /> : null}
-      <RunMeta run={run} />
-    </div>
-  );
-}
-
-function ReportView({ title, report }: { title: string; report: InsightReport }) {
-  const unverified = report.verification?.unverified ?? [];
-  const actions = [...report.actions].sort((a, b) => a.priority - b.priority);
-  return (
-    <>
-      <Card>
-        <p className="text-[12px] text-ink-subtle">
-          {title} · {report.period}
-        </p>
-        <h2 className="mt-1 break-keep text-[20px] font-semibold leading-snug text-ink-primary">{report.headline}</h2>
-        {report.verification ? (
-          <p className={cn("mt-2 text-[12px]", unverified.length ? "text-brand-primary" : "text-ink-subtle")}>
-            {unverified.length
-              ? `근거 숫자 ${report.verification.checked}개 중 ${unverified.length}개는 분석 도구 결과에서 확인되지 않았습니다. 아래 표시된 항목은 직접 확인해 주세요.`
-              : `근거 숫자 ${report.verification.checked}개가 모두 분석 도구 결과와 일치합니다.`}
-          </p>
-        ) : null}
-      </Card>
-
-      {actions.length > 0 ? (
-        <Card title="이번에 해 볼 일">
-          <ol className="space-y-3">
-            {actions.map((a) => (
-              <li key={`${a.priority}-${a.action}`} className="flex gap-3">
-                <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-brand-deep text-[12px] font-semibold text-white">
-                  {a.priority}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="break-keep text-[14px] font-medium text-ink-primary">
-                    {a.action} <span className="ml-1 text-[12px] font-normal text-ink-subtle">· 노력 {EFFORT_LABELS[a.effort]}</span>
-                  </p>
-                  <p className="mt-0.5 break-keep text-[13px] text-ink-muted">{a.reason}</p>
-                  <p className="mt-0.5 break-keep text-[12px] text-ink-subtle">확인할 지표: {a.expected_effect}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </Card>
       ) : null}
 
-      <Card title="발견한 것">
-        <div className="space-y-5">
-          {report.insights.map((insight) => (
-            <section key={insight.title}>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="break-keep text-[15px] font-semibold text-ink-primary">{insight.title}</h3>
-                <Chip tone={CONFIDENCE[insight.confidence].tone}>{CONFIDENCE[insight.confidence].label}</Chip>
-              </div>
-              <p className="mt-1 break-keep text-[14px] leading-relaxed text-ink-body">{insight.finding}</p>
-              {insight.evidence.length > 0 ? (
-                <dl className="mt-2 grid gap-x-4 gap-y-1 rounded-md bg-black/[0.02] px-3 py-2 text-[13px] sm:grid-cols-[minmax(0,1fr)_auto]">
-                  {insight.evidence.map((e) => {
-                    const flagged = unverified.some((u) => u.metric === e.metric && u.value === e.value);
-                    return (
-                      <div key={`${e.metric}-${e.value}`} className="contents">
-                        <dt className="text-ink-muted">{e.metric}</dt>
-                        <dd className={cn("tabular-nums sm:text-right", flagged ? "text-brand-primary" : "text-ink-primary")}>
-                          {e.value}
-                          {flagged ? " (확인 필요)" : ""}
-                        </dd>
-                      </div>
-                    );
-                  })}
-                </dl>
-              ) : null}
-              {insight.sample_note ? <p className="mt-1 text-[12px] text-ink-subtle">{insight.sample_note}</p> : null}
-            </section>
+      {!overview ? <div className="mb-4 h-32 animate-pulse rounded-lg bg-black/[0.04]" /> : <TodayCard overview={overview} />}
+
+      <div className="mb-3 mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div role="tablist" aria-label="제안 상태" className="flex gap-1 rounded-lg bg-black/[0.04] p-1">
+          {TABS.map((t) => {
+            const count = t.statuses.reduce((sum, s) => sum + (overview?.counts[s] ?? 0), 0);
+            return (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.key}
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-[13px]",
+                  tab === t.key ? "bg-white font-semibold text-ink-primary shadow-sm" : "text-ink-muted hover:text-ink-primary",
+                )}
+              >
+                {t.label} <span className="tabular-nums text-ink-subtle">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex flex-wrap gap-1.5" aria-label="분야">
+          {(["ALL", "PLANNING", "DESIGN", "MARKETING", "OPERATIONS"] as const).map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-pressed={category === c}
+              onClick={() => setCategory(c)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-[12px]",
+                category === c ? "border-brand-deep bg-brand-deep text-white" : "border-black/10 text-ink-muted hover:bg-black/[0.04]",
+              )}
+            >
+              {c === "ALL" ? "전체" : CATEGORY_LABELS[c]}
+            </button>
           ))}
         </div>
-      </Card>
+      </div>
 
-      {report.data_gaps.length > 0 ? (
-        <Card title="데이터로 답할 수 없었던 것">
-          <ul className="list-disc space-y-1 pl-5 text-[13px] text-ink-muted">
-            {report.data_gaps.map((gap) => (
-              <li key={gap} className="break-keep">
-                {gap}
-              </li>
-            ))}
-          </ul>
+      {!suggestions ? (
+        <div className="h-60 animate-pulse rounded-lg bg-black/[0.04]" />
+      ) : visible.length === 0 ? (
+        <Card>
+          <Empty>
+            {tab === "new" ? "새 제안이 없습니다. 데이터에서 분명한 신호가 보이면 다음 분석에서 알려 드릴게요." : "해당하는 제안이 없습니다."}
+          </Empty>
         </Card>
-      ) : null}
+      ) : (
+        <div className="space-y-3">
+          {visible.map((s) => (
+            <SuggestionCard
+              key={s.id}
+              suggestion={s}
+              unverified={s.runId === latestRunId ? unverified : undefined}
+              onChange={(next) => changeStatus(s.id, next)}
+            />
+          ))}
+        </div>
+      )}
+
+      <RunHistory reloadKey={overview?.latest?.id ?? 0} />
     </>
+  );
+}
+
+function TodayCard({ overview }: { overview: InsightOverview }) {
+  const { latest, active } = overview;
+  const report = latest?.report;
+  const unverified = report?.verification?.unverified ?? [];
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center gap-2 text-[12px] text-ink-subtle">
+        <span>오늘의 요약</span>
+        {latest ? (
+          <span>
+            · {formatDateTime(latest.finishedAt ?? latest.createdAt)} {latest.kind === "DAILY" ? "자동 분석" : "요청 분석"}
+          </span>
+        ) : null}
+        {isActive(active) ? <Chip tone="neutral">{activeLabel(active)}</Chip> : null}
+      </div>
+      {report ? (
+        <>
+          <p className="mt-1 break-keep text-[18px] font-semibold leading-snug text-ink-primary">
+            {report.summary ?? report.headline}
+          </p>
+          {report.verification ? (
+            <p className={cn("mt-2 text-[12px]", unverified.length ? "text-brand-primary" : "text-ink-subtle")}>
+              {unverified.length
+                ? `근거 숫자 ${report.verification.checked}개 중 ${unverified.length}개는 분석 도구 결과에서 확인되지 않았습니다(AI 가 계산했거나 잘못 옮긴 값일 수 있음).`
+                : `근거 숫자 ${report.verification.checked}개가 모두 분석 도구 결과와 일치합니다.`}
+            </p>
+          ) : null}
+          {(report.data_gaps?.length ?? 0) > 0 || (latest?.trace?.length ?? 0) > 0 ? (
+            <details className="mt-3 text-[13px]">
+              <summary className="cursor-pointer text-ink-muted">데이터로 답할 수 없었던 것 · 분석 과정</summary>
+              {report.data_gaps?.length ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-muted">
+                  {report.data_gaps.map((gap) => (
+                    <li key={gap} className="break-keep">
+                      {gap}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {latest?.trace?.length ? <TraceList steps={latest.trace} /> : null}
+            </details>
+          ) : null}
+        </>
+      ) : (
+        <p className="mt-1 text-[14px] text-ink-muted">
+          아직 완료된 분석이 없습니다. 매일 오전 8시에 자동으로 분석하며, 지금 바로 보려면 &lsquo;지금 분석하기&rsquo;를 눌러 주세요.
+        </p>
+      )}
+    </Card>
+  );
+}
+
+function SuggestionCard({
+  suggestion: s,
+  unverified,
+  onChange,
+}: {
+  suggestion: InsightSuggestion;
+  /** 이 제안을 만든 분석에서 도구 결과로 확인되지 않은 근거(가장 최근 분석의 제안만 알 수 있다). */
+  unverified?: Set<string>;
+  onChange: (next: SuggestionStatus) => void;
+}) {
+  const actions = ACTIONS[s.status];
+  return (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Chip tone={s.status === "NEW" ? "brand" : "neutral"}>{CATEGORY_LABELS[s.category]}</Chip>
+            <span className="text-[12px] text-ink-subtle">
+              영향 {LEVEL_LABELS[s.impact]} · 난이도 {LEVEL_LABELS[s.effort]} · 신뢰도 {LEVEL_LABELS[s.confidence]} ·{" "}
+              {formatDateTime(s.createdAt)}
+            </span>
+          </div>
+          <h3 className="mt-1.5 break-keep text-[16px] font-semibold text-ink-primary">{s.title}</h3>
+        </div>
+        <div className="flex flex-none gap-1.5">
+          {actions.map((a, i) => (
+            <Button key={a.next} size="sm" variant={i === 0 ? "primary" : "secondary"} onClick={() => onChange(a.next)}>
+              {a.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <dl className="mt-3 grid gap-2 text-[14px] leading-relaxed md:grid-cols-[72px_minmax(0,1fr)]">
+        <dt className="text-[12px] font-medium text-ink-subtle md:pt-0.5">문제</dt>
+        <dd className="break-keep text-ink-body">{s.problem}</dd>
+        <dt className="text-[12px] font-medium text-ink-subtle md:pt-0.5">제안</dt>
+        <dd className="break-keep text-ink-body">{s.proposal}</dd>
+        <dt className="text-[12px] font-medium text-ink-subtle md:pt-0.5">확인할 지표</dt>
+        <dd className="break-keep text-ink-muted">{s.metric}</dd>
+      </dl>
+
+      {s.evidence.length > 0 ? (
+        <dl className="mt-3 grid gap-x-4 gap-y-1 rounded-md bg-black/[0.02] px-3 py-2 text-[13px] sm:grid-cols-[minmax(0,1fr)_auto]">
+          {s.evidence.map((e) => {
+            const flagged = unverified?.has(evidenceKey(e.metric, e.value)) ?? false;
+            return (
+              <div key={`${e.metric}-${e.value}`} className="contents">
+                <dt className="text-ink-muted">{e.metric}</dt>
+                <dd className={cn("tabular-nums sm:text-right", flagged ? "text-brand-primary" : "text-ink-primary")}>
+                  {e.value}
+                  {flagged ? " (확인 필요)" : ""}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      ) : null}
+
+      {s.reconfirmCount > 0 ? (
+        <p className="mt-2 text-[12px] text-ink-muted">
+          다른 날 분석에서 {s.reconfirmCount}번 다시 확인됨{s.reconfirmNote ? ` · ${s.reconfirmNote}` : ""}
+        </p>
+      ) : null}
+
+      {s.status === "DONE" ? (
+        s.followUp ? (
+          <div className="mt-3 rounded-md border border-black/10 px-3 py-2 text-[13px]">
+            <p className="font-medium text-ink-primary">효과 확인: {VERDICT_LABELS[s.followUp.verdict]}</p>
+            <p className="mt-0.5 break-keep text-ink-muted">{s.followUp.summary}</p>
+          </div>
+        ) : (
+          <p className="mt-3 text-[12px] text-ink-subtle">
+            {s.doneAt ? `${formatDateTime(s.doneAt)} 완료 · ` : ""}완료 7일 뒤 아침 분석에서 효과를 확인합니다.
+          </p>
+        )
+      ) : null}
+    </Card>
   );
 }
 
@@ -322,44 +359,66 @@ const TOOL_LABELS: Record<string, string> = {
   time_patterns: "요일·시간대",
   customer_behavior: "구매 고객 행동",
   review_signals: "후기",
+  page_flow: "화면 흐름",
+  compare_before_after: "전후 비교",
 };
 
-/** 에이전트가 어떤 도구를 어떤 순서로 썼는지. 결과를 믿을 수 있는지 확인하는 데 쓴다. */
-function TraceView({ steps }: { steps: InsightTraceStep[] }) {
+function TraceList({ steps }: { steps: InsightTraceStep[] }) {
   return (
-    <Card>
-      <details>
-        <summary className="cursor-pointer text-[14px] font-semibold text-ink-primary">
-          분석 과정 <span className="font-normal text-ink-subtle">· 도구 {steps.length}회 사용</span>
-        </summary>
-        <ol className="mt-3 space-y-2 text-[13px]">
-          {steps.map((step, i) => (
-            <li key={i} className="flex flex-wrap items-baseline gap-x-2">
-              <span className="w-5 text-ink-subtle tabular-nums">{i + 1}</span>
-              <span className="font-medium text-ink-primary">{TOOL_LABELS[step.tool] ?? step.tool}</span>
-              <code className="text-[12px] text-ink-muted">{JSON.stringify(step.input)}</code>
-              {step.ms !== undefined ? <span className="text-[12px] text-ink-subtle">{step.ms}ms</span> : null}
-              {step.error ? <span className="text-[12px] text-brand-primary">{step.error}</span> : null}
-            </li>
-          ))}
-        </ol>
-      </details>
-    </Card>
+    <ol className="mt-3 space-y-1.5">
+      {steps.map((step, i) => (
+        <li key={i} className="flex flex-wrap items-baseline gap-x-2">
+          <span className="w-5 text-ink-subtle tabular-nums">{i + 1}</span>
+          <span className="font-medium text-ink-primary">{TOOL_LABELS[step.tool] ?? step.tool}</span>
+          <code className="text-[12px] text-ink-muted">{JSON.stringify(step.input)}</code>
+          {step.ms !== undefined ? <span className="text-[12px] text-ink-subtle">{step.ms}ms</span> : null}
+          {step.error ? <span className="text-[12px] text-brand-primary">{step.error}</span> : null}
+        </li>
+      ))}
+    </ol>
   );
 }
 
-function RunMeta({ run }: { run: InsightRun }) {
-  const seconds =
-    run.startedAt && run.finishedAt
-      ? Math.round((new Date(run.finishedAt).getTime() - new Date(run.startedAt).getTime()) / 1000)
-      : null;
-  const parts = [
-    run.model,
-    run.toolCalls !== undefined ? `도구 ${run.toolCalls}회` : null,
-    run.inputTokens !== undefined ? `입력 ${run.inputTokens.toLocaleString("ko-KR")} 토큰` : null,
-    run.outputTokens !== undefined ? `출력 ${run.outputTokens.toLocaleString("ko-KR")} 토큰` : null,
-    seconds !== null ? `${seconds}초` : null,
-    `요청 ${formatDateTime(run.createdAt)}`,
-  ].filter(Boolean);
-  return <p className="mt-3 text-[12px] text-ink-subtle">{parts.join(" · ")}</p>;
+const RUN_STATUS_LABELS = { PENDING: "대기", RUNNING: "분석 중", DONE: "완료", FAILED: "실패" } as const;
+
+/** 분석 실행 기록. 실패 사유와 사용량을 확인할 때 연다. */
+function RunHistory({ reloadKey }: { reloadKey: number }) {
+  const [runs, setRuns] = useState<InsightRun[] | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    listInsightRuns().then(setRuns).catch(() => {});
+  }, [open, reloadKey]);
+
+  return (
+    <Card className="mt-6">
+      <details onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
+        <summary className="cursor-pointer text-[14px] font-semibold text-ink-primary">분석 기록</summary>
+        {!runs ? (
+          <div className="mt-3 h-20 animate-pulse rounded-md bg-black/[0.04]" />
+        ) : runs.length === 0 ? (
+          <p className="mt-3 text-[13px] text-ink-subtle">아직 기록이 없습니다.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-black/5 text-[13px]">
+            {runs.map((run) => (
+              <li key={run.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2">
+                <span className="tabular-nums text-ink-muted">{formatDateTime(run.createdAt)}</span>
+                <span className="text-ink-primary">{run.kind === "DAILY" ? "자동" : run.question ? "질문" : "요청"}</span>
+                <span className={run.status === "FAILED" ? "text-brand-primary" : "text-ink-muted"}>
+                  {RUN_STATUS_LABELS[run.status]}
+                </span>
+                {run.toolCalls !== undefined ? (
+                  <span className="text-[12px] text-ink-subtle">
+                    도구 {run.toolCalls}회 · 토큰 {((run.inputTokens ?? 0) + (run.outputTokens ?? 0)).toLocaleString("ko-KR")}
+                  </span>
+                ) : null}
+                {run.error ? <span className="w-full break-keep text-[12px] text-brand-primary">{run.error}</span> : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </details>
+    </Card>
+  );
 }

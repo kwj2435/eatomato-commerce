@@ -18,32 +18,52 @@ export type Page<T> = {
 
 export type Sales = { orders: number; revenue: number };
 
-/** 마케팅 인사이트 리포트(Python 에이전트가 만든 JSON). */
-export type InsightConfidence = "high" | "medium" | "low";
+/** 개선 제안 분석 결과(Python 에이전트가 만든 JSON). 이전 질문형 실행은 headline 만 있다. */
+export type InsightEvidence = { metric: string; value: string };
 
 export type InsightReport = {
-  headline: string;
-  period: string;
-  insights: {
-    title: string;
-    finding: string;
-    evidence: { metric: string; value: string }[];
-    confidence: InsightConfidence;
-    sample_note: string;
-  }[];
-  actions: {
-    priority: number;
-    action: string;
-    reason: string;
-    expected_effect: string;
-    effort: "low" | "medium" | "high";
-  }[];
-  data_gaps: string[];
+  summary?: string;
+  /** 이전 질문형 리포트의 제목. */
+  headline?: string;
+  period?: string;
+  data_gaps?: string[];
   /** 근거 숫자가 도구 결과에 실제로 있는지 에이전트가 확인한 결과. */
   verification?: {
     checked: number;
     unverified: { metric: string; value: string; numbers_not_in_tool_results: string[] }[];
   };
+};
+
+export type SuggestionCategory = "PLANNING" | "DESIGN" | "MARKETING" | "OPERATIONS";
+export type SuggestionStatus = "NEW" | "ADOPTED" | "ON_HOLD" | "DISMISSED" | "DONE";
+export type SuggestionLevel = "LOW" | "MEDIUM" | "HIGH";
+
+/** 개선 제안 하나. 완료 7일 뒤 에이전트가 효과를 확인해 followUp 을 붙인다. */
+export type InsightSuggestion = {
+  id: number;
+  runId: number;
+  category: SuggestionCategory;
+  title: string;
+  problem: string;
+  proposal: string;
+  evidence: InsightEvidence[];
+  metric: string;
+  impact: SuggestionLevel;
+  effort: SuggestionLevel;
+  confidence: SuggestionLevel;
+  status: SuggestionStatus;
+  /** 다른 날 같은 문제를 다시 발견한 횟수. */
+  reconfirmCount: number;
+  reconfirmNote?: string;
+  reconfirmedAt?: string;
+  followUp?: {
+    verdict: "improved" | "no_change" | "worse" | "insufficient_data";
+    summary: string;
+    evidence?: InsightEvidence[];
+  };
+  createdAt: string;
+  statusChangedAt?: string;
+  doneAt?: string;
 };
 
 export type InsightTraceStep = {
@@ -57,9 +77,11 @@ export type InsightTraceStep = {
 
 export type InsightRunStatus = "PENDING" | "RUNNING" | "DONE" | "FAILED";
 
-/** 인사이트 분석 실행. report·trace 는 상세 조회에만 온다. question 이 없으면 주간 리포트. */
+/** 개선 제안 분석 실행. DAILY 는 매일 아침 자동, MANUAL 은 관리자 요청. report·trace 는 상세 조회에만 온다. */
 export type InsightRun = {
   id: number;
+  kind: "DAILY" | "MANUAL";
+  /** 이전 질문형 실행의 질문. */
   question?: string;
   status: InsightRunStatus;
   report?: InsightReport;
@@ -72,6 +94,13 @@ export type InsightRun = {
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
+};
+
+/** 개선 제안 보드 위쪽: 가장 최근에 끝난 분석, 진행 중인 분석, 상태별 제안 수. */
+export type InsightOverview = {
+  latest?: InsightRun;
+  active?: InsightRun;
+  counts: Record<SuggestionStatus, number>;
 };
 
 /** 운영 브리핑 할 일 단계. 긴급 → 확인 → 참고 순으로 온다. */

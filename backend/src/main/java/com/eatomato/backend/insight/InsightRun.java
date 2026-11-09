@@ -15,7 +15,10 @@ import lombok.NoArgsConstructor;
 
 import com.eatomato.backend.global.time.Times;
 
-/** 마케팅 인사이트 에이전트 실행 한 번. question 이 null 이면 주간 리포트다. */
+/**
+ * 개선 제안 에이전트 실행 한 번. DAILY 는 매일 아침 자동, MANUAL 은 관리자가 '지금 분석하기'를 누른 것이다.
+ * question 은 이전 질문형 실행의 기록으로만 남는다(새 실행은 null).
+ */
 @Entity
 @Table(name = "insight_run")
 @Getter
@@ -26,9 +29,16 @@ public class InsightRun {
 		PENDING, RUNNING, DONE, FAILED
 	}
 
+	public enum Kind {
+		DAILY, MANUAL
+	}
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
+
+	@Enumerated(EnumType.STRING)
+	private Kind kind;
 
 	private String question;
 
@@ -59,9 +69,10 @@ public class InsightRun {
 
 	private LocalDateTime finishedAt;
 
-	public InsightRun(Long requestedBy, String question) {
+	/** requestedBy 는 MANUAL 일 때 요청한 관리자, DAILY 면 null. */
+	public InsightRun(Kind kind, Long requestedBy) {
+		this.kind = kind;
 		this.requestedBy = requestedBy;
-		this.question = question;
 		this.status = Status.PENDING;
 		this.createdAt = Times.now();
 	}

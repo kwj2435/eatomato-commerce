@@ -43,6 +43,11 @@ class BackendClient:
         status, data = self._request("POST", "/internal/insights/runs/claim")
         return data if status == 200 else None
 
+    def suggestion_context(self) -> dict:
+        """지난 제안(중복 방지)과 효과를 확인할 완료 제안."""
+        _, data = self._request("GET", "/internal/insights/suggestions/context")
+        return data
+
     def dataset(self, days: int) -> dict:
         _, data = self._request("GET", f"/internal/insights/dataset?days={days}")
         return data
