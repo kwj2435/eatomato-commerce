@@ -18,7 +18,7 @@ type NoticeDetailProps = {
 /**
  * 공지사항 상세 뷰.
  *
- * - 본문은 읽기 좋은 폭(760px)으로 제한한다.
+ * - 본문은 읽기 좋은 폭(760px)으로 제한하고 화면 가운데에 둔다(위치 표시도 본문과 같은 폭으로 맞춘다).
  * - 관리자가 줄 앞에 쓴 기호로 꾸민다: ● 소제목 / · 목록 / ※ 안내 박스(`toNoticeBlocks`).
  * - 아래에 목록 순서 기준 이전·다음 글을 둔다.
  */
@@ -27,56 +27,58 @@ export function NoticeDetail({ notice, prev, next }: NoticeDetailProps) {
 
   return (
     <BoardPanel>
-      <nav aria-label="위치" className="flex gap-2 pt-7 text-[13px] text-ink-subtle lg:pt-10">
-        <Link href="/notice" className="font-medium text-ink-muted hover:text-ink-primary">
-          공지사항
-        </Link>
-        {category ? (
-          <>
-            <span aria-hidden>›</span>
-            <span>{category}</span>
-          </>
-        ) : null}
-      </nav>
-
-      <article className="max-w-[760px]">
-        <header className="mt-3.5 border-b-[1.5px] border-ink-primary pb-[22px]">
-          {notice.pinned || category ? (
-            <div className="flex gap-1.5">
-              {notice.pinned ? <NoticeTag kind="pinned" /> : null}
-              {category ? <NoticeTag kind="category" label={category} /> : null}
-            </div>
-          ) : null}
-          <h1 className="mt-3 break-keep text-[24px] font-bold leading-[1.35] tracking-[-0.6px] text-ink-primary lg:text-[28px]">
-            {title}
-          </h1>
-          <time dateTime={notice.publishedAt} className="mt-2.5 block text-[13px] text-ink-subtle">
-            {formatNoticeDay(notice.publishedAt)}
-          </time>
-        </header>
-
-        <div className="py-8 text-[15.5px] leading-[1.8] tracking-[-0.2px] text-ink-body">
-          {toNoticeBlocks(notice.body).map((block, i) => (
-            <NoticeBlockView key={i} block={block} />
-          ))}
-        </div>
-
-        {prev || next ? (
-          <nav aria-label="이전·다음 글" className="border-t border-ink-primary">
-            {prev ? <AdjacentLink label="이전 글" notice={prev} /> : null}
-            {next ? <AdjacentLink label="다음 글" notice={next} /> : null}
-          </nav>
-        ) : null}
-
-        <div className="mt-7 flex justify-center">
-          <Link
-            href="/notice"
-            className="inline-flex h-12 items-center justify-center border border-ink-primary px-8 text-[14.5px] font-semibold text-ink-primary transition-colors hover:bg-ink-primary hover:text-ink-inverse"
-          >
-            목록으로
+      <div className="mx-auto max-w-[760px]">
+        <nav aria-label="위치" className="flex gap-2 pt-7 text-[13px] text-ink-subtle lg:pt-10">
+          <Link href="/notice" className="font-medium text-ink-muted hover:text-ink-primary">
+            공지사항
           </Link>
-        </div>
-      </article>
+          {category ? (
+            <>
+              <span aria-hidden>›</span>
+              <span>{category}</span>
+            </>
+          ) : null}
+        </nav>
+
+        <article>
+          <header className="mt-3.5 border-b-[1.5px] border-ink-primary pb-[22px]">
+            {notice.pinned || category ? (
+              <div className="flex gap-1.5">
+                {notice.pinned ? <NoticeTag kind="pinned" /> : null}
+                {category ? <NoticeTag kind="category" label={category} /> : null}
+              </div>
+            ) : null}
+            <h1 className="mt-3 break-keep text-[24px] font-bold leading-[1.35] tracking-[-0.6px] text-ink-primary lg:text-[28px]">
+              {title}
+            </h1>
+            <time dateTime={notice.publishedAt} className="mt-2.5 block text-[13px] text-ink-subtle">
+              {formatNoticeDay(notice.publishedAt)}
+            </time>
+          </header>
+
+          <div className="py-8 text-[15.5px] leading-[1.8] tracking-[-0.2px] text-ink-body">
+            {toNoticeBlocks(notice.body).map((block, i) => (
+              <NoticeBlockView key={i} block={block} />
+            ))}
+          </div>
+
+          {prev || next ? (
+            <nav aria-label="이전·다음 글" className="border-t border-ink-primary">
+              {prev ? <AdjacentLink label="이전 글" notice={prev} /> : null}
+              {next ? <AdjacentLink label="다음 글" notice={next} /> : null}
+            </nav>
+          ) : null}
+
+          <div className="mt-7 flex justify-center">
+            <Link
+              href="/notice"
+              className="inline-flex h-12 items-center justify-center border border-ink-primary px-8 text-[14.5px] font-semibold text-ink-primary transition-colors hover:bg-ink-primary hover:text-ink-inverse"
+            >
+              목록으로
+            </Link>
+          </div>
+        </article>
+      </div>
     </BoardPanel>
   );
 }

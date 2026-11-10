@@ -418,15 +418,22 @@ class AdminApiIntegrationTest {
 				.content("{\"imageUrl\":\"https://example.com/a.jpg\",\"alt\":\"링크 없음\",\"sortOrder\":1,\"active\":true}"))
 			.andExpect(status().isBadRequest());
 
-		// Best Picks 이미지는 링크 없이, Special 은 링크를 비우면 공지 목록으로. 위치별로 따로 나온다.
+		// Best Picks 이미지는 링크가 선택(넣으면 그대로, 비우면 없음), Special 은 링크를 비우면 공지 목록으로. 위치별로 따로 나온다.
 		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
-					{"placement":"BEST_PICK","href":"/무시","imageUrl":"https://example.com/pick.jpg","alt":"추천",
+					{"placement":"BEST_PICK","href":" /products/sets ","imageUrl":"https://example.com/pick.jpg","alt":"추천",
 					 "sortOrder":0,"active":true}
 					"""))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.placement").value("BEST_PICK"))
+			.andExpect(jsonPath("$.href").value("/products/sets"));
+		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{"placement":"BEST_PICK","imageUrl":"https://example.com/pick2.jpg","alt":"추천 2","sortOrder":1,"active":true}
+					"""))
+			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.href").value(""));
 		mockMvc.perform(post("/api/admin/banners").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON)
@@ -452,8 +459,9 @@ class AdminApiIntegrationTest {
 			.andExpect(jsonPath("$", hasSize(1)))
 			.andExpect(jsonPath("$[0].href").value("/products/phone-case"));
 		mockMvc.perform(get("/api/banners").param("placement", "BEST_PICK"))
-			.andExpect(jsonPath("$", hasSize(1)))
-			.andExpect(jsonPath("$[0].href").doesNotExist());
+			.andExpect(jsonPath("$", hasSize(2)))
+			.andExpect(jsonPath("$[0].href").value("/products/sets"))
+			.andExpect(jsonPath("$[1].href").doesNotExist());
 		mockMvc.perform(get("/api/banners").param("placement", "SPECIAL"))
 			.andExpect(jsonPath("$", hasSize(1)))
 			.andExpect(jsonPath("$[0].href").value("/notice"));

@@ -44,9 +44,9 @@ const PLACEMENTS: Record<
     label: "Best Picks",
     imageHint: "권장 1200 × 1200 (정사각형)",
     mobileImageHint: null,
-    hrefHint: null,
+    hrefHint: "비우면 휴대폰 케이스 목록(/products/phone-case). 예: /products/sets",
     defaultHref: "",
-    description: "Best Picks 왼쪽 슬라이드. 이미지만 보이고 링크는 없습니다. 오른쪽 4칸은 BEST 배지를 단 상품이 자동으로 들어갑니다.",
+    description: "Best Picks 왼쪽 슬라이드. 사진 왼쪽 아래에 SHOP NOW 가 붙고, 누르면 입력한 주소로 이동합니다. 오른쪽 4칸은 BEST 배지를 단 상품이 자동으로 들어갑니다.",
   },
   SPECIAL: {
     label: "Special",

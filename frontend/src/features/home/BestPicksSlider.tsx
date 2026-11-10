@@ -1,16 +1,19 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 
 import { cn } from "@/lib/utils/cn";
 import type { HeroBanner } from "@/types/banner";
 
 /**
- * Best Picks 왼쪽 이미지 슬라이더. 관리자가 올린 이미지만 보이고 링크는 없다.
- * 좌우 화살표로 넘기며, 이미지가 한 장이면 화살표를 숨긴다.
+ * Best Picks 왼쪽 이미지 슬라이더. 좌우 화살표로 넘기며, 이미지가 한 장이면 화살표를 숨긴다.
+ * 섹션에서 가장 큰 사진이라 눌러 보는 사람이 많아, 사진 전체를 링크로 두고 왼쪽 아래에 "SHOP NOW →"를 붙인다.
+ * 관리자가 배너에 링크를 넣으면 그곳으로, 비워 두면 fallbackHref 로 간다.
+ * 화살표 버튼은 링크 밖(형제)에 둔다(링크 안에 버튼을 넣으면 누를 때 이동해 버린다).
  */
-export function BestPicksSlider({ images }: { images: HeroBanner[] }) {
+export function BestPicksSlider({ images, fallbackHref }: { images: HeroBanner[]; fallbackHref: string }) {
   const [index, setIndex] = useState(0);
   const go = (step: number) => setIndex((prev) => (prev + step + images.length) % images.length);
 
@@ -25,11 +28,14 @@ export function BestPicksSlider({ images }: { images: HeroBanner[] }) {
   return (
     <div aria-roledescription="carousel" aria-label="Best Picks 이미지" className="relative aspect-square w-full overflow-hidden md:aspect-auto md:min-h-full">
       {images.map((image, i) => (
-        <div
+        <Link
           key={image.id}
+          href={image.href ?? fallbackHref}
           aria-hidden={i !== index}
+          tabIndex={i === index ? 0 : -1}
+          aria-label={`${image.alt} · 제품 보러 가기`}
           className={cn(
-            "absolute inset-0 transition-opacity duration-500",
+            "group absolute inset-0 transition-opacity duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary",
             i === index ? "opacity-100" : "pointer-events-none opacity-0",
           )}
         >
@@ -42,7 +48,13 @@ export function BestPicksSlider({ images }: { images: HeroBanner[] }) {
               className="object-cover"
             />
           ) : null}
-        </div>
+          <span
+            aria-hidden
+            className="absolute bottom-4 left-4 inline-flex h-10 items-center gap-2 bg-white px-[18px] text-[13px] font-bold tracking-[0.6px] text-ink-primary transition-colors group-hover:bg-ink-primary group-hover:text-ink-inverse md:bottom-6 md:left-6 md:h-[46px] md:px-[22px] md:text-[14px]"
+          >
+            SHOP NOW <span>→</span>
+          </span>
+        </Link>
       ))}
 
       {images.length > 1 ? (

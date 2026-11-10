@@ -8,7 +8,7 @@ type SectionHeadingProps = {
   title: string;
   /** 섹션 설명. 관리자 화면(문구)에서 고친다. 비어 있으면 설명 줄을 그리지 않는다. */
   description?: string;
-  /** 있으면 제목 줄 오른쪽에 "전체 보기 →" 링크를 둔다. */
+  /** 있으면 제목 줄 오른쪽에 "전체 보기 →" 버튼을 둔다(목록 아래 MoreButton 과 같은 테두리 버튼). */
   moreHref?: string;
 };
 
@@ -26,7 +26,7 @@ export function SectionHeading({ id, title, description, moreHref }: SectionHead
         {moreHref ? (
           <Link
             href={moreHref}
-            className="mb-1 flex-none text-[13px] tracking-[-0.2px] text-ink-muted underline-offset-4 transition-colors hover:text-brand-primary hover:underline md:text-[14px]"
+            className="mb-0.5 inline-flex h-9 flex-none items-center gap-1.5 border border-ink-primary px-3.5 text-[13px] font-semibold tracking-[-0.2px] text-ink-primary transition-colors hover:bg-ink-primary hover:text-ink-inverse md:h-10 md:px-[18px] md:text-[14px]"
           >
             전체 보기 <span aria-hidden>→</span>
             <span className="sr-only"> ({title})</span>

@@ -323,7 +323,7 @@ export type AdminOrder = Order & {
 export type AdminBanner = {
   id: string;
   placement: BannerPlacement;
-  /** BEST_PICK 은 빈 문자열(링크 없음). */
+  /** BEST_PICK 은 비울 수 있다(빈 문자열 → 메인이 휴대폰 케이스 목록으로 보냄). */
   href: string;
   imageUrl: string;
   /** 모바일 전용 이미지. 비어 있으면 모바일에서도 imageUrl 을 쓴다. */

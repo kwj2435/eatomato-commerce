@@ -2,8 +2,12 @@ import { Container } from "@/components/layout/Container";
 import { ProductCard } from "@/components/product/ProductCard";
 import { listNewProducts } from "@/lib/api/products";
 
+import { MoreButton } from "./MoreButton";
 import { PlaceholderGrid } from "./PlaceholderGrid";
 import { SectionHeading } from "./SectionHeading";
+
+/** 상품 목록에 신상품순 정렬이 없어 휴대폰 케이스 목록으로 보낸다. */
+const WHATS_NEW_HREF = "/products/phone-case";
 
 /**
  * "What's New" 섹션.
@@ -21,7 +25,7 @@ export async function WhatsNewSection({ description }: { description: string }) 
   return (
     <section aria-labelledby="whats-new-title" className="pt-[59px]">
       <Container>
-        <SectionHeading id="whats-new-title" title="What’s New" description={description} moreHref="/products/phone-case" />
+        <SectionHeading id="whats-new-title" title="What’s New" description={description} moreHref={WHATS_NEW_HREF} />
 
         {products.length === 0 ? (
           <PlaceholderGrid label="제품이미지" message="등록된 상품이 없습니다." />
@@ -34,6 +38,8 @@ export async function WhatsNewSection({ description }: { description: string }) 
             ))}
           </ul>
         )}
+
+        {products.length > 0 ? <MoreButton href={WHATS_NEW_HREF} label="신상품 전체 보기" /> : null}
       </Container>
     </section>
   );

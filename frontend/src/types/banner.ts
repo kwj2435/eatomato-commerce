@@ -7,7 +7,7 @@ export type BannerPlacement = "HERO" | "EDIT" | "BEST_PICK" | "SPECIAL";
  */
 export type HeroBanner = {
   id: string;
-  /** 링크가 없는 배너(Best Picks 이미지)는 비어 있다. */
+  /** 링크를 비운 배너(Best Picks 이미지)는 비어 있다. 이때 메인은 휴대폰 케이스 목록으로 보낸다. */
   href?: string;
   imageUrl?: string;
   /** 모바일 전용 이미지(세로형). 없으면 모바일에서도 imageUrl 을 쓴다. 상단 슬라이드(HERO)만 쓴다. */

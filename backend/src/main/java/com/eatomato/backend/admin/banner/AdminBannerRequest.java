@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size;
  * 배너 등록·수정. 문구는 이미지에 넣으므로 이미지가 필수다.
  *
  * @param placement 비우면 메인 상단(HERO).
- * @param href 클릭 시 이동할 주소. HERO·EDIT 는 필수, BEST_PICK 은 무시(링크 없음), SPECIAL 은 비우면 /notice.
+ * @param href 클릭 시 이동할 주소. HERO·EDIT 는 필수, BEST_PICK 은 선택(비우면 메인이 휴대폰 케이스 목록으로 보냄), SPECIAL 은 비우면 /notice.
  * @param mobileImageUrl 모바일 전용 이미지(세로형). 비우면 모바일에서도 imageUrl 을 쓴다.
  * @param alt 스크린리더용 대체 텍스트. 이미지 속 문구를 그대로 적는다.
  */

@@ -68,11 +68,14 @@ public class AdminBannerController {
 		return request.placement() == null ? BannerPlacement.HERO : request.placement();
 	}
 
-	/** HERO·EDIT 는 링크가 필수, BEST_PICK 은 링크가 없고, SPECIAL 은 비우면 공지 목록으로 보낸다. */
+	/**
+	 * HERO·EDIT 는 링크가 필수, SPECIAL 은 비우면 공지 목록으로 보낸다.
+	 * BEST_PICK 은 선택이다. 비우면 메인이 휴대폰 케이스 목록으로 보낸다(BestPicksSlider).
+	 */
 	private static String href(BannerPlacement placement, String href) {
 		String value = href == null ? "" : href.trim();
 		return switch (placement) {
-			case BEST_PICK -> "";
+			case BEST_PICK -> value;
 			case SPECIAL -> value.isEmpty() ? "/notice" : value;
 			case HERO, EDIT -> {
 				if (value.isEmpty()) {

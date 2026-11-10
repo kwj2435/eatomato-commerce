@@ -49,7 +49,7 @@ docker compose up -d --build   # mysql → backend 순서로 뜬다
 | GET | `/api/products/slugs` | 전체 slug (정적 빌드용) | `listAllProductSlugs` |
 | GET | `/api/products/{slug}` | 상세 (옵션·함께구매·리뷰 10건 포함) | `getProductDetail` |
 | GET | `/api/products/{slug}/reviews?page=&size=` | 리뷰 페이지 조회 | |
-| GET | `/api/banners?placement=HERO\|BEST_PICK\|SPECIAL` | 위치별 메인 배너(기본 HERO). BEST_PICK 은 링크 없음, SPECIAL 은 기본 `/notice` | `listHeroBanners` |
+| GET | `/api/banners?placement=HERO\|BEST_PICK\|SPECIAL` | 위치별 메인 배너(기본 HERO). BEST_PICK 은 링크 선택(비우면 href 없음 → 메인이 휴대폰 케이스 목록으로), SPECIAL 은 기본 `/notice` | `listHeroBanners` |
 | GET | `/api/site-contents` | 사이트 문구 `{키: 문구}` (수정 안 한 문구는 기본값) | 메인 What's New·Review 설명 |
 | GET | `/api/reviews/featured?limit=4` | 메인 대표 리뷰 카드(사진·글·별점·상품명·상품 이미지) | `listFeaturedReviews` |
 | GET | `/api/notices?query=` | 공지 목록 (고정 → 등록일 내림차순, 제목 검색) | `listNotices` |

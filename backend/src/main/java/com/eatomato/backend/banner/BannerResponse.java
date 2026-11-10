@@ -3,7 +3,7 @@ package com.eatomato.backend.banner;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * 프론트 `HeroBanner` 타입과 같은 형태. 링크가 없는 배너(BEST_PICK)는 href 를,
+ * 프론트 `HeroBanner` 타입과 같은 형태. 링크를 비운 배너(BEST_PICK)는 href 를,
  * 모바일 이미지를 따로 올리지 않은 배너는 mobileImageUrl 을 내려주지 않는다.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)

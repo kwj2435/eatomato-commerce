@@ -20,6 +20,30 @@ export type ChangeDay = { date: string; items: ChangeItem[] };
 
 export const CHANGELOG: ChangeDay[] = [
   {
+    date: "2026-11-11",
+    items: [
+      {
+        type: "improve",
+        area: "스토어",
+        title: "메인 '전체 보기'를 눈에 띄게 개선",
+        detail:
+          "Best Picks·What's New 제목 옆 '전체 보기'를 테두리 버튼으로 바꾸고, 상품 목록 아래에 '베스트 제품 전체 보기'·'신상품 전체 보기' 버튼을 추가했습니다. Best Picks 큰 사진에 SHOP NOW 가 붙고 누르면 제품 목록으로 이동합니다.",
+      },
+      {
+        type: "improve",
+        area: "운영",
+        title: "Best Picks 사진에 링크 넣기",
+        detail: "배너 관리 > Best Picks 에서 사진을 눌렀을 때 갈 주소를 넣을 수 있습니다. 비워 두면 휴대폰 케이스 목록으로 갑니다.",
+      },
+      {
+        type: "fix",
+        area: "스토어",
+        title: "공지사항 글이 왼쪽으로 치우쳐 보이던 문제 수정",
+        detail: "PC 화면에서 공지사항 글이 화면 가운데에 보입니다. 모바일 화면은 그대로입니다.",
+      },
+    ],
+  },
+  {
     date: "2026-11-10",
     items: [
       {
