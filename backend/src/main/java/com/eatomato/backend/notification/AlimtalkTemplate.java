@@ -1,7 +1,9 @@
 package com.eatomato.backend.notification;
 
+import java.util.List;
 import java.util.Optional;
 
+import com.eatomato.backend.notification.AlimtalkSender.Button;
 import com.eatomato.backend.order.OrderStatus;
 
 /**
@@ -10,14 +12,33 @@ import com.eatomato.backend.order.OrderStatus;
  */
 public enum AlimtalkTemplate {
 
-	/** 결제 완료(카드 승인·무통장 입금 확인·전액 할인). 변수: #{고객명} #{주문번호} #{상품명} #{결제금액} */
-	ORDER_PAID,
+	/**
+	 * 결제 완료(카드 승인·무통장 입금 확인·전액 할인). 변수: #{고객명} #{주문번호} #{상품명} #{결제금액}
+	 * 버튼: 주문 내역 보기(회원), 비회원 주문 조회
+	 */
+	ORDER_PAID(
+		new Button("주문 내역 보기", "https://eatomato.kr/mypage"),
+		new Button("비회원 주문 조회", "https://eatomato.kr/orders/guest")),
 	/** 상품준비중. 변수: #{고객명} #{주문번호} #{상품명} */
 	ORDER_PREPARING,
 	/** 배송 시작. 변수: #{고객명} #{주문번호} #{택배사} #{송장번호} */
 	ORDER_SHIPPING,
 	/** 결제된 주문의 취소·환불. 변수: #{고객명} #{주문번호} #{상품명} #{환불금액} */
 	ORDER_CANCELLED;
+
+	/**
+	 * 카카오 검수를 받은 템플릿의 버튼. 이름·순서·링크가 검수본과 같아야 해서 설정이 아니라 여기 고정한다
+	 * (템플릿 버튼을 바꾸면 재검수 후 여기도 같이 바꾼다).
+	 */
+	private final List<Button> buttons;
+
+	AlimtalkTemplate(Button... buttons) {
+		this.buttons = List.of(buttons);
+	}
+
+	public List<Button> buttons() {
+		return buttons;
+	}
 
 	/**
 	 * 주문 상태 변경에 맞는 알림. 결제 전 주문(결제대기·입금대기)의 취소는 돌려줄 돈이 없어 보내지 않는다

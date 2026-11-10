@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -119,7 +120,7 @@ class AlimtalkFlowTest {
 
 	@Test
 	void 결제부터_배송까지_단계마다_받는_분_번호로_한_번씩() throws Exception {
-		given(sender.send(anyString(), anyString(), any())).willReturn("msg-1");
+		given(sender.send(anyString(), anyString(), any(), any())).willReturn("msg-1");
 		String admin = login("admin", "admin1234");
 		String user = signup("alim1");
 		String orderNumber = order(user, "010-2222-3333");
@@ -127,13 +128,13 @@ class AlimtalkFlowTest {
 		pay(user, orderNumber);
 		verify(sender, timeout(WAIT_MS)).send(eq("01022223333"), eq("tpl-paid"), vars(v ->
 			orderNumber.equals(v.get("#{주문번호}")) && "받는사람".equals(v.get("#{고객명}"))
-				&& v.get("#{상품명}") != null && v.get("#{결제금액}").matches("[0-9,]+")));
+				&& v.get("#{상품명}") != null && v.get("#{결제금액}").matches("[0-9,]+")), eq(AlimtalkTemplate.ORDER_PAID.buttons()));
 
 		mockMvc.perform(patch("/api/admin/orders/" + orderNumber + "/status").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"PREPARING\"}"))
 			.andExpect(status().isOk());
 		verify(sender, timeout(WAIT_MS)).send(eq("01022223333"), eq("tpl-preparing"),
-			vars(v -> orderNumber.equals(v.get("#{주문번호}"))));
+			vars(v -> orderNumber.equals(v.get("#{주문번호}"))), eq(List.of()));
 
 		mockMvc.perform(put("/api/admin/orders/" + orderNumber + "/tracking").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"courier\":\"CJ대한통운\",\"trackingNumber\":\"1234 5678 9012\"}"))
@@ -142,11 +143,11 @@ class AlimtalkFlowTest {
 				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SHIPPING\"}"))
 			.andExpect(status().isOk());
 		verify(sender, timeout(WAIT_MS)).send(eq("01022223333"), eq("tpl-shipping"), vars(v ->
-			"CJ대한통운".equals(v.get("#{택배사}")) && "123456789012".equals(v.get("#{송장번호}"))));
+			"CJ대한통운".equals(v.get("#{택배사}")) && "123456789012".equals(v.get("#{송장번호}"))), eq(List.of()));
 
 		// 같은 알림을 다시 요청해도 보내지 않는다
 		alimtalkService.sendForOrder(orderId(orderNumber), AlimtalkTemplate.ORDER_PAID);
-		verify(sender, times(1)).send(anyString(), eq("tpl-paid"), vars(v -> orderNumber.equals(v.get("#{주문번호}"))));
+		verify(sender, times(1)).send(anyString(), eq("tpl-paid"), vars(v -> orderNumber.equals(v.get("#{주문번호}"))), any());
 
 		// 발송 기록: 번호는 가려서 남긴다
 		assertThat(jdbc.queryForList(
@@ -158,7 +159,7 @@ class AlimtalkFlowTest {
 
 	@Test
 	void 결제_전_취소는_보내지_않고_결제_후_취소는_환불_안내() throws Exception {
-		given(sender.send(anyString(), anyString(), any())).willReturn("msg-2");
+		given(sender.send(anyString(), anyString(), any(), any())).willReturn("msg-2");
 		String user = signup("alim2");
 
 		String unpaid = order(user, "01044445555");
@@ -170,20 +171,20 @@ class AlimtalkFlowTest {
 		mockMvc.perform(post("/api/orders/" + paid + "/cancel").header(HttpHeaders.AUTHORIZATION, user))
 			.andExpect(status().isOk());
 		verify(sender, timeout(WAIT_MS)).send(eq("01044445555"), eq("tpl-cancelled"), vars(v ->
-			paid.equals(v.get("#{주문번호}")) && v.get("#{환불금액}").matches("[0-9,]+")));
+			paid.equals(v.get("#{주문번호}")) && v.get("#{환불금액}").matches("[0-9,]+")), eq(List.of()));
 
-		verify(sender, never()).send(anyString(), anyString(), vars(v -> unpaid.equals(v.get("#{주문번호}"))));
+		verify(sender, never()).send(anyString(), anyString(), vars(v -> unpaid.equals(v.get("#{주문번호}"))), any());
 	}
 
 	@Test
 	void 발송에_실패해도_주문은_결제완료로_남고_실패가_기록된다() throws Exception {
-		given(sender.send(anyString(), anyString(), any()))
+		given(sender.send(anyString(), anyString(), any(), any()))
 			.willThrow(new AlimtalkSender.AlimtalkException("3104 템플릿 불일치"));
 		String user = signup("alim3");
 		String orderNumber = order(user, "01066667777");
 
 		pay(user, orderNumber);
-		verify(sender, timeout(WAIT_MS)).send(eq("01066667777"), eq("tpl-paid"), any());
+		verify(sender, timeout(WAIT_MS)).send(eq("01066667777"), eq("tpl-paid"), any(), any());
 
 		Long orderId = orderId(orderNumber);
 		assertThat(jdbc.queryForObject("select status from orders where id = ?", String.class, orderId)).isEqualTo("PAID");
@@ -202,6 +203,6 @@ class AlimtalkFlowTest {
 				.content("{\"code\":\"code-alim\",\"state\":\"st\",\"redirectUri\":\"http://localhost:3000/login/naver/\"}"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.member.phone.last").value("9999"));
-		verify(sender, after(500).never()).send(eq("01088889999"), anyString(), any());
+		verify(sender, after(500).never()).send(eq("01088889999"), anyString(), any(), any());
 	}
 }

@@ -92,7 +92,7 @@ public class AlimtalkService {
 			return;
 		}
 		try {
-			entry.sent(sender.send(phone, templateId, request.variables()));
+			entry.sent(sender.send(phone, templateId, request.variables(), request.template().buttons()));
 			log.info("알림톡 접수: {}", request.dedupKey());
 		} catch (RuntimeException e) {
 			entry.failed(e.getMessage());

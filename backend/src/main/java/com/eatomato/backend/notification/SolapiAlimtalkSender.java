@@ -5,6 +5,7 @@ import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -38,16 +39,8 @@ public class SolapiAlimtalkSender implements AlimtalkSender {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public String send(String to, String templateId, Map<String, String> variables) {
-		Map<String, Object> message = Map.of(
-			"to", to,
-			"from", properties.sender().replaceAll("[^0-9]", ""),
-			"kakaoOptions", Map.of(
-				"pfId", properties.pfId(),
-				"templateId", templateId,
-				"variables", variables,
-				"disableSms", false));
-		Map<String, Object> body = Map.of("messages", List.of(message), "showMessageList", true);
+	public String send(String to, String templateId, Map<String, String> variables, List<Button> buttons) {
+		Map<String, Object> body = requestBody(to, templateId, variables, buttons);
 		Map<String, Object> response;
 		try {
 			response = restClient.post()
@@ -63,6 +56,36 @@ public class SolapiAlimtalkSender implements AlimtalkSender {
 		} catch (RestClientException e) {
 			throw new AlimtalkException(truncate("솔라피 호출 실패: " + e.getMessage()));
 		}
+		return messageId(response);
+	}
+
+	/** send-many/detail 요청 본문(메시지 한 건). */
+	Map<String, Object> requestBody(String to, String templateId, Map<String, String> variables, List<Button> buttons) {
+		Map<String, Object> kakaoOptions = new LinkedHashMap<>();
+		kakaoOptions.put("pfId", properties.pfId());
+		kakaoOptions.put("templateId", templateId);
+		kakaoOptions.put("variables", variables);
+		kakaoOptions.put("disableSms", false);
+		if (!buttons.isEmpty()) {
+			// 템플릿에 등록한 버튼을 그대로 보낸다(WL: 웹링크). 솔라피 문서에 생략 시 동작이 적혀 있지 않아 명시한다.
+			kakaoOptions.put("buttons", buttons.stream()
+				.map(button -> Map.of(
+					"buttonName", button.name(),
+					"buttonType", "WL",
+					"linkMo", button.link(),
+					"linkPc", button.link()))
+				.toList());
+		}
+		Map<String, Object> message = Map.of(
+			"to", to,
+			"from", properties.sender().replaceAll("[^0-9]", ""),
+			"kakaoOptions", kakaoOptions);
+		return Map.of("messages", List.of(message), "showMessageList", true);
+	}
+
+	/** 응답에서 접수된 메시지 ID. 실패 목록이 있으면 AlimtalkException. */
+	@SuppressWarnings("unchecked")
+	private static String messageId(Map<String, Object> response) {
 		if (response == null) {
 			throw new AlimtalkException("솔라피 응답 없음");
 		}

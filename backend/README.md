@@ -146,6 +146,9 @@ docker compose up -d --build   # mysql → backend 순서로 뜬다
 | `ORDER_CANCELLED` | 결제된 주문의 취소(고객·관리자·PG) | 받는 분 연락처 | `#{고객명}` `#{주문번호}` `#{상품명}` `#{환불금액}` |
 
 - `#{고객명}` 은 받는 분 이름, `#{상품명}` 은 `첫 상품 외 N건`, 금액은 `12,000` 형식(원 단위는 템플릿에 쓴다).
+- 템플릿 버튼은 `AlimtalkTemplate` 에 고정해 발송 때 함께 보낸다(이름·순서·링크가 검수본과 같아야 함).
+  `ORDER_PAID`: `주문 내역 보기`(https://eatomato.kr/mypage), `비회원 주문 조회`(https://eatomato.kr/orders/guest).
+  템플릿 버튼을 바꿔 재검수하면 여기도 같이 바꾼다.
 - 결제 전 주문(결제대기·입금대기)의 취소는 보내지 않는다. 휴대폰 번호(01X)가 아니면 SKIPPED.
 - 상태 이력(`OrderStatusHistory`)을 저장하면 `OrderStatusChangedEvent` 가 발행되고(`@DomainEvents`),
   커밋된 뒤 비동기로 보낸다 — 알림톡이 실패해도 결제·상태 변경은 그대로다. 같은 알림은 `dedup_key` 로 한 번만 보낸다.
