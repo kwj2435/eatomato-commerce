@@ -20,6 +20,18 @@ export type ChangeDay = { date: string; items: ChangeItem[] };
 
 export const CHANGELOG: ChangeDay[] = [
   {
+    date: "2026-11-10",
+    items: [
+      {
+        type: "fix",
+        area: "스토어",
+        title: "후기 사진이 한 장만 보이던 문제 수정",
+        detail:
+          "사진을 여러 장 올린 후기는 썸네일에 +N 이 표시되고, 누르면 모든 사진을 크게 넘겨 볼 수 있습니다. 이미 올라온 후기의 사진도 그대로 보입니다.",
+      },
+    ],
+  },
+  {
     date: "2026-11-09",
     items: [
       {

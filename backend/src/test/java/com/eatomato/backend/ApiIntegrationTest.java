@@ -263,13 +263,19 @@ class ApiIntegrationTest {
 		String orderItemId = JsonPath.read(reviewable, "$[0].orderItemId");
 
 		MockMultipartFile photo = new MockMultipartFile("photos", "case.jpg", "image/jpeg", new byte[] {1, 2, 3});
-		mockMvc.perform(multipart("/api/reviews").file(photo)
+		MockMultipartFile photo2 = new MockMultipartFile("photos", "case2.jpg", "image/jpeg", new byte[] {4, 5, 6});
+		mockMvc.perform(multipart("/api/reviews").file(photo).file(photo2)
 				.header(HttpHeaders.AUTHORIZATION, token)
 				.param("orderItemId", orderItemId)
 				.param("rating", "5")
 				.param("content", "실물이 더 예뻐요"))
 			.andExpect(status().isCreated())
+			.andExpect(jsonPath("$.images", hasSize(2)))
 			.andExpect(jsonPath("$.images[0]").value(startsWith("http://localhost:8080/uploads/reviews/")));
+
+		// 상품 상세의 후기에도 첨부한 사진이 모두 나온다(예전에는 첫 장만 내려가 한 장만 보였다).
+		mockMvc.perform(get("/api/products/mellow-macsafe/reviews"))
+			.andExpect(jsonPath("$.content[?(@.content == '실물이 더 예뻐요')].images[*]", hasSize(2)));
 
 		mockMvc.perform(multipart("/api/reviews")
 				.header(HttpHeaders.AUTHORIZATION, token)

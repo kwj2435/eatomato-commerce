@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
 import { listProductReviews } from "@/lib/api/products";
 import type { ProductReview } from "@/types/product-detail";
+
+import { ReviewPhotoViewer } from "./ReviewPhotoViewer";
 
 type ReviewsSectionProps = {
   slug: string;
@@ -87,6 +89,10 @@ export function ReviewsSection({
 }
 
 function ReviewRow({ review }: { review: ProductReview }) {
+  const photos = reviewPhotos(review);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const closeViewer = useCallback(() => setViewerOpen(false), []);
+
   return (
     <article className="flex items-start justify-between gap-8 border-t border-brand-divider py-[18px] min-h-[135px]">
       <div className="flex flex-col gap-3.5">
@@ -114,19 +120,40 @@ function ReviewRow({ review }: { review: ProductReview }) {
         </p>
       </div>
 
-      {review.imageUrl ? (
-        <div className="relative h-[105px] w-[105px] flex-none overflow-hidden bg-[#EDEDED]">
+      {photos.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => setViewerOpen(true)}
+          aria-label={photos.length > 1 ? `후기 사진 ${photos.length}장 크게 보기` : "후기 사진 크게 보기"}
+          className="relative h-[105px] w-[105px] flex-none overflow-hidden bg-[#EDEDED]"
+        >
           <Image
-            src={review.imageUrl}
+            src={photos[0]}
             alt="리뷰 사진"
             fill
             sizes="105px"
             className="object-cover"
           />
-        </div>
+          {photos.length > 1 ? (
+            <span
+              aria-hidden
+              className="absolute bottom-1.5 right-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[12px] text-white"
+            >
+              +{photos.length - 1}
+            </span>
+          ) : null}
+        </button>
       ) : (
         <div className="h-[105px] w-[105px] flex-none bg-[#EDEDED]" />
       )}
+
+      {viewerOpen ? <ReviewPhotoViewer images={photos} onClose={closeViewer} /> : null}
     </article>
   );
+}
+
+/** 후기 사진 전체. 예전 응답(images 없음)이면 대표 사진 한 장. */
+function reviewPhotos(review: ProductReview): string[] {
+  if (review.images && review.images.length > 0) return review.images;
+  return review.imageUrl ? [review.imageUrl] : [];
 }

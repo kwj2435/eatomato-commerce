@@ -42,7 +42,10 @@ export type ProductReview = {
   rating: 1 | 2 | 3 | 4 | 5;
   content: string;
   isBest?: boolean;
+  /** 첫 사진(목록 썸네일). */
   imageUrl?: string;
+  /** 첨부한 사진 전체(올린 순서). 예전 응답에는 없을 수 있어 선택 값. */
+  images?: string[];
 };
 
 export type ProductDetail = Product & {
