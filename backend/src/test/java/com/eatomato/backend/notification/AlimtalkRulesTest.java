@@ -57,12 +57,24 @@ class AlimtalkRulesTest {
 			Map.of("buttonName", "비회원 주문 조회", "buttonType", "WL",
 				"linkMo", "https://eatomato.kr/orders/guest", "linkPc", "https://eatomato.kr/orders/guest"));
 
+		// 배송조회(DS) 버튼은 링크 없이 보낸다
+		assertThat((List<Map<String, String>>) kakaoOf(sender.requestBody("01011112222", "tpl-shipping", Map.of(),
+			AlimtalkTemplate.ORDER_SHIPPING.buttons())).get("buttons")).containsExactly(
+			Map.of("buttonName", "배송 조회", "buttonType", "DS"));
+
+		assertThat((List<Map<String, String>>) kakaoOf(sender.requestBody("01011112222", "tpl-cancelled", Map.of(),
+			AlimtalkTemplate.ORDER_CANCELLED.buttons())).get("buttons")).containsExactly(
+			Map.of("buttonName", "주문 내역 보기", "buttonType", "WL",
+				"linkMo", "https://eatomato.kr/mypage", "linkPc", "https://eatomato.kr/mypage"));
+
 		// 버튼이 없는 템플릿은 buttons 를 보내지 않는다
-		Map<String, Object> shipping = sender.requestBody("01011112222", "tpl-shipping", Map.of(),
-			AlimtalkTemplate.ORDER_SHIPPING.buttons());
-		Map<String, Object> shippingKakao = (Map<String, Object>)
-			((List<Map<String, Object>>) shipping.get("messages")).get(0).get("kakaoOptions");
-		assertThat(shippingKakao).doesNotContainKey("buttons");
+		assertThat(kakaoOf(sender.requestBody("01011112222", "tpl-preparing", Map.of(),
+			AlimtalkTemplate.ORDER_PREPARING.buttons()))).doesNotContainKey("buttons");
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> kakaoOf(Map<String, Object> body) {
+		return (Map<String, Object>) ((List<Map<String, Object>>) body.get("messages")).get(0).get("kakaoOptions");
 	}
 
 	@Test

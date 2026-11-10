@@ -16,8 +16,19 @@ public interface AlimtalkSender {
 	 */
 	String send(String to, String templateId, Map<String, String> variables, List<Button> buttons);
 
-	/** 웹링크 버튼. 모바일·PC 링크가 같다. */
-	record Button(String name, String link) {
+	/**
+	 * 템플릿 버튼. type 은 카카오 버튼 종류(WL: 웹링크, DS: 배송조회). 웹링크는 모바일·PC 링크가 같고,
+	 * 배송조회는 링크 없이 카카오가 본문의 택배사·송장번호로 조회 화면을 연다.
+	 */
+	record Button(String name, String type, String link) {
+
+		public static Button webLink(String name, String link) {
+			return new Button(name, "WL", link);
+		}
+
+		public static Button deliveryTracking(String name) {
+			return new Button(name, "DS", null);
+		}
 	}
 
 	class AlimtalkException extends RuntimeException {

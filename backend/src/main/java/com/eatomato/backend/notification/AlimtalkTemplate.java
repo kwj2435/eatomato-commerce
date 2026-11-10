@@ -17,14 +17,16 @@ public enum AlimtalkTemplate {
 	 * 버튼: 주문 내역 보기(회원), 비회원 주문 조회
 	 */
 	ORDER_PAID(
-		new Button("주문 내역 보기", "https://eatomato.kr/mypage"),
-		new Button("비회원 주문 조회", "https://eatomato.kr/orders/guest")),
-	/** 상품준비중. 변수: #{고객명} #{주문번호} #{상품명} */
+		Button.webLink("주문 내역 보기", "https://eatomato.kr/mypage"),
+		Button.webLink("비회원 주문 조회", "https://eatomato.kr/orders/guest")),
+	/** 상품준비중. 변수: #{고객명} #{주문번호} #{상품명}. 버튼 없음 */
 	ORDER_PREPARING,
-	/** 배송 시작. 변수: #{고객명} #{주문번호} #{택배사} #{송장번호} */
-	ORDER_SHIPPING,
-	/** 결제된 주문의 취소·환불. 변수: #{고객명} #{주문번호} #{상품명} #{환불금액} */
-	ORDER_CANCELLED;
+	/** 배송 시작. 변수: #{고객명} #{주문번호} #{택배사} #{송장번호}. 버튼: 배송 조회(카카오 배송조회) */
+	ORDER_SHIPPING(
+		Button.deliveryTracking("배송 조회")),
+	/** 결제된 주문의 취소·환불. 변수: #{고객명} #{주문번호} #{상품명} #{환불금액}. 버튼: 주문 내역 보기 */
+	ORDER_CANCELLED(
+		Button.webLink("주문 내역 보기", "https://eatomato.kr/mypage"));
 
 	/**
 	 * 카카오 검수를 받은 템플릿의 버튼. 이름·순서·링크가 검수본과 같아야 해서 설정이 아니라 여기 고정한다

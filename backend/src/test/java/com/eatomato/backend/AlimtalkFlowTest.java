@@ -17,7 +17,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -134,7 +133,7 @@ class AlimtalkFlowTest {
 				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"PREPARING\"}"))
 			.andExpect(status().isOk());
 		verify(sender, timeout(WAIT_MS)).send(eq("01022223333"), eq("tpl-preparing"),
-			vars(v -> orderNumber.equals(v.get("#{주문번호}"))), eq(List.of()));
+			vars(v -> orderNumber.equals(v.get("#{주문번호}"))), eq(AlimtalkTemplate.ORDER_PREPARING.buttons()));
 
 		mockMvc.perform(put("/api/admin/orders/" + orderNumber + "/tracking").header(HttpHeaders.AUTHORIZATION, admin)
 				.contentType(MediaType.APPLICATION_JSON).content("{\"courier\":\"CJ대한통운\",\"trackingNumber\":\"1234 5678 9012\"}"))
@@ -143,7 +142,7 @@ class AlimtalkFlowTest {
 				.contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SHIPPING\"}"))
 			.andExpect(status().isOk());
 		verify(sender, timeout(WAIT_MS)).send(eq("01022223333"), eq("tpl-shipping"), vars(v ->
-			"CJ대한통운".equals(v.get("#{택배사}")) && "123456789012".equals(v.get("#{송장번호}"))), eq(List.of()));
+			"CJ대한통운".equals(v.get("#{택배사}")) && "123456789012".equals(v.get("#{송장번호}"))), eq(AlimtalkTemplate.ORDER_SHIPPING.buttons()));
 
 		// 같은 알림을 다시 요청해도 보내지 않는다
 		alimtalkService.sendForOrder(orderId(orderNumber), AlimtalkTemplate.ORDER_PAID);
@@ -171,7 +170,7 @@ class AlimtalkFlowTest {
 		mockMvc.perform(post("/api/orders/" + paid + "/cancel").header(HttpHeaders.AUTHORIZATION, user))
 			.andExpect(status().isOk());
 		verify(sender, timeout(WAIT_MS)).send(eq("01044445555"), eq("tpl-cancelled"), vars(v ->
-			paid.equals(v.get("#{주문번호}")) && v.get("#{환불금액}").matches("[0-9,]+")), eq(List.of()));
+			paid.equals(v.get("#{주문번호}")) && v.get("#{환불금액}").matches("[0-9,]+")), eq(AlimtalkTemplate.ORDER_CANCELLED.buttons()));
 
 		verify(sender, never()).send(anyString(), anyString(), vars(v -> unpaid.equals(v.get("#{주문번호}"))), any());
 	}

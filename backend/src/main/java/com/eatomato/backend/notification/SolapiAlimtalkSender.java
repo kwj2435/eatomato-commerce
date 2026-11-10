@@ -67,20 +67,25 @@ public class SolapiAlimtalkSender implements AlimtalkSender {
 		kakaoOptions.put("variables", variables);
 		kakaoOptions.put("disableSms", false);
 		if (!buttons.isEmpty()) {
-			// 템플릿에 등록한 버튼을 그대로 보낸다(WL: 웹링크). 솔라피 문서에 생략 시 동작이 적혀 있지 않아 명시한다.
-			kakaoOptions.put("buttons", buttons.stream()
-				.map(button -> Map.of(
-					"buttonName", button.name(),
-					"buttonType", "WL",
-					"linkMo", button.link(),
-					"linkPc", button.link()))
-				.toList());
+			// 템플릿에 등록한 버튼을 그대로 보낸다. 솔라피 문서에 생략 시 동작이 적혀 있지 않아 명시한다.
+			kakaoOptions.put("buttons", buttons.stream().map(SolapiAlimtalkSender::button).toList());
 		}
 		Map<String, Object> message = Map.of(
 			"to", to,
 			"from", properties.sender().replaceAll("[^0-9]", ""),
 			"kakaoOptions", kakaoOptions);
 		return Map.of("messages", List.of(message), "showMessageList", true);
+	}
+
+	private static Map<String, String> button(Button button) {
+		Map<String, String> map = new LinkedHashMap<>();
+		map.put("buttonName", button.name());
+		map.put("buttonType", button.type());
+		if (button.link() != null) {
+			map.put("linkMo", button.link());
+			map.put("linkPc", button.link());
+		}
+		return map;
 	}
 
 	/** 응답에서 접수된 메시지 ID. 실패 목록이 있으면 AlimtalkException. */
