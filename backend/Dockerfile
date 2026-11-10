@@ -23,6 +23,9 @@ COPY --from=build /app/build/libs/app.jar app.jar
 USER app
 
 EXPOSE 8080
-# VM 메모리가 1GB 미만이라 힙을 작게 잡는다.
-ENV JAVA_OPTS="-Xms128m -Xmx256m -XX:+UseSerialGC -XX:MaxMetaspaceSize=128m"
+# VM 메모리가 작아 힙을 작게 잡는다.
+# Metaspace 는 Spring Boot(JPA·Security·OAuth2) 기동만으로 120MB 안팎이라 128m 이면 몇십 시간 뒤 OOM 으로
+# GC 가 멈추지 않고 돌며 API 가 10초 넘게 걸렸다(2026-11-10). 192m 로 올리고,
+# OOM 이 나면 버티지 말고 종료해 restart: unless-stopped 로 다시 뜨게 한다.
+ENV JAVA_OPTS="-Xms128m -Xmx224m -XX:+UseSerialGC -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=64m -XX:+ExitOnOutOfMemoryError"
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

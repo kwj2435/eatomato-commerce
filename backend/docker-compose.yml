@@ -52,7 +52,7 @@ services:
       DB_PORT: "3306"
       UPLOAD_DIR: /app/uploads
     restart: unless-stopped
-    mem_limit: 450m
+    mem_limit: 520m
 
   # 마케팅 인사이트 워커(Python, ../insight-agent). 켤 때만 뜨도록 profile 로 둔다:
   # .env 에 COMPOSE_PROFILES=insight 와 INSIGHT_AGENT_TOKEN, ANTHROPIC_API_KEY 를 넣는다.
