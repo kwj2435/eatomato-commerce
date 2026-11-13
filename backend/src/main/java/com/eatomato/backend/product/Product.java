@@ -181,6 +181,11 @@ public class Product {
 		this.salesCount = Math.max(0, this.salesCount - quantity);
 	}
 
+	/** 후기 평균 별점. 후기가 저장될 때마다 다시 계산해 넣는다(목록 평점·평점순 정렬이 이 값을 쓴다). */
+	public void updateRating(BigDecimal rating) {
+		this.rating = rating;
+	}
+
 	/** 스토어프론트에 노출·판매 중인지. */
 	public boolean isOnSale() {
 		return visible && deletedAt == null;

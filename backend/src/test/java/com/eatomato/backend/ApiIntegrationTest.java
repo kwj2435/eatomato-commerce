@@ -287,8 +287,12 @@ class ApiIntegrationTest {
 		mockMvc.perform(get("/api/me/reviewable-products").header(HttpHeaders.AUTHORIZATION, token))
 			.andExpect(jsonPath("$", hasSize(0)));
 
+		// 후기를 저장하면 상품 평점이 후기 평균으로 다시 계산된다(예전에는 0 으로 남아 있었다).
+		Double average = jdbc.queryForObject("select round(avg(r.rating), 1) from review r join product p on p.id = r.product_id "
+			+ "where p.slug = 'mellow-macsafe'", Double.class);
 		mockMvc.perform(get("/api/products/mellow-macsafe"))
-			.andExpect(jsonPath("$.reviewCount").value(5));
+			.andExpect(jsonPath("$.reviewCount").value(5))
+			.andExpect(jsonPath("$.rating").value(average));
 
 		mockMvc.perform(get("/api/orders").header(HttpHeaders.AUTHORIZATION, token))
 			.andExpect(jsonPath("$", hasSize(1)))

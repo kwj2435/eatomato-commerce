@@ -20,6 +20,24 @@ export type ChangeDay = { date: string; items: ChangeItem[] };
 
 export const CHANGELOG: ChangeDay[] = [
   {
+    date: "2026-11-14",
+    items: [
+      {
+        type: "improve",
+        area: "스토어",
+        title: "메인 Review 빈 칸을 이벤트 카드로 채움",
+        detail:
+          "메인 Review 에 후기가 1~3개뿐이면 남은 칸에 '다음 후기의 주인공이 되어주세요' 포토후기 이벤트 카드가 나옵니다. 후기가 4개가 되면 저절로 사라집니다.",
+      },
+      {
+        type: "fix",
+        area: "스토어",
+        title: "상품 평점이 0.0으로 나오던 문제 수정",
+        detail: "후기가 저장될 때마다 상품 평점을 후기 평균으로 다시 계산합니다. 기존 상품 평점도 후기 평균으로 맞췄습니다.",
+      },
+    ],
+  },
+  {
     date: "2026-11-11",
     items: [
       {

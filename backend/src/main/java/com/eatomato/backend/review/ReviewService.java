@@ -1,5 +1,7 @@
 package com.eatomato.backend.review;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -93,9 +95,18 @@ public class ReviewService {
 			.images(imageUrls)
 			.build());
 		orderItem.markReviewed();
+		refreshRating(product);
 		// 후기 적립금: 사진이 있으면 포토 후기(상품 상세 후기 탭 안내와 같은 금액).
 		pointService.earn(memberId, imageUrls.isEmpty() ? PointService.TEXT_REVIEW_REWARD
 			: PointService.PHOTO_REVIEW_REWARD, PointType.REVIEW_EARN, product.getName() + " 후기 적립", null);
 		return MyReviewResponse.from(review);
+	}
+
+	/** 상품 평점을 후기 평균(소수 첫째 자리 반올림)으로 맞춘다. */
+	private void refreshRating(Product product) {
+		reviewRepository.flush();
+		Double average = reviewRepository.averageRating(product);
+		product.updateRating(average == null ? BigDecimal.ZERO
+			: BigDecimal.valueOf(average).setScale(1, RoundingMode.HALF_UP));
 	}
 }

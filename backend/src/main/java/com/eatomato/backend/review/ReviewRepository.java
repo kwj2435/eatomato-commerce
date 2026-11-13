@@ -19,6 +19,10 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
 	long countByProduct(Product product);
 
+	/** 상품의 후기 평균 별점. 후기가 없으면 null. */
+	@Query("select avg(r.rating) from Review r where r.product = :product")
+	Double averageRating(@Param("product") Product product);
+
 	@EntityGraph(attributePaths = "product")
 	List<Review> findByFeaturedTrueOrderByCreatedAtDescIdDesc(Pageable pageable);
 
