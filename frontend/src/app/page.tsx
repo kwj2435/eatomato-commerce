@@ -64,11 +64,13 @@ export default async function HomePage() {
       {/* 화면에는 로고가 제목 역할을 하므로 검색엔진·화면 읽기용 제목은 숨겨 둔다. */}
       <h1 className="sr-only">eatomato 잇토마토 — 핸드폰 케이스와 라이프스타일 굿즈 공식 온라인 스토어</h1>
       <HeroBanner banners={banners} />
-      <TomatoEditSection description={contents.HOME_EDIT_DESCRIPTION} />
+      {/* 방문자 대부분이 인스타그램에서 모바일로 홈에 들어와 바로 나가서(2026-11 기준 약 77%),
+          상품(Best Picks)을 히어로 바로 아래에 두고 후기를 혜택(Special)보다 먼저 보인다. */}
       <BestPicksSection description={contents.HOME_BEST_PICKS_DESCRIPTION} />
+      <TomatoEditSection description={contents.HOME_EDIT_DESCRIPTION} />
       <WhatsNewSection description={contents.HOME_WHATS_NEW_DESCRIPTION} />
-      <SpecialSection description={contents.HOME_SPECIAL_DESCRIPTION} />
       <ReviewSection description={contents.HOME_REVIEW_DESCRIPTION} />
+      <SpecialSection description={contents.HOME_SPECIAL_DESCRIPTION} />
     </SiteFrame>
   );
 }

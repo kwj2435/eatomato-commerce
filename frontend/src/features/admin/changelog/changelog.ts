@@ -25,6 +25,12 @@ export const CHANGELOG: ChangeDay[] = [
       {
         type: "improve",
         area: "스토어",
+        title: "메인 섹션 순서 변경",
+        detail: "Best Picks 를 배너 바로 아래로 올리고, Review 를 Special 위로 옮겼습니다. 순서: Best Picks → Tomato Edit → What's New → Review → Special.",
+      },
+      {
+        type: "improve",
+        area: "스토어",
         title: "메인 Review 빈 칸을 이벤트 카드로 채움",
         detail:
           "메인 Review 에 후기가 1~3개뿐이면 남은 칸에 '다음 후기의 주인공이 되어주세요' 포토후기 이벤트 카드가 나옵니다. 후기가 4개가 되면 저절로 사라집니다.",
