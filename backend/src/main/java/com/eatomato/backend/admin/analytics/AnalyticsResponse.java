@@ -30,8 +30,29 @@ public record AnalyticsResponse(
 	/** 기간의 구매 단계(방문 기준). */
 	Funnel funnel,
 	/** 링크 ?from= 캠페인별 성과. 많이 들어온 순 20개. */
-	List<Campaign> campaigns
+	List<Campaign> campaigns,
+	/** 화면 안 행동(메인 섹션 노출·클릭, 상품 상세 행동). 2026-11-14 부터 모은다. */
+	Engagement engagement
 ) {
+
+	/**
+	 * homeSessions: 메인을 연 방문 수. sections 는 메인에 보이는 순서대로.
+	 * productSessions: 상품 상세를 연 방문 수(상품 상세 행동의 분모).
+	 */
+	public record Engagement(long homeSessions, List<SectionStat> sections, List<SectionClick> topClicks,
+		long productSessions, List<ProductAction> productActions, List<Source> topOptions) {
+	}
+
+	/** viewSessions: 그 섹션이 화면에 보인 방문, clickSessions: 그 섹션에서 링크를 누른 방문, clicks: 누른 횟수. */
+	public record SectionStat(String section, long viewSessions, long clickSessions, long clicks) {
+	}
+
+	public record SectionClick(String section, String path, long clicks) {
+	}
+
+	/** type: PRODUCT_OPTION·PRODUCT_IMAGE·PRODUCT_TAB·PRODUCT_REVIEW. */
+	public record ProductAction(String type, long count, long sessions) {
+	}
 
 	/**
 	 * 방문 수 → 상품을 본 방문 → 장바구니에 담은 방문 → 주문서를 연 방문 → 결제하기를 누른 방문 → 결제를 마친 방문.

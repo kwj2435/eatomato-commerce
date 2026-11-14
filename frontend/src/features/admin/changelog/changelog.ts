@@ -23,10 +23,17 @@ export const CHANGELOG: ChangeDay[] = [
     date: "2026-11-14",
     items: [
       {
+        type: "new",
+        area: "관리자",
+        title: "방문자 분석에 메인 섹션·상품 상세 행동 추가",
+        detail:
+          "메인 섹션마다 몇 %가 내려와 봤는지와 누른 비율, 많이 눌린 링크를 보여 줍니다. 상품 상세에서 사진 넘김·옵션 선택·탭·후기 보기를 한 방문 비율과 많이 고른 옵션도 함께 봅니다. 오늘 배포 뒤부터 쌓입니다.",
+      },
+      {
         type: "improve",
         area: "스토어",
         title: "메인 섹션 순서 변경",
-        detail: "Best Picks 를 배너 바로 아래로 올리고, Review 를 Special 위로 옮겼습니다. 순서: Best Picks → Tomato Edit → What's New → Review → Special.",
+        detail: "Best Picks 를 배너 바로 아래로 올리고, Review 를 Special 위로 옮겼습니다. 순서: Best Picks → What's New → Tomato Edit → Review → Special.",
       },
       {
         type: "improve",

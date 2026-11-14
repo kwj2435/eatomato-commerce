@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 
+import { trackInteraction } from "@/lib/analytics";
+
 import { cn } from "@/lib/utils/cn";
 import type { ProductDetail } from "@/types/product-detail";
 
@@ -24,18 +26,27 @@ export function ProductGallery({ product }: ProductGalleryProps) {
   const images = [...new Set([product.imageUrl, product.hoverImageUrl].filter((src): src is string => !!src))];
   const trackRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  // 넘겨 본 사진은 페이지마다 한 번씩만 기록한다(첫 사진은 열자마자 보이므로 빼고).
+  const sentImages = useRef(new Set<number>([0]));
+
+  const show = (i: number) => {
+    setIndex(i);
+    if (sentImages.current.has(i)) return;
+    sentImages.current.add(i);
+    trackInteraction({ type: "PRODUCT_IMAGE", productId: product.id, index: i });
+  };
 
   const goTo = (i: number) => {
     const track = trackRef.current;
     if (!track) return;
     track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" });
-    setIndex(i);
+    show(i);
   };
 
   const onScroll = () => {
     const track = trackRef.current;
     if (!track || track.clientWidth === 0) return;
-    setIndex(Math.round(track.scrollLeft / track.clientWidth));
+    show(Math.round(track.scrollLeft / track.clientWidth));
   };
 
   return (

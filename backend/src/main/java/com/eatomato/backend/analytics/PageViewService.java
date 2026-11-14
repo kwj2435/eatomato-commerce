@@ -32,6 +32,7 @@ public class PageViewService {
 
 	private final PageViewRepository pageViewRepository;
 	private final AnalyticsEventRepository analyticsEventRepository;
+	private final InteractionEventRepository interactionEventRepository;
 	private final ProductRepository productRepository;
 
 	/**
@@ -74,7 +75,8 @@ public class PageViewService {
 	public void cleanUp() {
 		int deleted = pageViewRepository.deleteViewedBefore(Times.now().minus(KEEP));
 		int events = analyticsEventRepository.deleteOccurredBefore(Times.now().minus(KEEP));
-		log.info("방문 기록 정리: 페이지 조회 {}건, 구매 단계 이벤트 {}건", deleted, events);
+		int interactions = interactionEventRepository.deleteOccurredBefore(Times.now().minus(KEEP));
+		log.info("방문 기록 정리: 페이지 조회 {}건, 구매 단계 이벤트 {}건, 화면 행동 {}건", deleted, events, interactions);
 	}
 
 	/** 쿼리·해시를 떼고 끝의 / 를 없앤다(정적 export 는 /cart/ 처럼 끝에 / 가 붙는다). 형식이 이상하면 null. */

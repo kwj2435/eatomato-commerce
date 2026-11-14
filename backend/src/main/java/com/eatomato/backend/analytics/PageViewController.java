@@ -19,6 +19,7 @@ public class PageViewController {
 
 	private final PageViewService pageViewService;
 	private final AnalyticsEventService analyticsEventService;
+	private final InteractionEventService interactionEventService;
 
 	@PostMapping("/api/analytics/pageview")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -34,5 +35,13 @@ public class PageViewController {
 	public void event(@Valid @RequestBody AnalyticsEventRequest request,
 		@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
 		analyticsEventService.record(request, userAgent);
+	}
+
+	/** 화면 안 행동(메인 섹션 노출·클릭, 상품 상세의 옵션·사진·탭·후기). */
+	@PostMapping("/api/analytics/interaction")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void interaction(@Valid @RequestBody InteractionEventRequest request,
+		@RequestHeader(value = HttpHeaders.USER_AGENT, required = false) String userAgent) {
+		interactionEventService.record(request, userAgent);
 	}
 }

@@ -13,7 +13,7 @@ import { getProductDetail } from "@/lib/api/products";
 import { useCartStore } from "@/lib/store/cart-store";
 import { cn } from "@/lib/utils/cn";
 import { formatKRW } from "@/lib/utils/format";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackInteraction } from "@/lib/analytics";
 import type { OptionGroup, ProductDetail } from "@/types/product-detail";
 import type { ShippingPolicy } from "@/types/shipping";
 
@@ -205,9 +205,13 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
               key={group.id}
               group={group}
               value={mainSelection[group.id] ?? null}
-              onChange={(choiceId) =>
-                setMainSelection((prev) => ({ ...prev, [group.id]: choiceId }))
-              }
+              onChange={(choiceId) => {
+                setMainSelection((prev) => ({ ...prev, [group.id]: choiceId }));
+                const choice = group.choices.find((c) => c.id === choiceId);
+                if (choice) {
+                  trackInteraction({ type: "PRODUCT_OPTION", productId: product.id, detail: `${group.label}:${choice.label}` });
+                }
+              }}
             />
           ))}
         </div>

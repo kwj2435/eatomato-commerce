@@ -16,14 +16,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Campaign;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Daily;
+import com.eatomato.backend.admin.analytics.AnalyticsResponse.Engagement;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Funnel;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Hourly;
+import com.eatomato.backend.admin.analytics.AnalyticsResponse.ProductAction;
+import com.eatomato.backend.admin.analytics.AnalyticsResponse.SectionClick;
+import com.eatomato.backend.admin.analytics.AnalyticsResponse.SectionStat;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Source;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.TopPage;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.TopProduct;
 import com.eatomato.backend.admin.analytics.AnalyticsResponse.Totals;
 import com.eatomato.backend.analytics.AnalyticsEvent;
 import com.eatomato.backend.analytics.AnalyticsEventRepository;
+import com.eatomato.backend.analytics.InteractionEventRepository;
 import com.eatomato.backend.analytics.PageView.PageType;
 import com.eatomato.backend.analytics.PageViewRepository;
 import com.eatomato.backend.global.error.ApiException;
@@ -43,8 +48,13 @@ public class AdminAnalyticsService {
 	private static final int MAX_DAYS = 90;
 	private static final int TOP = 10;
 
+	/** 메인 섹션 순서(app/page.tsx). 기록이 없는 섹션도 0 으로 보인다. 목록에 없는 섹션 이름은 뒤에 붙인다. */
+	private static final List<String> HOME_SECTIONS =
+		List.of("hero", "best-picks", "whats-new", "tomato-edit", "review", "special");
+
 	private final PageViewRepository pageViewRepository;
 	private final AnalyticsEventRepository analyticsEventRepository;
+	private final InteractionEventRepository interactionEventRepository;
 	private final ProductRepository productRepository;
 	private final OrderItemRepository orderItemRepository;
 
@@ -90,7 +100,35 @@ public class AdminAnalyticsService {
 			sources(pageViewRepository.referrers(from)),
 			sources(pageViewRepository.devices(from)),
 			funnel(from, end),
-			campaigns(from, end));
+			campaigns(from, end),
+			engagement(from, end));
+	}
+
+	private Engagement engagement(LocalDateTime from, LocalDateTime to) {
+		Map<String, SectionStat> sections = new LinkedHashMap<>();
+		for (String section : HOME_SECTIONS) {
+			sections.put(section, new SectionStat(section, 0, 0, 0));
+		}
+		for (Object[] row : interactionEventRepository.sectionStats(from, to)) {
+			String section = (String) row[0];
+			sections.put(section, new SectionStat(section, num(row[1]), num(row[2]), num(row[3])));
+		}
+		List<SectionClick> topClicks = interactionEventRepository.topSectionClicks(from, to).stream()
+			.map(row -> new SectionClick((String) row[0], (String) row[1], num(row[2])))
+			.toList();
+		List<ProductAction> actions = interactionEventRepository.productActionStats(from, to).stream()
+			.map(row -> new ProductAction((String) row[0], num(row[1]), num(row[2])))
+			.toList();
+		List<Source> options = interactionEventRepository.topOptions(from, to).stream()
+			.map(row -> new Source((String) row[0], num(row[1])))
+			.toList();
+		return new Engagement(
+			pageViewRepository.countSessionsByType(PageType.HOME.name(), from, to),
+			new ArrayList<>(sections.values()),
+			topClicks,
+			pageViewRepository.countSessionsByType(PageType.PRODUCT.name(), from, to),
+			actions,
+			options);
 	}
 
 	private Funnel funnel(LocalDateTime from, LocalDateTime to) {

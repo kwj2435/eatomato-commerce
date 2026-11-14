@@ -30,10 +30,11 @@ export function ProductDetailView({ product, shippingPolicy }: ProductDetailView
         </div>
       </Container>
 
-      <DetailTabs />
+      <DetailTabs productId={product.id} />
       <DetailsSection images={product.detailImages} />
       <ShippingSection lines={product.shippingLines} />
       <ReviewsSection
+        productId={product.id}
         slug={product.slug}
         reviews={product.reviews}
         reviewCount={product.reviewCount}

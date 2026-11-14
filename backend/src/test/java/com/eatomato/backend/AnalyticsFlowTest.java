@@ -193,4 +193,68 @@ class AnalyticsFlowTest {
 		mockMvc.perform(get("/api/admin/analytics").param("days", "365").header(HttpHeaders.AUTHORIZATION, admin()))
 			.andExpect(status().isBadRequest());
 	}
+
+	private void interaction(String visitor, String session, String fields) throws Exception {
+		mockMvc.perform(post("/api/analytics/interaction").contentType(MediaType.APPLICATION_JSON)
+				.header(HttpHeaders.USER_AGENT, BROWSER)
+				.content("{\"visitorId\":\"%s\",\"sessionId\":\"%s\",%s}".formatted(visitor, session, fields)))
+			.andExpect(status().isNoContent());
+	}
+
+	private static long sectionValue(String json, String section, String field) {
+		List<Number> values = JsonPath.read(json, "$.engagement.sections[?(@.section == '%s')].%s".formatted(section, field));
+		return values.isEmpty() ? 0 : values.get(0).longValue();
+	}
+
+	@Test
+	void 메인_섹션_노출_클릭과_상품_상세_행동이_집계된다() throws Exception {
+		String admin = admin();
+		String before = analytics(admin);
+		long productId = jdbc.queryForObject("select id from product where slug = 'mellow-macsafe'", Long.class);
+
+		String visitor = UUID.randomUUID().toString();
+		String session = UUID.randomUUID().toString();
+		view(visitor, session, "/", true, null, BROWSER);
+		interaction(visitor, session, "\"type\":\"SECTION_VIEW\",\"section\":\"best-picks\"");
+		interaction(visitor, session, "\"type\":\"SECTION_VIEW\",\"section\":\"whats-new\"");
+		// 배너는 사이트 전체 주소로 들어 있다. 경로만 남기고 상품 슬러그면 상품 id 도 남긴다.
+		interaction(visitor, session, "\"type\":\"SECTION_CLICK\",\"section\":\"best-picks\",\"itemIndex\":2,"
+			+ "\"detail\":\"https://eatomato.kr/products/mellow-macsafe/?from=x\"");
+		interaction(visitor, session, "\"type\":\"PRODUCT_OPTION\",\"productId\":%d,\"detail\":\"기종:아이폰 16 프로\""
+			.formatted(productId));
+		interaction(visitor, session, "\"type\":\"PRODUCT_REVIEW\",\"productId\":%d,\"detail\":\"photo\""
+			.formatted(productId));
+		// 세지 않는 것: 섹션 이름이 없는 섹션 행동, 없는 상품의 상세 행동, 검색 로봇
+		interaction(visitor, session, "\"type\":\"SECTION_VIEW\"");
+		interaction(visitor, session, "\"type\":\"PRODUCT_IMAGE\",\"productId\":99999999,\"itemIndex\":1");
+		mockMvc.perform(post("/api/analytics/interaction").contentType(MediaType.APPLICATION_JSON)
+				.header(HttpHeaders.USER_AGENT, "Googlebot/2.1")
+				.content("{\"visitorId\":\"%s\",\"sessionId\":\"%s\",\"type\":\"SECTION_VIEW\",\"section\":\"hero\"}"
+					.formatted(visitor, session)))
+			.andExpect(status().isNoContent());
+
+		Long clickedProduct = jdbc.queryForObject("select product_id from interaction_event where session_id = ? "
+			+ "and event_type = 'SECTION_CLICK'", Long.class, session);
+		assertThat(clickedProduct).isEqualTo(productId);
+		assertThat(jdbc.queryForObject("select detail from interaction_event where session_id = ? "
+			+ "and event_type = 'SECTION_CLICK'", String.class, session)).isEqualTo("/products/mellow-macsafe");
+
+		String after = analytics(admin);
+		assertThat(sectionValue(after, "best-picks", "viewSessions") - sectionValue(before, "best-picks", "viewSessions"))
+			.isEqualTo(1);
+		assertThat(sectionValue(after, "best-picks", "clickSessions") - sectionValue(before, "best-picks", "clickSessions"))
+			.isEqualTo(1);
+		assertThat(sectionValue(after, "whats-new", "clicks") - sectionValue(before, "whats-new", "clicks")).isZero();
+		assertThat(sectionValue(after, "hero", "viewSessions") - sectionValue(before, "hero", "viewSessions")).isZero();
+		// 메인 순서대로 6개 섹션이 늘 나온다.
+		List<String> sections = JsonPath.read(after, "$.engagement.sections[*].section");
+		assertThat(sections).startsWith("hero", "best-picks", "whats-new", "tomato-edit", "review", "special");
+		List<Number> photo = JsonPath.read(after, "$.engagement.productActions[?(@.type == 'PRODUCT_REVIEW')].count");
+		assertThat(photo).singleElement().satisfies(n -> assertThat(n.longValue()).isGreaterThanOrEqualTo(1));
+		List<Number> imageActions = JsonPath.read(before, "$.engagement.productActions[?(@.type == 'PRODUCT_IMAGE')].count");
+		List<Number> imageAfter = JsonPath.read(after, "$.engagement.productActions[?(@.type == 'PRODUCT_IMAGE')].count");
+		assertThat(imageAfter).isEqualTo(imageActions);
+		List<String> options = JsonPath.read(after, "$.engagement.topOptions[*].key");
+		assertThat(options).contains("기종:아이폰 16 프로");
+	}
 }

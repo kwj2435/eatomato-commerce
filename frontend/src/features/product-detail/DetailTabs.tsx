@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
+import { trackInteraction } from "@/lib/analytics";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -22,7 +23,8 @@ const TAB_ITEMS = [
 /** 섹션 머리가 화면 위에서 이 높이(탭 줄 아래)를 지나면 그 섹션을 보는 중으로 친다. */
 const ACTIVE_OFFSET = 120;
 
-export function DetailTabs() {
+/** @param productId 탭을 누른 기록(관리자 > 방문자 분석)에 쓴다. */
+export function DetailTabs({ productId }: { productId: string }) {
   const [active, setActive] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,6 +68,7 @@ export function DetailTabs() {
           <a
             key={tab.id}
             href={`#${tab.id}`}
+            onClick={() => trackInteraction({ type: "PRODUCT_TAB", productId, detail: tab.id })}
             aria-current={active === tab.id ? "location" : undefined}
             className={cn(
               "w-[86px] rounded-full py-1 text-center text-[14px] leading-5 font-normal tracking-[0.2px] transition-colors md:text-[15px]",

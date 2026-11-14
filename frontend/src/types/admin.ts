@@ -202,7 +202,22 @@ export type Analytics = {
     purchaseSessions: number;
     revenue: number;
   }>;
+  /** 화면 안 행동(메인 섹션 노출·클릭, 상품 상세 행동). 2026-11-14 배포 뒤부터 쌓인다. */
+  engagement: {
+    /** 메인을 연 방문 수. */
+    homeSessions: number;
+    /** 메인에 보이는 순서대로. viewSessions: 화면에 보인 방문, clickSessions: 링크를 누른 방문, clicks: 누른 횟수. */
+    sections: Array<{ section: string; viewSessions: number; clickSessions: number; clicks: number }>;
+    topClicks: Array<{ section: string; path: string; clicks: number }>;
+    /** 상품 상세를 연 방문 수. */
+    productSessions: number;
+    productActions: Array<{ type: ProductActionType; count: number; sessions: number }>;
+    /** key: "옵션 이름:고른 값", count: 고른 횟수. */
+    topOptions: Array<{ key: string; count: number }>;
+  };
 };
+
+export type ProductActionType = "PRODUCT_OPTION" | "PRODUCT_IMAGE" | "PRODUCT_TAB" | "PRODUCT_REVIEW";
 
 // ── 상품 ──────────────────────────────────────────────────
 

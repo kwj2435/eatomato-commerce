@@ -103,6 +103,41 @@ export function trackEvent(event: FunnelEvent) {
   });
 }
 
+/** 메인 섹션 이름. data-track-section 값이며 관리자 분석 화면이 이 순서·이름으로 보여 준다. */
+export type HomeSection = "hero" | "best-picks" | "whats-new" | "tomato-edit" | "review" | "special";
+
+export type InteractionEvent =
+  /** 메인 섹션이 화면에 충분히 보임(페이지를 열 때마다 섹션당 한 번). 어디까지 내려 봤는지를 여기서 본다. */
+  | { type: "SECTION_VIEW"; section: HomeSection }
+  /** 메인 섹션 안 링크를 누름. index: 섹션 안 몇 번째 링크인지, href: 누른 주소. */
+  | { type: "SECTION_CLICK"; section: HomeSection; index: number; href: string }
+  /** 상품 상세에서 옵션을 고름. detail: "옵션 이름:고른 값". */
+  | { type: "PRODUCT_OPTION"; productId: string; detail: string }
+  /** 상품 상세 사진을 넘겨 봄. index: 사진 순서(0부터). */
+  | { type: "PRODUCT_IMAGE"; productId: string; index: number }
+  /** 상품 상세 탭을 누름. detail: 탭 id(details·shipping·reviews). */
+  | { type: "PRODUCT_TAB"; productId: string; detail: string }
+  /** 상품 상세 후기. view: 후기 영역이 화면에 보임, photo: 후기 사진을 크게 봄. */
+  | { type: "PRODUCT_REVIEW"; productId: string; detail: "view" | "photo" };
+
+/** 화면 안 행동 한 건(관리자 > 방문자 분석의 메인 섹션·상품 상세 행동). 구매 단계 기록과 따로 쌓는다. */
+export function trackInteraction(event: InteractionEvent) {
+  if (typeof window === "undefined" || skip()) return;
+  const visit = touchVisit();
+  if (!visit) return;
+  const productId = "productId" in event ? Number(event.productId) : undefined;
+  if (productId !== undefined && !Number.isSafeInteger(productId)) return;
+  send("/api/analytics/interaction", {
+    visitorId: visit.visitorId,
+    sessionId: visit.sessionId,
+    type: event.type,
+    section: "section" in event ? event.section : undefined,
+    itemIndex: "index" in event ? event.index : undefined,
+    productId,
+    detail: "href" in event ? event.href : "detail" in event ? event.detail : undefined,
+  });
+}
+
 /** crypto.randomUUID 는 HTTPS·localhost 에서만 있다. 없으면 같은 형식으로 만든다(서버가 UUID 형식을 검사한다). */
 function uuid(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();

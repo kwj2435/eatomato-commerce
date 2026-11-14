@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { HomeSectionTracker } from "@/components/analytics/HomeSectionTracker";
 import { SiteFrame } from "@/components/layout/SiteFrame";
 import { BestPicksSection } from "@/features/home/BestPicksSection";
 import { HeroBanner } from "@/features/home/HeroBanner";
@@ -63,14 +64,29 @@ export default async function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(SITE_JSON_LD) }} />
       {/* 화면에는 로고가 제목 역할을 하므로 검색엔진·화면 읽기용 제목은 숨겨 둔다. */}
       <h1 className="sr-only">eatomato 잇토마토 — 핸드폰 케이스와 라이프스타일 굿즈 공식 온라인 스토어</h1>
-      <HeroBanner banners={banners} />
+      {/* 섹션마다 data-track-section 을 달아 노출·클릭을 기록한다(HomeSectionTracker, 관리자 > 방문자 분석).
+          이름을 바꾸면 백엔드 AdminAnalyticsService.HOME_SECTIONS 도 같이 바꾼다. */}
+      <HomeSectionTracker />
+      <div data-track-section="hero">
+        <HeroBanner banners={banners} />
+      </div>
       {/* 방문자 대부분이 인스타그램에서 모바일로 홈에 들어와 바로 나가서(2026-11 기준 약 77%),
           상품(Best Picks)을 히어로 바로 아래에 두고 후기를 혜택(Special)보다 먼저 보인다. */}
-      <BestPicksSection description={contents.HOME_BEST_PICKS_DESCRIPTION} />
-      <TomatoEditSection description={contents.HOME_EDIT_DESCRIPTION} />
-      <WhatsNewSection description={contents.HOME_WHATS_NEW_DESCRIPTION} />
-      <ReviewSection description={contents.HOME_REVIEW_DESCRIPTION} />
-      <SpecialSection description={contents.HOME_SPECIAL_DESCRIPTION} />
+      <div data-track-section="best-picks">
+        <BestPicksSection description={contents.HOME_BEST_PICKS_DESCRIPTION} />
+      </div>
+      <div data-track-section="whats-new">
+        <WhatsNewSection description={contents.HOME_WHATS_NEW_DESCRIPTION} />
+      </div>
+      <div data-track-section="tomato-edit">
+        <TomatoEditSection description={contents.HOME_EDIT_DESCRIPTION} />
+      </div>
+      <div data-track-section="review">
+        <ReviewSection description={contents.HOME_REVIEW_DESCRIPTION} />
+      </div>
+      <div data-track-section="special">
+        <SpecialSection description={contents.HOME_SPECIAL_DESCRIPTION} />
+      </div>
     </SiteFrame>
   );
 }

@@ -6,7 +6,7 @@ import { resolveCategory } from "@/features/product-list/categories";
 import { getAnalytics } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils/cn";
-import type { Analytics, PageType } from "@/types/admin";
+import type { Analytics, PageType, ProductActionType } from "@/types/admin";
 
 import { BarChart } from "../BarChart";
 import { Card, Chip, Empty, Notice, PageHeader, tableClass, tdClass, thClass } from "../ui";
@@ -207,6 +207,15 @@ function AnalyticsBody({ data, rangeLabel }: { data: Analytics; rangeLabel: stri
         </Card>
       </div>
 
+      <div className="mt-4 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <Card title={`메인 섹션 노출 → 클릭 (${rangeLabel})`}>
+          <SectionTable engagement={data.engagement} />
+        </Card>
+        <Card title={`상품 상세 행동 (${rangeLabel})`}>
+          <ProductActionList engagement={data.engagement} cartSessions={data.funnel.cartSessions} />
+        </Card>
+      </div>
+
       <Card title={`많이 본 상품 (${rangeLabel})`} className="mt-4">
         {data.topProducts.length === 0 ? (
           <Empty>상품 조회 기록이 없습니다.</Empty>
@@ -386,6 +395,146 @@ function CampaignTable({ campaigns }: { campaigns: Analytics["campaigns"] }) {
         인스타 게시물·스토리 링크 뒤에 <code className="rounded bg-black/[0.05] px-1">?from=이름</code>을 붙이면 여기서 나뉘어 보입니다.
         예: <code className="rounded bg-black/[0.05] px-1">eatomato.kr/products/mel-tg?from=post-1107</code>
       </p>
+    </>
+  );
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  hero: "메인 배너",
+  "best-picks": "Best Picks",
+  "whats-new": "What's New",
+  "tomato-edit": "Tomato Edit",
+  review: "Review",
+  special: "Special",
+};
+
+/**
+ * 메인 섹션별로 화면에 보인 방문(메인을 연 방문 대비 = 그 섹션까지 내려온 비율)과
+ * 그 섹션에서 링크를 누른 방문(보인 방문 대비). 아래에 많이 눌린 링크.
+ */
+function SectionTable({ engagement }: { engagement: Analytics["engagement"] }) {
+  const { homeSessions, sections, topClicks } = engagement;
+  const hasData = sections.some((s) => s.viewSessions > 0 || s.clicks > 0);
+  if (!hasData) {
+    return <Empty>아직 기록이 없습니다. 2026-11-14 배포 뒤부터 메인 섹션 노출·클릭이 쌓입니다.</Empty>;
+  }
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className={tableClass}>
+          <thead>
+            <tr>
+              <th className={thClass}>섹션 (메인 순서)</th>
+              <th className={`${thClass} text-right`} title="메인을 연 방문 중 이 섹션이 화면에 보인 방문">
+                본 방문
+              </th>
+              <th className={`${thClass} text-right`} title="이 섹션이 보인 방문 중 섹션 안 링크를 누른 방문">
+                누른 방문
+              </th>
+              <th className={`${thClass} text-right`}>누른 횟수</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sections.map((s) => {
+              const reach = homeSessions > 0 ? (s.viewSessions / homeSessions) * 100 : 0;
+              return (
+                <tr key={s.section}>
+                  <td className={`${tdClass} text-ink-body`}>
+                    {SECTION_LABELS[s.section] ?? s.section}
+                    <div className="mt-1 h-1.5 w-full max-w-[160px] rounded-full bg-black/[0.05]">
+                      <div className="h-full rounded-full" style={{ width: `${Math.min(reach, 100)}%`, backgroundColor: BAR_COLOR }} />
+                    </div>
+                  </td>
+                  <td className={`${tdClass} text-right tabular-nums`}>
+                    {fmt(s.viewSessions)}
+                    <span className="ml-1 text-[11px] text-ink-subtle">{pct(s.viewSessions, homeSessions)}</span>
+                  </td>
+                  <td className={`${tdClass} text-right tabular-nums`}>
+                    {fmt(s.clickSessions)}
+                    <span className="ml-1 text-[11px] text-ink-subtle">{pct(s.clickSessions, s.viewSessions)}</span>
+                  </td>
+                  <td className={`${tdClass} text-right tabular-nums text-ink-primary`}>{fmt(s.clicks)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-[12px] text-ink-subtle">
+        메인을 연 방문 {fmt(homeSessions)}회 기준. 본 방문 비율이 아래로 갈수록 줄어드는 정도가 스크롤 깊이이고,
+        누른 방문 비율은 그 섹션을 본 사람 중 몇 %가 눌렀는지입니다.
+      </p>
+      {topClicks.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-[13px] font-medium text-ink-body">많이 눌린 링크</p>
+          <ul className="mt-2 space-y-1.5 text-[13px]">
+            {topClicks.slice(0, 8).map((c) => (
+              <li key={`${c.section}-${c.path}`} className="flex items-baseline gap-2">
+                <span className="w-24 flex-none truncate text-ink-subtle">{SECTION_LABELS[c.section] ?? c.section}</span>
+                <span className="min-w-0 flex-1 truncate text-ink-body">{c.path}</span>
+                <span className="flex-none tabular-nums text-ink-primary">{fmt(c.clicks)}회</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+const PRODUCT_ACTION_LABELS: Record<ProductActionType, string> = {
+  PRODUCT_IMAGE: "사진을 넘겨 봄",
+  PRODUCT_OPTION: "옵션을 고름",
+  PRODUCT_TAB: "상세 탭을 누름",
+  PRODUCT_REVIEW: "후기를 봄·사진 크게 봄",
+};
+
+/** 상품 상세를 연 방문 중 각 행동을 한 방문의 비율. 담기와 나란히 놓아 어디서 빠지는지 본다. */
+function ProductActionList({ engagement, cartSessions }: { engagement: Analytics["engagement"]; cartSessions: number }) {
+  const { productSessions, productActions, topOptions } = engagement;
+  if (productActions.length === 0) {
+    return <Empty>아직 기록이 없습니다. 2026-11-14 배포 뒤부터 상품 상세 행동이 쌓입니다.</Empty>;
+  }
+  const byType = new Map(productActions.map((a) => [a.type, a]));
+  const rows = (Object.keys(PRODUCT_ACTION_LABELS) as ProductActionType[]).map((type) => ({
+    label: PRODUCT_ACTION_LABELS[type],
+    sessions: byType.get(type)?.sessions ?? 0,
+    count: byType.get(type)?.count ?? 0,
+  }));
+  rows.push({ label: "장바구니에 담음", sessions: cartSessions, count: cartSessions });
+  return (
+    <>
+      <ul className="space-y-3">
+        {rows.map((row) => {
+          const share = productSessions > 0 ? (row.sessions / productSessions) * 100 : 0;
+          return (
+            <li key={row.label} className="text-[13px]">
+              <div className="flex items-baseline gap-2">
+                <span className="min-w-0 flex-1 truncate text-ink-body">{row.label}</span>
+                <span className="flex-none tabular-nums text-ink-primary">{fmt(row.sessions)}회</span>
+                <span className="w-12 flex-none text-right tabular-nums text-ink-subtle">{pct(row.sessions, productSessions)}</span>
+              </div>
+              <div className="mt-1.5 h-1.5 rounded-full bg-black/[0.05]">
+                <div className="h-full rounded-full" style={{ width: `${Math.min(share, 100)}%`, backgroundColor: BAR_COLOR }} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-3 text-[12px] text-ink-subtle">상품 상세를 연 방문 {fmt(productSessions)}회 기준(방문 수).</p>
+      {topOptions.length > 0 ? (
+        <div className="mt-4">
+          <p className="text-[13px] font-medium text-ink-body">많이 고른 옵션</p>
+          <ul className="mt-2 space-y-1.5 text-[13px]">
+            {topOptions.slice(0, 6).map((o) => (
+              <li key={o.key} className="flex items-baseline gap-2">
+                <span className="min-w-0 flex-1 truncate text-ink-body">{o.key}</span>
+                <span className="flex-none tabular-nums text-ink-primary">{fmt(o.count)}회</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </>
   );
 }

@@ -1,15 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Container } from "@/components/layout/Container";
+import { trackInteraction } from "@/lib/analytics";
 import { listProductReviews } from "@/lib/api/products";
 import type { ProductReview } from "@/types/product-detail";
 
 import { ReviewPhotoViewer } from "./ReviewPhotoViewer";
 
 type ReviewsSectionProps = {
+  /** 후기를 본 기록(관리자 > 방문자 분석)에 쓴다. */
+  productId: string;
   slug: string;
   /** 빌드 시점의 리뷰. 정적 HTML 에 그대로 들어가고, 하이드레이션 후 최신 목록으로 바뀐다. */
   reviews: ProductReview[];
@@ -27,6 +30,7 @@ type ReviewsSectionProps = {
  * 마운트 후 서버에서 최신 리뷰를 한 번 더 불러온다. 실패하면 빌드 시점 목록을 그대로 둔다.
  */
 export function ReviewsSection({
+  productId,
   slug,
   reviews: initialReviews,
   reviewCount: initialCount,
@@ -49,13 +53,28 @@ export function ReviewsSection({
     };
   }, [slug]);
 
+  // 후기 영역(제목·평점 줄)이 화면에 들어오면 한 번 기록한다. 상세를 끝까지 내려 후기를 봤는지 본다.
+  const headRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = headRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        observer.disconnect();
+        trackInteraction({ type: "PRODUCT_REVIEW", productId, detail: "view" });
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [productId]);
+
   return (
     <Container as="section" id="reviews" className="scroll-mt-24 pt-[100px] md:pt-[205px]">
       <h2 className="text-center text-[17px] font-normal tracking-[1.2px] text-brand-secondary md:text-[20px] md:tracking-[1.4px]">
         REVIEWS
       </h2>
 
-      <div className="mt-[57px] flex h-[60px] items-center justify-between">
+      <div ref={headRef} className="mt-[57px] flex h-[60px] items-center justify-between">
         <div className="flex items-baseline gap-2">
           <span className="text-[27px] font-normal tracking-[0.5px] text-[#545454]">
             {averageRating.toFixed(0)} / 5
@@ -80,7 +99,7 @@ export function ReviewsSection({
       ) : (
         <div className="flex flex-col">
           {reviews.map((review) => (
-            <ReviewRow key={review.id} review={review} />
+            <ReviewRow key={review.id} review={review} productId={productId} />
           ))}
         </div>
       )}
@@ -88,7 +107,7 @@ export function ReviewsSection({
   );
 }
 
-function ReviewRow({ review }: { review: ProductReview }) {
+function ReviewRow({ review, productId }: { review: ProductReview; productId: string }) {
   const photos = reviewPhotos(review);
   const [viewerOpen, setViewerOpen] = useState(false);
   const closeViewer = useCallback(() => setViewerOpen(false), []);
@@ -123,7 +142,10 @@ function ReviewRow({ review }: { review: ProductReview }) {
       {photos.length > 0 ? (
         <button
           type="button"
-          onClick={() => setViewerOpen(true)}
+          onClick={() => {
+            setViewerOpen(true);
+            trackInteraction({ type: "PRODUCT_REVIEW", productId, detail: "photo" });
+          }}
           aria-label={photos.length > 1 ? `후기 사진 ${photos.length}장 크게 보기` : "후기 사진 크게 보기"}
           className="relative h-[105px] w-[105px] flex-none overflow-hidden bg-[#EDEDED]"
         >
