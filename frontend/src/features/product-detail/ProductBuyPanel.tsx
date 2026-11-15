@@ -12,6 +12,7 @@ import { errorMessage } from "@/lib/api/client";
 import { getProductDetail } from "@/lib/api/products";
 import { useCartStore } from "@/lib/store/cart-store";
 import { cn } from "@/lib/utils/cn";
+import { discountRate as rateOf } from "@/lib/utils/discount";
 import { formatKRW } from "@/lib/utils/format";
 import { trackEvent, trackInteraction } from "@/lib/analytics";
 import type { OptionGroup, ProductDetail } from "@/types/product-detail";
@@ -174,10 +175,7 @@ export function ProductBuyPanel({ product: initial, shippingPolicy }: ProductBuy
     if (await addToCart()) router.push("/cart");
   };
 
-  const discountRate =
-    product.salePrice !== undefined && product.salePrice < product.price
-      ? Math.round((1 - product.salePrice / product.price) * 100)
-      : 0;
+  const discountRate = rateOf(product.price, product.salePrice) ?? 0;
   const rewardAmount = Math.floor((basePrice * product.rewardRate) / 100);
 
   /** 화면 아래 구매 바의 버튼. 모바일은 옵션 창을 열고, PC 는 옵션을 다 골랐으면 바로 처리한다. */

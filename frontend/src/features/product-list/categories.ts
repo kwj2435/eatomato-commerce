@@ -74,6 +74,8 @@ export const CATEGORIES: Record<CategoryKey, CategoryEntry> = {
     slug: "objects",
     label: "Objects",
     subcategories: [{ slug: null, label: "All" }],
+    // 아직 상품이 없어 메뉴를 누르면 빈 화면이 나와 임시로 감춘다. 상품을 올리면 이 줄만 지운다.
+    hiddenInNav: true,
   },
 };
 

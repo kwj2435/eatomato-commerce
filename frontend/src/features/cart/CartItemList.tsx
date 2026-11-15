@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { CloseIcon } from "@/components/ui/icons";
 import { runCartAction, useCartStore } from "@/lib/store/cart-store";
+import { discountRate as rateOf } from "@/lib/utils/discount";
 import { formatKRW } from "@/lib/utils/format";
 import type { CartItem } from "@/types/cart";
 
@@ -86,7 +87,7 @@ function CartItemRow({ item }: { item: CartItem }) {
 
   const lineTotal = item.unitPrice * item.quantity;
   const hasDiscount = item.listPrice !== undefined && item.listPrice > item.unitPrice;
-  const discountRate = hasDiscount ? Math.round((1 - item.unitPrice / item.listPrice!) * 100) : 0;
+  const discountRate = hasDiscount ? (rateOf(item.listPrice!, item.unitPrice) ?? 0) : 0;
   const href = `/products/${item.slug}`;
 
   return (

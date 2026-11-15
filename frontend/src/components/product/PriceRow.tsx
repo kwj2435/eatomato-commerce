@@ -1,13 +1,7 @@
 import { cn } from "@/lib/utils/cn";
+import { discountRate } from "@/lib/utils/discount";
 import { formatKRW } from "@/lib/utils/format";
 import type { ProductBadge } from "@/types/product";
-
-/** 정상가 대비 할인율(%). 할인이 없거나 할인가가 정상가 이상이면 null. */
-export function discountRate(price: number, salePrice?: number | null): number | null {
-  if (salePrice == null || price <= 0 || salePrice >= price) return null;
-  const rate = Math.round(((price - salePrice) / price) * 100);
-  return rate > 0 ? rate : null;
-}
 
 /**
  * 카드 위에 올릴 배지. SALE 은 거의 모든 상품에 붙어 구분이 안 되므로 그림에서 빼고

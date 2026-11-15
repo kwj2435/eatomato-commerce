@@ -23,7 +23,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: url("/notice/"), changeFrequency: "weekly", priority: 0.4 },
   ];
 
-  const categories: MetadataRoute.Sitemap = CATEGORY_LIST.flatMap((category) =>
+  // 상단 메뉴에서 감춘 카테고리(상품이 아직 없거나 임시로 내린 것)는 검색엔진에도 알리지 않는다.
+  const categories: MetadataRoute.Sitemap = CATEGORY_LIST.filter((category) => !category.hiddenInNav).flatMap((category) =>
     category.subcategories.map((sub) => ({
       url: url(sub.slug ? `/products/${category.slug}/${sub.slug}/` : `/products/${category.slug}/`),
       changeFrequency: "daily" as const,

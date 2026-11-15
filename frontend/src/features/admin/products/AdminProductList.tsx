@@ -12,6 +12,7 @@ import {
 } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
 import { listCategories, type CategoryTree } from "@/lib/api/categories";
+import { discountRate as rateOf } from "@/lib/utils/discount";
 import { formatKRW } from "@/lib/utils/format";
 import type { AdminProductSummary, Page } from "@/types/admin";
 
@@ -293,9 +294,9 @@ export function AdminProductList() {
   );
 }
 
-/** 목록에 보이는 할인율(정상가 대비, 반올림). */
+/** 목록에 보이는 할인율(정상가 대비, 스토어와 같게 소수점 버림). */
 function discountRate(p: AdminProductSummary): number {
-  return p.salePrice === null || p.price === 0 ? 0 : Math.round((1 - p.salePrice / p.price) * 100);
+  return rateOf(p.price, p.salePrice) ?? 0;
 }
 
 const ROUNDING_UNITS = [
