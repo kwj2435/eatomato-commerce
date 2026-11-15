@@ -35,8 +35,22 @@ eatomato 는 휴대폰 케이스·에어팟 케이스·카드지갑 같은 소�
 - stock 이 null 인 상품은 재고를 관리하지 않는 상품이지 품절이 아닙니다.
 - 고객 개인을 특정하려 하지 않습니다(데이터에도 개인정보는 없습니다).
 
-제안 하나는 작은 팀이 바로 실행할 수 있게 구체적으로 씁니다. metric 에는 효과를 확인할 지표와 성공 기준을 적습니다
-(예: "다음 7일 톡 RED SQUARE 조회 대비 담기 비율 3% 이상").
+제안 하나는 작은 팀이 바로 실행할 수 있게 구체적으로 씁니다.
+
+글쓰기(가장 중요합니다. 읽는 사람은 데이터 분석을 모르는 쇼핑몰 운영자입니다):
+- 휴대폰으로 훑어봐도 바로 이해되게 씁니다. 한 문장에 한 가지만, 문장은 짧게, 존댓말(~해요/~습니다)로 씁니다.
+- 분석 용어와 영어를 쓰지 않습니다. 꼭 필요하면 아래처럼 풀어 씁니다.
+  전환율 → "본 사람 중 산 사람", 세션 → "방문", 퍼널 → "구매 단계", 이탈 → "그 화면에서 나감",
+  유입 → "들어온 곳", 표본 → "방문 수", CTR → "누른 비율", 리퍼러 → "들어온 곳", 캠페인 → "?from= 링크".
+  도구 이름(page_flow 등)과 영어 값(PRODUCT, MOBILE, session_start 등)은 글에 쓰지 않고 우리말로 바꿉니다(상품 상세 화면, 모바일 등).
+- 비율은 사람 수로 함께 풉니다. 예: "담기 비율 2.1%" 대신 "상품을 본 100명 중 2명이 장바구니에 담았어요(2.1%)".
+- 상품·화면·게시물은 id 가 아니라 이름으로 부릅니다.
+- title: 30자 안쪽, "~해요"로 끝나는 할 일. 예: "○○ 케이스 첫 사진을 착용 사진으로 바꿔요"(상품 이름은 쇼핑몰에 적힌 그대로).
+- problem: 2~3문장. 무엇을 봤는지 → 그래서 왜 아쉬운지 순서로. 짐작이면 "~로 보여요(짐작)"처럼 밝힙니다.
+- proposal: 바로 따라 할 수 있는 단계 1~3개를 줄마다 "1. ", "2. " 로 시작하고 단계마다 줄을 바꿉니다. 한 단계는 한 문장입니다.
+- metric: "언제까지, 무엇이, 얼마가 되면 성공"을 한 문장으로. 예: "다음 7일 동안 이 상품을 본 100명 중 3명 이상이 담으면 성공".
+- summary: 오늘 가장 먼저 알아야 할 것 한두 문장. 숫자는 꼭 필요한 것 한두 개만.
+- evidence: metric(무엇을 센 숫자인지)은 쉬운 우리말로 쓰고, value 는 도구가 준 숫자를 그대로 둡니다(바꾸면 검증에 실패합니다).
 """
 
 
@@ -55,7 +69,7 @@ def task_message(kind: str, data_summary: dict, today: str, context: dict) -> st
 _EVIDENCE = {
     "type": "object",
     "properties": {
-        "metric": {"type": "string", "description": "지표 이름과 기간, 예: '최근 7일 인스타 유입 방문의 담기 비율'"},
+        "metric": {"type": "string", "description": "무엇을 센 숫자인지 쉬운 말로, 예: '최근 7일 인스타그램에서 들어온 방문 중 장바구니에 담은 방문'"},
         "value": {"type": "string", "description": "도구가 준 값 그대로, 예: '0.0% (방문 377회 중 0회)'"},
     },
     "required": ["metric", "value"],
@@ -67,7 +81,7 @@ _LEVEL = {"type": "string", "enum": ["low", "medium", "high"]}
 REPORT_SCHEMA: dict = {
     "type": "object",
     "properties": {
-        "summary": {"type": "string", "description": "오늘 운영자가 가장 먼저 알아야 할 한두 문장"},
+        "summary": {"type": "string", "description": "오늘 운영자가 가장 먼저 알아야 할 한두 문장(쉬운 말, 분석 용어 없이)"},
         "period": {"type": "string", "description": "주로 본 기간, 예: '2026-11-03 ~ 2026-11-09 (7일)'"},
         "suggestions": {
             "type": "array",
@@ -76,11 +90,11 @@ REPORT_SCHEMA: dict = {
                 "type": "object",
                 "properties": {
                     "category": {"type": "string", "enum": ["planning", "design", "marketing", "operations"]},
-                    "title": {"type": "string", "description": "할 일을 한 줄로"},
-                    "problem": {"type": "string", "description": "데이터에서 본 문제와 왜 중요한지(짐작이면 짐작이라고)"},
-                    "proposal": {"type": "string", "description": "구체적으로 무엇을 어떻게 바꿀지"},
+                    "title": {"type": "string", "description": "할 일을 30자 안쪽 한 줄로('~해요' 꼴)"},
+                    "problem": {"type": "string", "description": "본 것 → 왜 아쉬운지, 2~3문장 쉬운 말(짐작이면 짐작이라고)"},
+                    "proposal": {"type": "string", "description": "따라 할 단계 1~3개. 줄마다 '1. ' 로 시작하고 단계마다 줄을 바꾼다"},
                     "evidence": {"type": "array", "items": _EVIDENCE},
-                    "metric": {"type": "string", "description": "효과를 확인할 지표와 성공 기준"},
+                    "metric": {"type": "string", "description": "언제까지, 무엇이, 얼마가 되면 성공인지 한 문장"},
                     "impact": _LEVEL,
                     "effort": _LEVEL,
                     "confidence": _LEVEL,
@@ -95,7 +109,7 @@ REPORT_SCHEMA: dict = {
             "description": "오늘 데이터에서도 다시 보인 열린 제안",
             "items": {
                 "type": "object",
-                "properties": {"id": {"type": "integer"}, "note": {"type": "string", "description": "오늘 숫자로 한 문장"}},
+                "properties": {"id": {"type": "integer"}, "note": {"type": "string", "description": "오늘 숫자로 쉬운 한 문장"}},
                 "required": ["id", "note"],
                 "additionalProperties": False,
             },
@@ -108,7 +122,7 @@ REPORT_SCHEMA: dict = {
                 "properties": {
                     "id": {"type": "integer"},
                     "verdict": {"type": "string", "enum": ["improved", "no_change", "worse", "insufficient_data"]},
-                    "summary": {"type": "string", "description": "전후 숫자로 한두 문장"},
+                    "summary": {"type": "string", "description": "하기 전과 한 뒤를 숫자로 견준 쉬운 한두 문장"},
                     "evidence": {"type": "array", "items": _EVIDENCE},
                 },
                 "required": ["id", "verdict", "summary", "evidence"],

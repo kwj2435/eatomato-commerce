@@ -45,6 +45,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class AdminAnalyticsService {
 
+	/** 일별 화면은 90일까지. 원본은 13개월 남지만 그보다 긴 추세는 월별 통계로 본다. */
 	private static final int MAX_DAYS = 90;
 	private static final int TOP = 10;
 

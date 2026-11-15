@@ -82,6 +82,10 @@ public interface PageViewRepository extends JpaRepository<PageView, Long> {
 	@Query("select count(distinct v.visitorId) from PageView v where v.viewedAt >= :from")
 	long countVisitorsSince(@Param("from") LocalDateTime from);
 
+	/** 남아 있는 가장 오래된 기록의 날짜. 기록이 없으면 null. */
+	@Query("select min(v.viewDate) from PageView v")
+	LocalDate firstViewDate();
+
 	/** from 이후 페이지 조회 전부(마케팅 인사이트 원자료). */
 	List<PageView> findByViewedAtGreaterThanEqual(LocalDateTime from);
 

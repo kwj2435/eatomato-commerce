@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import { changeSuggestionStatus, getInsightOverview, listInsightRuns, listInsightSuggestions, requestInsightRun } from "@/lib/api/admin";
 import { errorMessage } from "@/lib/api/client";
@@ -27,7 +27,22 @@ const CATEGORY_LABELS: Record<SuggestionCategory, string> = {
   OPERATIONS: "운영",
 };
 
-const LEVEL_LABELS: Record<SuggestionLevel, string> = { LOW: "낮음", MEDIUM: "보통", HIGH: "높음" };
+/** 영향·난이도·신뢰도를 운영자가 바로 읽을 수 있는 말로 바꾼다. */
+const IMPACT_LABELS: Record<SuggestionLevel, string> = {
+  HIGH: "효과 클 것 같아요",
+  MEDIUM: "효과 보통",
+  LOW: "효과 작을 수 있어요",
+};
+const EFFORT_LABELS: Record<SuggestionLevel, string> = {
+  LOW: "금방 할 수 있어요",
+  MEDIUM: "조금 손이 가요",
+  HIGH: "시간이 걸려요",
+};
+const CONFIDENCE_LABELS: Record<SuggestionLevel, string> = {
+  HIGH: "근거 충분",
+  MEDIUM: "근거 보통",
+  LOW: "아직 확실하지 않아요",
+};
 
 const VERDICT_LABELS = {
   improved: "효과 있음",
@@ -139,7 +154,7 @@ export function AdminInsights() {
     <>
       <PageHeader
         title="개선 제안"
-        description="매일 오전 8시에 AI 에이전트가 방문·주문·후기 데이터를 직접 조회해 기획·디자인·마케팅·운영 개선 제안을 냅니다. 채택한 제안을 완료로 바꾸면 7일 뒤 전후 지표로 효과를 확인합니다. 고객 개인정보는 AI 에 보내지 않습니다."
+        description="매일 아침 8시에 AI가 방문·주문·후기를 살펴보고 해 볼 만한 일을 알려 드려요. 해 본 일을 '완료'로 바꾸면 7일 뒤 효과가 있었는지 알려 드려요. 고객 개인정보는 AI에 보내지 않아요."
         actions={
           <Button onClick={runNow} disabled={running || requesting}>
             {running ? `${activeLabel(overview?.active)}…` : "지금 분석하기"}
@@ -242,13 +257,13 @@ function TodayCard({ overview }: { overview: InsightOverview }) {
           {report.verification ? (
             <p className={cn("mt-2 text-[12px]", unverified.length ? "text-brand-primary" : "text-ink-subtle")}>
               {unverified.length
-                ? `근거 숫자 ${report.verification.checked}개 중 ${unverified.length}개는 분석 도구 결과에서 확인되지 않았습니다(AI 가 계산했거나 잘못 옮긴 값일 수 있음).`
-                : `근거 숫자 ${report.verification.checked}개가 모두 분석 도구 결과와 일치합니다.`}
+                ? `근거 숫자 ${report.verification.checked}개 중 ${unverified.length}개는 실제 데이터에서 찾지 못했어요. AI가 계산했거나 잘못 옮긴 값일 수 있으니 한 번 확인해 주세요.`
+                : `근거 숫자 ${report.verification.checked}개를 실제 데이터와 맞춰 봤고 모두 맞아요.`}
             </p>
           ) : null}
           {(report.data_gaps?.length ?? 0) > 0 || (latest?.trace?.length ?? 0) > 0 ? (
             <details className="mt-3 text-[13px]">
-              <summary className="cursor-pointer text-ink-muted">데이터로 답할 수 없었던 것 · 분석 과정</summary>
+              <summary className="cursor-pointer text-ink-muted">AI가 알 수 없었던 것 · 분석 과정</summary>
               {report.data_gaps?.length ? (
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-muted">
                   {report.data_gaps.map((gap) => (
@@ -288,12 +303,14 @@ function SuggestionCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Chip tone={s.status === "NEW" ? "brand" : "neutral"}>{CATEGORY_LABELS[s.category]}</Chip>
-            <span className="text-[12px] text-ink-subtle">
-              영향 {LEVEL_LABELS[s.impact]} · 난이도 {LEVEL_LABELS[s.effort]} · 신뢰도 {LEVEL_LABELS[s.confidence]} ·{" "}
-              {formatDateTime(s.createdAt)}
-            </span>
+            <span className="text-[12px] text-ink-subtle">{formatDateTime(s.createdAt)}</span>
           </div>
-          <h3 className="mt-1.5 break-keep text-[16px] font-semibold text-ink-primary">{s.title}</h3>
+          <h3 className="mt-1.5 break-keep text-[17px] font-semibold leading-snug text-ink-primary">{s.title}</h3>
+          <div className="mt-2 flex flex-wrap gap-1.5" aria-label="한눈에 보기">
+            <Chip tone="muted">{IMPACT_LABELS[s.impact]}</Chip>
+            <Chip tone="muted">{EFFORT_LABELS[s.effort]}</Chip>
+            <Chip tone="muted">{CONFIDENCE_LABELS[s.confidence]}</Chip>
+          </div>
         </div>
         <div className="flex flex-none gap-1.5">
           {actions.map((a, i) => (
@@ -304,35 +321,25 @@ function SuggestionCard({
         </div>
       </div>
 
-      <dl className="mt-3 grid gap-2 text-[14px] leading-relaxed md:grid-cols-[72px_minmax(0,1fr)]">
-        <dt className="text-[12px] font-medium text-ink-subtle md:pt-0.5">문제</dt>
-        <dd className="break-keep text-ink-body">{s.problem}</dd>
-        <dt className="text-[12px] font-medium text-ink-subtle md:pt-0.5">제안</dt>
-        <dd className="break-keep text-ink-body">{s.proposal}</dd>
-        <dt className="text-[12px] font-medium text-ink-subtle md:pt-0.5">확인할 지표</dt>
-        <dd className="break-keep text-ink-muted">{s.metric}</dd>
-      </dl>
+      <div className="mt-4 space-y-3 text-[14px] leading-relaxed">
+        <Section label="무엇을 봤나요">
+          <p className="break-keep text-ink-body">{s.problem}</p>
+        </Section>
+        <Section label="이렇게 해 보세요">
+          <Steps text={s.proposal} />
+        </Section>
+        <Section label="잘됐는지 확인하는 법">
+          <p className="break-keep text-ink-muted">{s.metric}</p>
+        </Section>
+      </div>
 
       {s.evidence.length > 0 ? (
-        <dl className="mt-3 grid gap-x-4 gap-y-1 rounded-md bg-black/[0.02] px-3 py-2 text-[13px] sm:grid-cols-[minmax(0,1fr)_auto]">
-          {s.evidence.map((e) => {
-            const flagged = unverified?.has(evidenceKey(e.metric, e.value)) ?? false;
-            return (
-              <div key={`${e.metric}-${e.value}`} className="contents">
-                <dt className="text-ink-muted">{e.metric}</dt>
-                <dd className={cn("tabular-nums sm:text-right", flagged ? "text-brand-primary" : "text-ink-primary")}>
-                  {e.value}
-                  {flagged ? " (확인 필요)" : ""}
-                </dd>
-              </div>
-            );
-          })}
-        </dl>
+        <EvidenceList evidence={s.evidence} flagged={(e) => unverified?.has(evidenceKey(e.metric, e.value)) ?? false} />
       ) : null}
 
       {s.reconfirmCount > 0 ? (
-        <p className="mt-2 text-[12px] text-ink-muted">
-          다른 날 분석에서 {s.reconfirmCount}번 다시 확인됨{s.reconfirmNote ? ` · ${s.reconfirmNote}` : ""}
+        <p className="mt-2 break-keep text-[12px] text-ink-muted">
+          다른 날에도 {s.reconfirmCount}번 같은 문제가 보였어요{s.reconfirmNote ? ` · ${s.reconfirmNote}` : ""}
         </p>
       ) : null}
 
@@ -344,11 +351,75 @@ function SuggestionCard({
           </div>
         ) : (
           <p className="mt-3 text-[12px] text-ink-subtle">
-            {s.doneAt ? `${formatDateTime(s.doneAt)} 완료 · ` : ""}완료 7일 뒤 아침 분석에서 효과를 확인합니다.
+            {s.doneAt ? `${formatDateTime(s.doneAt)} 완료 · ` : ""}7일 뒤 아침에 효과가 있었는지 알려 드려요.
           </p>
         )
       ) : null}
     </Card>
+  );
+}
+
+/** 카드 안 한 단락: 위에 작은 제목, 아래에 내용. */
+function Section({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <section>
+      <h4 className="text-[12px] font-semibold text-ink-subtle">{label}</h4>
+      <div className="mt-0.5">{children}</div>
+    </section>
+  );
+}
+
+/**
+ * 제안 본문. 에이전트가 단계마다 줄을 바꿔 "1. …" 로 쓰면 번호 목록으로, 예전처럼 한 덩어리면 문단으로 보여 준다.
+ */
+function Steps({ text }: { text: string }) {
+  const lines = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return <p className="break-keep text-ink-body">{text}</p>;
+  return (
+    <ol className="space-y-1">
+      {lines.map((line, i) => (
+        <li key={i} className="flex gap-2 break-keep text-ink-body">
+          <span className="w-4 flex-none text-right font-semibold tabular-nums text-brand-deep">{i + 1}</span>
+          <span className="min-w-0">{line.replace(/^\s*\d+[.)]\s*/, "")}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** 근거 숫자. 평소엔 접어 두고, 실제 데이터에서 찾지 못한 숫자가 있으면 펼쳐서 보여 준다. */
+function EvidenceList({
+  evidence,
+  flagged,
+}: {
+  evidence: InsightSuggestion["evidence"];
+  flagged: (e: InsightSuggestion["evidence"][number]) => boolean;
+}) {
+  const flaggedCount = evidence.filter(flagged).length;
+  return (
+    <details className="mt-3 text-[13px]" open={flaggedCount > 0}>
+      <summary className="cursor-pointer text-ink-muted">
+        근거 숫자 {evidence.length}개 보기
+        {flaggedCount > 0 ? <span className="text-brand-primary"> · 확인 필요 {flaggedCount}개</span> : null}
+      </summary>
+      <dl className="mt-2 grid gap-x-4 gap-y-1 rounded-md bg-black/[0.02] px-3 py-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+        {evidence.map((e) => {
+          const bad = flagged(e);
+          return (
+            <div key={`${e.metric}-${e.value}`} className="contents">
+              <dt className="break-keep text-ink-muted">{e.metric}</dt>
+              <dd className={cn("tabular-nums sm:text-right", bad ? "text-brand-primary" : "text-ink-primary")}>
+                {e.value}
+                {bad ? " (확인 필요)" : ""}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </details>
   );
 }
 

@@ -148,6 +148,25 @@ export type Dashboard = {
 
 export type VisitTotals = { visitors: number; sessions: number; pageViews: number };
 
+/**
+ * 한 달의 방문·구매 합계(원본 기록이 지워진 뒤에도 남는다).
+ * visitors 는 그달 안의 서로 다른 브라우저 수라서 여러 달을 더하면 같은 사람이 겹쳐 세진다.
+ */
+export type AnalyticsMonth = VisitTotals & {
+  /** 그달 1일(yyyy-MM-dd). */
+  monthStart: string;
+  /** 그달 기록이 시작된 날. monthStart 보다 늦으면 한 달 전체가 아니다. */
+  dataFrom: string;
+  productSessions: number;
+  cartSessions: number;
+  checkoutPageSessions: number;
+  checkoutStartSessions: number;
+  purchaseSessions: number;
+  /** 결제 완료 주문 수와 금액. */
+  purchases: number;
+  revenue: number;
+};
+
 export type PageType =
   | "HOME" | "CATEGORY" | "PRODUCT" | "SEARCH" | "CART" | "CHECKOUT" | "MYPAGE" | "NOTICE" | "LOGIN" | "OTHER";
 

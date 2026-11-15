@@ -10,6 +10,7 @@ import type { Analytics, PageType, ProductActionType } from "@/types/admin";
 
 import { BarChart } from "../BarChart";
 import { Card, Chip, Empty, Notice, PageHeader, tableClass, tdClass, thClass } from "../ui";
+import { MonthlyTrend } from "./MonthlyTrend";
 
 const RANGES = [
   { days: 1, label: "오늘" },
@@ -37,7 +38,7 @@ const DEVICE_LABELS: Record<string, string> = { MOBILE: "모바일", TABLET: "�
 
 /**
  * 방문자 분석. 스토어 페이지를 열 때마다 남긴 기록(PageViewTracker)을 모아 보여 준다.
- * 기록은 3개월만 보관하므로 기간은 최대 90일이다.
+ * 위쪽은 기간 버튼(최대 90일)으로 보는 상세, 맨 아래는 끝난 달마다 남기는 합계로 보는 월별·연도별 추세다.
  */
 export function AdminAnalytics() {
   const [days, setDays] = useState<number>(7);
@@ -67,7 +68,7 @@ export function AdminAnalytics() {
     <>
       <PageHeader
         title="방문자 분석"
-        description="스토어 페이지 방문 기록입니다. 관리자 계정과 검색 로봇은 세지 않으며, 기록은 3개월 동안 보관합니다."
+        description="스토어 페이지 방문 기록입니다. 관리자 계정과 검색 로봇은 세지 않습니다. 방문 하나하나의 기록은 13개월 동안 보관하고, 월별 합계는 계속 남습니다."
         actions={
           <div role="group" aria-label="기간" className="inline-flex rounded-md border border-black/15 bg-white p-0.5">
             {RANGES.map((r) => (
@@ -91,6 +92,7 @@ export function AdminAnalytics() {
       {error ? <Notice kind="error">{error}</Notice> : null}
       {!data && !error ? <div className="h-[480px] animate-pulse rounded-lg bg-black/[0.04]" /> : null}
       {data ? <AnalyticsBody data={data} rangeLabel={rangeLabel} /> : null}
+      <MonthlyTrend />
     </>
   );
 }

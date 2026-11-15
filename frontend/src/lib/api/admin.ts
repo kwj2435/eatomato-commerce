@@ -12,6 +12,7 @@ import type {
   AdminProductInput,
   AdminProductSummary,
   Analytics,
+  AnalyticsMonth,
   Briefing,
   Dashboard,
   InsightOverview,
@@ -61,6 +62,10 @@ export const getBriefing = () => apiFetch<Briefing>("/api/admin/briefing", { aut
 /** 방문자 분석. days: 오늘 포함 며칠(1~90). */
 export const getAnalytics = (days: number) =>
   apiFetch<Analytics>(`/api/admin/analytics${query({ days })}`, { auth: true });
+
+/** 월별 방문·구매 합계. 오래된 달부터, 마지막은 진행 중인 이번 달. */
+export const getAnalyticsMonthly = () =>
+  apiFetch<AnalyticsMonth[]>("/api/admin/analytics/monthly", { auth: true });
 
 // ── 상품 ──
 

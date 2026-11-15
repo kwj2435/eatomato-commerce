@@ -36,7 +36,7 @@ class Settings:
             max_tool_calls=_int("INSIGHT_MAX_TOOL_CALLS", 12),
             max_turns=_int("INSIGHT_MAX_TURNS", 10),
             poll_seconds=_int("INSIGHT_POLL_SECONDS", 5),
-            # 방문 기록은 3개월만 남는다. 90일을 받아 두면 28일 + 직전 28일 비교까지 할 수 있다.
+            # 백엔드가 주는 최대 기간(90일). 28일 + 직전 28일 비교까지 할 수 있다.
             dataset_days=_int("INSIGHT_DATASET_DAYS", 90),
             api_key_configured=bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")),
         )

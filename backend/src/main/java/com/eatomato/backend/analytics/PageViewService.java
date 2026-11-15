@@ -17,14 +17,17 @@ import com.eatomato.backend.product.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/** 스토어 페이지 조회를 기록하고, 보관 기간(3개월)이 지난 기록을 지운다. */
+/** 스토어 페이지 조회를 기록하고, 보관 기간(13개월)이 지난 기록을 지운다. 지우기 전에 끝난 달의 합계를 남긴다. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PageViewService {
 
-	/** 개인정보처리방침의 "웹사이트 방문(접속) 기록 3개월" 과 맞춘다. */
-	public static final Period KEEP = Period.ofMonths(3);
+	/**
+	 * 개인정보처리방침의 "방문 통계 기록 13개월" 과 맞춘다. 13개월이면 작년 같은 달의 원본과 견줄 수 있다.
+	 * 통신비밀보호법의 접속 기록 3개월은 최소 보관 기간이라 이보다 길게 두어도 된다.
+	 */
+	public static final Period KEEP = Period.ofMonths(13);
 
 	private static final Pattern BOT = Pattern.compile(
 		"bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|facebookexternalhit|yeti|daumoa|curl|wget|python|java/|okhttp",
@@ -34,6 +37,7 @@ public class PageViewService {
 	private final AnalyticsEventRepository analyticsEventRepository;
 	private final InteractionEventRepository interactionEventRepository;
 	private final ProductRepository productRepository;
+	private final AnalyticsMonthlyService analyticsMonthlyService;
 
 	/**
 	 * 조회 한 건을 남긴다. 검색 로봇·관리자 화면·형식이 맞지 않는 주소는 조용히 건너뛴다(응답은 같다).
@@ -73,6 +77,8 @@ public class PageViewService {
 	@Scheduled(cron = "0 50 4 * * *", zone = "Asia/Seoul")
 	@Transactional
 	public void cleanUp() {
+		// 끝난 달의 합계를 먼저 남긴다. 저장이 실패하면 같은 트랜잭션의 삭제도 되돌려 원본을 잃지 않는다.
+		analyticsMonthlyService.snapshotClosedMonths();
 		int deleted = pageViewRepository.deleteViewedBefore(Times.now().minus(KEEP));
 		int events = analyticsEventRepository.deleteOccurredBefore(Times.now().minus(KEEP));
 		int interactions = interactionEventRepository.deleteOccurredBefore(Times.now().minus(KEEP));

@@ -24,7 +24,7 @@ import com.eatomato.backend.review.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 인사이트 원자료(InsightDataset) 만들기. 방문 기록은 3개월만 남으므로 기간은 최대 90일.
+ * 인사이트 원자료(InsightDataset) 만들기. 방문 기록은 13개월 남지만, 분석 비용을 생각해 기간은 최대 90일.
  * 주문 규모가 작아 기간 데이터를 한 번에 읽는다.
  */
 @Service

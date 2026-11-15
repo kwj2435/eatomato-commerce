@@ -5,6 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +22,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.eatomato.backend.analytics.PageViewService;
+import com.eatomato.backend.global.time.Times;
 import com.jayway.jsonpath.JsonPath;
 
 /** 페이지 조회 기록과 관리자 방문자 분석. 다른 테스트와 DB 를 공유하므로 전후 차이로 확인한다. */
@@ -35,6 +40,9 @@ class AnalyticsFlowTest {
 
 	@Autowired
 	JdbcTemplate jdbc;
+
+	@Autowired
+	PageViewService pageViewService;
 
 	private void event(String visitor, String session, String type, String extra) throws Exception {
 		String body = """
@@ -256,5 +264,54 @@ class AnalyticsFlowTest {
 		assertThat(imageAfter).isEqualTo(imageActions);
 		List<String> options = JsonPath.read(after, "$.engagement.topOptions[*].key");
 		assertThat(options).contains("기종:아이폰 16 프로");
+	}
+
+	@Test
+	void 보관_기간이_지난_원본은_지우고_월별_합계는_남긴다() throws Exception {
+		// 14개월 전 10일의 방문 하나(조회 2번)와 결제 완료 하나. 보관 기간(13개월)이 지났다.
+		YearMonth old = YearMonth.from(Times.now()).minusMonths(14);
+		LocalDateTime at = old.atDay(10).atTime(14, 0);
+		String visitor = UUID.randomUUID().toString();
+		String session = UUID.randomUUID().toString();
+		for (int i = 0; i < 2; i++) {
+			jdbc.update("""
+				insert into page_view (visitor_id, session_id, path, page_type, session_start, device, viewed_at, view_date, view_hour)
+				values (?, ?, '/', 'HOME', ?, 'MOBILE', ?, ?, 14)
+				""", visitor, session, i == 0, at.plusMinutes(i), at.toLocalDate());
+		}
+		jdbc.update("""
+			insert into analytics_event (visitor_id, session_id, event_type, order_number, amount, occurred_at)
+			values (?, ?, 'PURCHASE', ?, 12000, ?)
+			""", visitor, session, "OLD-" + session.substring(0, 8), at.plusMinutes(2));
+
+		pageViewService.cleanUp();
+		pageViewService.cleanUp(); // 여러 번 돌아도 같은 달을 두 번 저장하지 않는다
+
+		LocalDateTime cutoff = Times.now().minus(PageViewService.KEEP);
+		assertThat(jdbc.queryForObject("select count(*) from page_view where viewed_at < ?", Long.class, cutoff)).isZero();
+		assertThat(jdbc.queryForObject("select count(*) from analytics_event where occurred_at < ?", Long.class, cutoff))
+			.isZero();
+		assertThat(jdbc.queryForObject("select count(*) from analytics_monthly where month_start = ?", Long.class,
+			old.atDay(1))).isEqualTo(1);
+
+		String body = mockMvc.perform(get("/api/admin/analytics/monthly").header(HttpHeaders.AUTHORIZATION, admin()))
+			.andExpect(status().isOk())
+			.andReturn().getResponse().getContentAsString();
+		List<Map<String, Object>> months = JsonPath.read(body, "$");
+		// 14개월 전부터 이번 달까지 빠진 달 없이 15개, 마지막은 이번 달
+		assertThat(months).hasSize(15);
+		assertThat(months.get(0)).satisfies(m -> {
+			assertThat(m.get("monthStart")).isEqualTo(old.atDay(1).toString());
+			assertThat(m.get("dataFrom")).isEqualTo(LocalDate.from(at).toString()); // 그달 기록은 10일부터
+			assertThat(((Number) m.get("visitors")).longValue()).isEqualTo(1);
+			assertThat(((Number) m.get("sessions")).longValue()).isEqualTo(1);
+			assertThat(((Number) m.get("pageViews")).longValue()).isEqualTo(2);
+			assertThat(((Number) m.get("purchases")).longValue()).isEqualTo(1);
+			assertThat(((Number) m.get("revenue")).longValue()).isEqualTo(12000);
+		});
+		assertThat(months.get(1).get("dataFrom")).isEqualTo(old.plusMonths(1).atDay(1).toString());
+		assertThat(months.get(14).get("monthStart")).isEqualTo(YearMonth.from(Times.now()).atDay(1).toString());
+
+		mockMvc.perform(get("/api/admin/analytics/monthly")).andExpect(status().isUnauthorized());
 	}
 }
